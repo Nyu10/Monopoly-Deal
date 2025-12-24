@@ -208,6 +208,9 @@ const Lobby = () => {
                 <button onClick={playWithBots} className="bot-button">
                     Play with Bots Instead
                 </button>
+                <button onClick={() => navigate('/stadium')} className="bot-button" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+                    🏟️ View Stadium Demo
+                </button>
             </div>
         </div>
     );
