@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { AlertCircle, RotateCcw, Check, X, DollarSign, Layers, Trophy, MessageSquare, Sparkles, Send, MapPin, User, Cpu, ShieldAlert, HandMetal, Home, Building, SkipForward, Info, BookOpen } from 'lucide-react';
+import { AlertCircle, RotateCcw, Check, X, DollarSign, Layers, Trophy, MessageSquare, Sparkles, Send, MapPin, User, Cpu, ShieldAlert, HandMetal, Home, Building, SkipForward, Info, BookOpen, Brain, Zap, Target } from 'lucide-react';
 import HowToPlay from './components/HowToPlay';
+import { createBot, BOT_DIFFICULTY } from './ai/BotEngine';
 
 // --- API & Configuration ---
 const apiKey = ""; // API Key injected by environment
@@ -224,21 +225,50 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
 
   const borderColor = selected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900' : highlighted ? 'ring-4 ring-red-500 animate-pulse' : 'border-slate-300';
 
+
   // MONEY CARD
   if (isMoney) {
+    // Different colors for different denominations (matching authentic Monopoly money)
+    const moneyColors = {
+      1: { bg: '#FEF3C7', text: '#92400E' },  // Yellow
+      2: { bg: '#FEE2E2', text: '#991B1B' },  // Red
+      3: { bg: '#D1FAE5', text: '#065F46' },  // Green
+      4: { bg: '#DBEAFE', text: '#1E40AF' },  // Blue
+      5: { bg: '#EDE9FE', text: '#5B21B6' },  // Purple
+      10: { bg: '#FFEDD5', text: '#9A3412' }  // Orange
+    };
+    
+    const colors = moneyColors[card.value] || moneyColors[1];
+    
     return (
       <div 
         onClick={() => onClick && onClick(card)}
-        className={`${s.card} bg-gradient-to-br from-emerald-100 to-green-50 rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        className={`${s.card} bg-white rounded-xl shadow-xl border-4 border-slate-300 cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
         style={style}
       >
-        <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 10px)'}}></div>
-        <div className="flex-1 flex flex-col items-center justify-center relative z-10">
-          <DollarSign size={s.icon * 3} className="text-emerald-600 opacity-20 absolute"/>
-          <div className="text-emerald-700 font-black" style={{fontSize: `${s.icon * 2.5}px`, fontFamily: 'Impact, sans-serif'}}>${card.value}M</div>
-          <div className={`${s.text} text-emerald-600 font-bold uppercase tracking-wider mt-1`}>Money</div>
+        {/* Main content area with denomination color */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 relative" style={{backgroundColor: colors.bg}}>
+          {/* Subtle pattern */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: 'radial-gradient(circle at 20px 20px, rgba(0,0,0,0.2) 2px, transparent 2px)',
+            backgroundSize: '30px 30px'
+          }}></div>
+          
+          {/* Large dollar sign watermark */}
+          <DollarSign size={s.icon * 4} className="absolute opacity-10" style={{color: colors.text}} />
+          
+          {/* Main value display */}
+          <div className="relative z-10 text-center">
+            <div className="font-black leading-none" style={{fontSize: `${s.icon * 3}px`, fontFamily: 'Impact, sans-serif', color: colors.text}}>
+              ${card.value}M
+            </div>
+          </div>
         </div>
-        <div className={`absolute top-2 right-2 ${s.value} font-mono font-black text-emerald-700 bg-white/80 px-1.5 py-0.5 rounded`}>${card.value}M</div>
+
+        {/* Value badge (top-left) - matching property cards */}
+        <div className={`absolute top-2 left-2 ${s.value} font-mono font-black bg-white px-2 py-1 rounded shadow-md border-2 border-black`}>
+          ${card.value}M
+        </div>
       </div>
     );
   }
@@ -255,38 +285,75 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
     return (
       <div 
         onClick={() => onClick && onClick(card)}
-        className={`${s.card} bg-gradient-to-b from-slate-50 to-white rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
-        style={style}
+        className={`${s.card} rounded-xl shadow-xl border-4 border-white cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        style={{...style, backgroundColor: bgColor}}
       >
-        {/* Property Color Bands */}
-        <div className="flex flex-col gap-0.5 p-1">
-          {Array.from({length: setCount}).map((_, i) => (
-            <div key={i} className="h-3 rounded-sm shadow-sm" style={{backgroundColor: bgColor}}></div>
-          ))}
+        {/* Value badge (top-right) - cream background with colored border like reference */}
+        <div 
+          className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md z-10`}
+          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: bgColor}}
+        >
+          ${card.value}M
         </div>
 
-        {/* Property Name */}
-        <div className="px-2 py-1.5 text-center">
-          <div className={`${s.text} font-black uppercase leading-tight`} style={{color: bgColor}}>{card.name}</div>
-        </div>
+        {/* Property name and set indicators - colored area */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 relative">
+          {/* Property Name - Large and centered */}
+          <div className={`font-black uppercase text-center leading-tight mb-3`} 
+               style={{
+                 color: textCol,
+                 fontSize: size === 'xs' || size === 'sm' ? '0.7rem' : size === 'md' ? '1rem' : '1.2rem',
+                 textShadow: textCol === 'white' ? '1px 1px 2px rgba(0,0,0,0.3)' : 'none'
+               }}>
+            {card.name}
+          </div>
 
-        {/* Rent Table */}
-        <div className="flex-1 flex flex-col justify-center px-2 space-y-0.5">
-          <div className={`${s.text} font-black uppercase text-center mb-1`}>RENT</div>
-          {rentValues.map((rent, i) => (
-            <div key={i} className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                {Array.from({length: i + 1}).map((_, j) => (
-                  <div key={j} className="w-3 h-3 rounded-sm shadow-sm" style={{backgroundColor: bgColor}}></div>
-                ))}
+          {/* Set size indicators - white squares */}
+          <div className="flex gap-1 mb-2">
+            {Array.from({length: setCount}).map((_, i) => (
+              <div 
+                key={i} 
+                className="bg-white rounded-sm shadow-sm"
+                style={{
+                  width: size === 'xs' || size === 'sm' ? '8px' : '12px',
+                  height: size === 'xs' || size === 'sm' ? '8px' : '12px',
+                  border: '1px solid rgba(0,0,0,0.2)'
+                }}
+              ></div>
+            ))}
+          </div>
+
+          {/* Rent values - compact display */}
+          <div className="space-y-0.5">
+            {rentValues.map((rent, i) => (
+              <div key={i} className="flex items-center gap-1 justify-center">
+                <div className="flex gap-0.5">
+                  {Array.from({length: i + 1}).map((_, j) => (
+                    <div 
+                      key={j} 
+                      className="bg-white rounded-sm"
+                      style={{
+                        width: size === 'xs' || size === 'sm' ? '6px' : '8px',
+                        height: size === 'xs' || size === 'sm' ? '6px' : '8px',
+                        border: '1px solid rgba(0,0,0,0.2)'
+                      }}
+                    ></div>
+                  ))}
+                </div>
+                <div 
+                  className="font-bold"
+                  style={{
+                    color: textCol,
+                    fontSize: size === 'xs' || size === 'sm' ? '0.6rem' : '0.75rem',
+                    textShadow: textCol === 'white' ? '1px 1px 1px rgba(0,0,0,0.3)' : 'none'
+                  }}
+                >
+                  ${rent}M
+                </div>
               </div>
-              <div className={`${s.text} font-mono font-bold`}>M{rent}M</div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-
-        {/* Value */}
-        <div className={`absolute top-1 right-1 ${s.value} font-mono font-black bg-white/90 px-1.5 py-0.5 rounded shadow`}>${card.value}M</div>
       </div>
     );
   }
@@ -306,7 +373,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
           <div className={`${s.text} font-black text-orange-900 text-center uppercase mb-2`}>{card.name}</div>
           <div className={`${s.text} text-orange-700 text-center leading-tight`}>{card.description || 'Charge rent to another player'}</div>
         </div>
-        <div className={`absolute top-1 right-1 ${s.value} font-mono font-black text-orange-700 bg-white/90 px-1.5 py-0.5 rounded`}>${card.value}M</div>
+        <div 
+          className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md`}
+          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#FB923C'}}
+        >
+          ${card.value}M
+        </div>
       </div>
     );
   }
@@ -325,7 +397,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
         <div className={`${s.value} font-black text-slate-900 text-center uppercase mb-2 leading-tight`}>{card.name}</div>
         <div className={`${s.text} text-slate-600 text-center leading-tight px-1`}>{card.description}</div>
       </div>
-      <div className={`absolute top-1 right-1 ${s.value} font-mono font-black text-slate-700 bg-white/90 px-1.5 py-0.5 rounded shadow`}>${card.value}M</div>
+      <div 
+        className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md`}
+        style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#475569'}}
+      >
+        ${card.value}M
+      </div>
     </div>
   );
 };
@@ -341,6 +418,8 @@ export default function MonopolyDealV3() {
   const [movesLeft, setMovesLeft] = useState(0);
   const [logs, setLogs] = useState([{ text: 'Monopoly Deal v3.0 - Official Rules', type: 'system' }]);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [botDifficulty, setBotDifficulty] = useState(BOT_DIFFICULTY.MEDIUM);
+  const botInstanceRef = useRef(null);
   
   // Interactive States
   const [pendingAction, setPendingAction] = useState(null);
@@ -385,9 +464,13 @@ export default function MonopolyDealV3() {
     const d = generateOfficialDeck();
     const ps = Array(count).fill(null).map((_, i) => ({
       id: i, name: i === 0 ? 'You' : `Bot ${i}`, isHuman: i === 0,
-      hand: [], properties: [], bank: []
+      hand: [], properties: [], bank: [], difficulty: i === 0 ? null : botDifficulty
     }));
     for (let i = 0; i < 5; i++) ps.forEach(p => d.length && p.hand.push(d.pop()));
+    
+    // Initialize bot instance with selected difficulty
+    botInstanceRef.current = createBot(botDifficulty, 1, ps);
+    
     setDeck(d);
     setPlayers(ps);
     setTurnIndex(0);
@@ -397,7 +480,7 @@ export default function MonopolyDealV3() {
     setActiveActionCard(null);
     setPaymentRequest(null);
     setSelectedForPayment([]);
-    addLog("Game Started. Draw 2 to begin.", 'system');
+    addLog(`Game Started. Bot Difficulty: ${botDifficulty}`, 'system');
   };
 
   const performDraw = (idx, forcedCount = null) => {
@@ -755,35 +838,101 @@ export default function MonopolyDealV3() {
       const cpu = players[idx];
       const hand = cpu.hand;
       
-      // CPU Strategy: Prioritize Properties
-      const property = hand.find(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
-      if (property) {
-          updatePlayer(idx, p => {
-              p.hand = p.hand.filter(c => c.uid !== property.uid);
-              p.properties.push(property);
-          });
-          addLog(`${cpu.name} played ${property.name}.`, 'event');
-          decrementMoves();
-          checkWin(players[idx]);
-          setTimeout(() => runCpuTurn(idx), 1200);
+      // Use bot AI to decide move
+      if (!botInstanceRef.current) {
+          // Fallback to simple logic if bot not initialized
+          const property = hand.find(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
+          if (property) {
+              updatePlayer(idx, p => {
+                  p.hand = p.hand.filter(c => c.uid !== property.uid);
+                  p.properties.push(property);
+              });
+              addLog(`${cpu.name} played ${property.name}.`, 'event');
+              decrementMoves();
+              checkWin(players[idx]);
+              setTimeout(() => runCpuTurn(idx), 1200);
+              return;
+          }
+          setTimeout(() => endTurn(idx), 1000);
           return;
       }
 
-      // Play money if nothing else
-      const money = hand.find(c => c.type === CARD_TYPES.MONEY);
-      if (money) {
-          updatePlayer(idx, p => {
-              p.hand = p.hand.filter(c => c.uid !== money.uid);
-              p.bank.push(money);
-          });
-          addLog(`${cpu.name} banked $${money.value}M.`, 'info');
-          decrementMoves();
-          setTimeout(() => runCpuTurn(idx), 1200);
+      // Get bot decision
+      const gameStateForBot = {
+          opponents: players.filter((_, i) => i !== idx),
+          myIndex: idx
+      };
+      
+      const decision = botInstanceRef.current.decideMove(hand, gameStateForBot);
+      
+      if (!decision || decision.action === 'END_TURN') {
+          setTimeout(() => endTurn(idx), 1000);
           return;
       }
 
-      // If no great moves, end turn
-      setTimeout(() => endTurn(idx), 1000);
+      // Execute bot decision
+      switch (decision.action) {
+          case 'PLAY_PROPERTY':
+              updatePlayer(idx, p => {
+                  p.hand = p.hand.filter(c => c.uid !== decision.card.uid);
+                  p.properties.push(decision.card);
+              });
+              addLog(`${cpu.name} played ${decision.card.name}.`, 'event');
+              decrementMoves();
+              checkWin(players[idx]);
+              setTimeout(() => runCpuTurn(idx), 1200);
+              break;
+
+          case 'BANK':
+              updatePlayer(idx, p => {
+                  p.hand = p.hand.filter(c => c.uid !== decision.card.uid);
+                  p.bank.push(decision.card);
+              });
+              addLog(`${cpu.name} banked ${decision.card.name}.`, 'info');
+              decrementMoves();
+              setTimeout(() => runCpuTurn(idx), 1200);
+              break;
+
+          case 'PLAY_ACTION':
+              // Execute action card
+              if (decision.card.actionType === ACTION_TYPES.PASS_GO) {
+                  updatePlayer(idx, p => p.hand = p.hand.filter(c => c.uid !== decision.card.uid));
+                  performDraw(idx, 2);
+                  discard(decision.card);
+                  decrementMoves();
+                  addLog(`${cpu.name} used Pass Go.`, 'event');
+                  setTimeout(() => runCpuTurn(idx), 1500);
+              } else if (decision.card.actionType === ACTION_TYPES.DEAL_BREAKER && decision.target) {
+                  const targetIdx = players.findIndex(p => p.id === decision.target.id);
+                  if (targetIdx !== -1) {
+                      executeAction(decision.card, idx, targetIdx, decision.targetCard);
+                      setTimeout(() => runCpuTurn(idx), 1500);
+                  }
+              } else if (decision.card.actionType === ACTION_TYPES.SLY_DEAL && decision.target) {
+                  const targetIdx = players.findIndex(p => p.id === decision.target.id);
+                  if (targetIdx !== -1) {
+                      executeAction(decision.card, idx, targetIdx, decision.targetCard);
+                      setTimeout(() => runCpuTurn(idx), 1500);
+                  }
+              } else if (decision.card.type === CARD_TYPES.RENT || decision.card.type === CARD_TYPES.RENT_WILD) {
+                  const targetIdx = decision.target ? players.findIndex(p => p.id === decision.target.id) : (idx + 1) % players.length;
+                  executeAction(decision.card, idx, targetIdx);
+                  setTimeout(() => runCpuTurn(idx), 1500);
+              } else {
+                  // Bank if we can't execute the action
+                  updatePlayer(idx, p => {
+                      p.hand = p.hand.filter(c => c.uid !== decision.card.uid);
+                      p.bank.push(decision.card);
+                  });
+                  addLog(`${cpu.name} banked ${decision.card.name}.`, 'info');
+                  decrementMoves();
+                  setTimeout(() => runCpuTurn(idx), 1200);
+              }
+              break;
+
+          default:
+              setTimeout(() => endTurn(idx), 1000);
+      }
   };
 
   // --- FIXED: Auto-End Turn Logic ---
@@ -842,6 +991,46 @@ export default function MonopolyDealV3() {
                 <p className="text-zinc-400 text-sm leading-relaxed font-light">
                     Maneuver through high-stakes real estate deals, dodge forced trades, and protect your empire with the perfect reaction. Three sets to win. Zero mercy.
                 </p>
+                
+                {/* Bot Difficulty Selector */}
+                <div className="space-y-3">
+                    <label className="text-xs font-black uppercase tracking-widest text-zinc-500">Bot Difficulty</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {[
+                            { level: BOT_DIFFICULTY.EASY, icon: User, label: 'Easy', desc: 'Random play', color: 'text-green-400' },
+                            { level: BOT_DIFFICULTY.MEDIUM, icon: Brain, label: 'Medium', desc: 'Balanced', color: 'text-blue-400' },
+                            { level: BOT_DIFFICULTY.HARD, icon: Zap, label: 'Hard', desc: 'Optimal', color: 'text-orange-400' },
+                            { level: BOT_DIFFICULTY.EXPERT, icon: Target, label: 'Expert', desc: 'Near-perfect', color: 'text-red-400' }
+                        ].map(({ level, icon: Icon, label, desc, color }) => (
+                            <button
+                                key={level}
+                                onClick={() => setBotDifficulty(level)}
+                                className={`
+                                    group relative p-4 rounded-xl border-2 transition-all duration-300
+                                    ${botDifficulty === level 
+                                        ? 'bg-white/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' 
+                                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'}
+                                `}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${botDifficulty === level ? 'bg-amber-500/20' : 'bg-white/5'}`}>
+                                        <Icon size={20} className={botDifficulty === level ? 'text-amber-500' : color} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-sm font-black uppercase tracking-wider text-white">{label}</div>
+                                        <div className="text-[10px] text-zinc-500 font-bold">{desc}</div>
+                                    </div>
+                                </div>
+                                {botDifficulty === level && (
+                                    <div className="absolute top-2 right-2">
+                                        <Check size={16} className="text-amber-500" />
+                                    </div>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="flex flex-col gap-3">
                     <button 
                       onClick={() => startGame()} 
@@ -873,6 +1062,14 @@ export default function MonopolyDealV3() {
                     <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center"><Sparkles size={20}/></div>
                     <span className="text-[10px] uppercase font-bold tracking-widest">Real-time</span>
                 </div>
+            </div>
+            <div className="mt-8">
+                <a 
+                    href="/cards" 
+                    className="block w-full px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-center text-sm font-bold uppercase tracking-wider text-zinc-400 hover:bg-white/10 hover:text-white transition-all"
+                >
+                    View All 110 Cards
+                </a>
             </div>
         </div>
     </div>
@@ -920,6 +1117,24 @@ export default function MonopolyDealV3() {
                     )}
                 </div>
            </div>
+
+           {/* Bot Difficulty Indicator */}
+           {gameState !== 'SETUP' && (
+               <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-t border-amber-500/20">
+                   <div className="flex items-center gap-3">
+                       <div className="p-2 rounded-lg bg-amber-500/20">
+                           {botDifficulty === BOT_DIFFICULTY.EASY && <User size={16} className="text-green-400" />}
+                           {botDifficulty === BOT_DIFFICULTY.MEDIUM && <Brain size={16} className="text-blue-400" />}
+                           {botDifficulty === BOT_DIFFICULTY.HARD && <Zap size={16} className="text-orange-400" />}
+                           {botDifficulty === BOT_DIFFICULTY.EXPERT && <Target size={16} className="text-red-400" />}
+                       </div>
+                       <div>
+                           <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bot Difficulty</div>
+                           <div className="text-sm font-black text-amber-500">{botDifficulty}</div>
+                       </div>
+                   </div>
+               </div>
+           )}
        </div>
 
        {/* Enhanced Main Arena */}
