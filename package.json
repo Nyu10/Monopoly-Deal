@@ -1,0 +1,13 @@
+{
+  "name": "property-hustle-root",
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install --prefix frontend-react",
+    "dev:frontend": "npm run dev --prefix frontend-react",
+    "dev:backend": "cd backend-java && mvn spring-boot:run",
+    "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

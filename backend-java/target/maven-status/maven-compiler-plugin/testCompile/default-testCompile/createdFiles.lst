@@ -1,0 +1,9 @@
+com/game/scenarios/GameFlowTest.class
+com/game/mechanics/ActionCardTest$TestGameEngine.class
+com/game/service/BotEngineAdvancedTest.class
+com/game/scenarios/GameFlowTest$TestGameEngine.class
+com/game/service/SetDetectionTest.class
+com/game/service/GameEngineTest$TestGameEngine.class
+com/game/service/BotEngineTest.class
+com/game/mechanics/ActionCardTest.class
+com/game/service/GameEngineTest.class

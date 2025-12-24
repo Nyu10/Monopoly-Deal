@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Playfair+Display:ital,wght@0,900;1,900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-obsidian: #020617;
+  --bg-indigo: #1e1b4b;
+  --bg-panel: rgba(15, 23, 42, 0.7);
+  --accent-gold: #fbbf24;
+  --accent-crimson: #ef4444;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--bg-obsidian);
+  font-family: 'Outfit', sans-serif;
+  color: #f1f5f9;
+}
+
+.font-serif-bold {
+  font-family: 'Playfair Display', serif;
+}
+
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.5),
+    0 4px 6px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.5);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+}
+
+.bg-mesh {
+  background-color: #020617;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.4) 0, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(15, 23, 42, 0.4) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(30, 58, 138, 0.4) 0, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(76, 29, 149, 0.3) 0, transparent 50%);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
