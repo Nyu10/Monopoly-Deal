@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.game.mechanics.ActionCardTest
 -------------------------------------------------------------------------------
-Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.826 s -- in com.game.mechanics.ActionCardTest
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.271 s -- in com.game.mechanics.ActionCardTest

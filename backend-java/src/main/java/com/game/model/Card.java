@@ -13,6 +13,8 @@ public class Card {
     private List<String> colors; 
     private String currentColor; 
     private boolean isRainbow;
+    private boolean hasHouse;
+    private boolean hasHotel;
 
     public Card() {}
 
@@ -36,6 +38,10 @@ public class Card {
     public void setCurrentColor(String currentColor) { this.currentColor = currentColor; }
     public boolean isRainbow() { return isRainbow; }
     public void setRainbow(boolean rainbow) { isRainbow = rainbow; }
+    public boolean hasHouse() { return hasHouse; }
+    public void setHasHouse(boolean hasHouse) { this.hasHouse = hasHouse; }
+    public boolean hasHotel() { return hasHotel; }
+    public void setHasHotel(boolean hasHotel) { this.hasHotel = hasHotel; }
 
     public static CardBuilder builder() { return new CardBuilder(); }
     public static class CardBuilder {

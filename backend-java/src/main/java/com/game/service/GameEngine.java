@@ -188,19 +188,323 @@ public class GameEngine {
                 break;
                 
             case DEBT_COLLECTOR:
+                if (checkForJustSayNo(state, p, move, "DEBT_COLLECTOR")) return;
                 handleDebtCollector(state, p, move);
                 break;
                 
             case BIRTHDAY:
+                // Birthday affects all players, harder to Just Say No
                 handleBirthday(state, p);
                 break;
                 
-            // TODO: Add more action types (Sly Deal, Forced Deal, Deal Breaker, etc.)
+            case SLY_DEAL:
+                if (checkForJustSayNo(state, p, move, "SLY_DEAL")) return;
+                handleSlyDeal(state, p, move);
+                break;
+                
+            case FORCED_DEAL:
+                if (checkForJustSayNo(state, p, move, "FORCED_DEAL")) return;
+                handleForcedDeal(state, p, move);
+                break;
+                
+            case DEAL_BREAKER:
+                if (checkForJustSayNo(state, p, move, "DEAL_BREAKER")) return;
+                handleDealBreaker(state, p, move);
+                break;
+                
+            case JUST_SAY_NO:
+                // Just Say No is handled in checkForJustSayNo
+                state.getLogs().add(new GameState.GameLog(
+                    p.getName() + " said NO! The action was cancelled.",
+                    "event"));
+                break;
+                
+            case HOUSE:
+                handleHouse(state, p, move);
+                break;
+                
+            case HOTEL:
+                handleHotel(state, p, move);
+                break;
+                
+            case DOUBLE_RENT:
+                handleDoubleRent(state, p);
+                break;
+                
             default:
                 log.warn("Unimplemented action type: {}", card.getActionType());
                 break;
         }
     }
+
+    private void handleDoubleRent(GameState state, Player player) {
+        // Set flag to double next rent
+        state.getTurnContext().setDoubleRentActive(true);
+        
+        state.getLogs().add(new GameState.GameLog(
+            player.getName() + " played Double Rent! Next rent will be doubled.",
+            "event"));
+        
+        log.info("{} activated Double Rent", player.getName());
+    }
+
+    private void handleHouse(GameState state, Player player, Move move) {
+        // Find a complete set to place house on
+        String targetColor = findCompleteSetForBuilding(player);
+        
+        if (targetColor == null) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played House but has no complete sets!",
+                "warning"));
+            return;
+        }
+        
+        // Place house on one property of that color
+        for (Card card : player.getProperties()) {
+            String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (targetColor.equals(cardColor) && !card.hasHouse() && !card.hasHotel()) {
+                card.setHasHouse(true);
+                state.getLogs().add(new GameState.GameLog(
+                    player.getName() + " placed a House on " + card.getName() + "!",
+                    "event"));
+                log.info("{} placed house on {}", player.getName(), card.getName());
+                return;
+            }
+        }
+    }
+
+    private void handleHotel(GameState state, Player player, Move move) {
+        // Find a complete set with a house to upgrade to hotel
+        String targetColor = findCompleteSetWithHouse(player);
+        
+        if (targetColor == null) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played Hotel but has no complete sets with a House!",
+                "warning"));
+            return;
+        }
+        
+        // Upgrade house to hotel on one property
+        for (Card card : player.getProperties()) {
+            String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (targetColor.equals(cardColor) && card.hasHouse() && !card.hasHotel()) {
+                card.setHasHouse(false);
+                card.setHasHotel(true);
+                state.getLogs().add(new GameState.GameLog(
+                    player.getName() + " upgraded to a Hotel on " + card.getName() + "!",
+                    "event"));
+                log.info("{} placed hotel on {}", player.getName(), card.getName());
+                return;
+            }
+        }
+    }
+
+    private String findCompleteSetForBuilding(Player player) {
+        List<String> availableColors = rentCalculator.getAvailableRentColors(player);
+        
+        for (String color : availableColors) {
+            if (rentCalculator.hasCompleteSet(player, color)) {
+                return color;
+            }
+        }
+        
+        return null;
+    }
+
+    private String findCompleteSetWithHouse(Player player) {
+        List<String> availableColors = rentCalculator.getAvailableRentColors(player);
+        
+        for (String color : availableColors) {
+            if (rentCalculator.hasCompleteSet(player, color)) {
+                // Check if any property in this set has a house
+                for (Card card : player.getProperties()) {
+                    String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+                    if (color.equals(cardColor) && card.hasHouse()) {
+                        return color;
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if target player wants to use Just Say No
+     * Returns true if action was cancelled
+     */
+    private boolean checkForJustSayNo(GameState state, Player attacker, Move move, String actionType) {
+        // Determine target player
+        int targetPlayerId = -1;
+        
+        switch (actionType) {
+            case "DEBT_COLLECTOR":
+            case "SLY_DEAL":
+            case "FORCED_DEAL":
+                targetPlayerId = move.getTargetPlayerId() != null ? 
+                    move.getTargetPlayerId() : selectBestSlyDealTarget(state, attacker.getId());
+                break;
+            case "DEAL_BREAKER":
+                targetPlayerId = selectPlayerWithCompleteSet(state, attacker.getId());
+                break;
+        }
+        
+        if (targetPlayerId == -1 || targetPlayerId == attacker.getId()) {
+            return false;
+        }
+        
+        Player target = state.getPlayers().get(targetPlayerId);
+        
+        // Check if target has Just Say No card
+        Card justSayNo = target.getHand().stream()
+            .filter(c -> c.getActionType() == ActionType.JUST_SAY_NO)
+            .findFirst()
+            .orElse(null);
+        
+        if (justSayNo == null) {
+            return false; // No Just Say No available
+        }
+        
+        // Bot decides whether to use Just Say No
+        boolean shouldUseJustSayNo = false;
+        if (!target.isHuman()) {
+            shouldUseJustSayNo = botEngine.shouldUseJustSayNo(state, actionType, target, attacker);
+        }
+        // For human players, would need UI interaction - for now, bots auto-decide
+        
+        if (shouldUseJustSayNo) {
+            // Use Just Say No
+            target.getHand().remove(justSayNo);
+            state.getDiscardPile().add(justSayNo);
+            
+            state.getLogs().add(new GameState.GameLog(
+                target.getName() + " played Just Say No! " + attacker.getName() + "'s " + 
+                actionType.replace("_", " ") + " was cancelled!",
+                "event"));
+            
+            log.info("{} used Just Say No to block {}'s {}", 
+                target.getName(), attacker.getName(), actionType);
+            
+            return true; // Action cancelled
+        }
+        
+        return false; // Action proceeds
+    }
+
+
+    private void handleSlyDeal(GameState state, Player player, Move move) {
+        // Select target player
+        int targetPlayerId = move.getTargetPlayerId() != null ? 
+            move.getTargetPlayerId() : selectBestSlyDealTarget(state, player.getId());
+        
+        Player target = state.getPlayers().get(targetPlayerId);
+        
+        // Select property to steal (cannot be from complete set)
+        Card propertyToSteal = selectStealableProperty(state, target, player);
+        
+        if (propertyToSteal == null) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played Sly Deal but " + target.getName() + " has no stealable properties!", 
+                "warning"));
+            return;
+        }
+        
+        // Steal the property
+        target.getProperties().remove(propertyToSteal);
+        player.getProperties().add(propertyToSteal);
+        
+        state.getLogs().add(new GameState.GameLog(
+            player.getName() + " stole " + propertyToSteal.getName() + " from " + target.getName() + "!",
+            "event"));
+        
+        log.info("{} stole {} from {}", player.getName(), propertyToSteal.getName(), target.getName());
+    }
+
+    private void handleForcedDeal(GameState state, Player player, Move move) {
+        // Select target player
+        int targetPlayerId = move.getTargetPlayerId() != null ? 
+            move.getTargetPlayerId() : selectBestForcedDealTarget(state, player.getId());
+        
+        Player target = state.getPlayers().get(targetPlayerId);
+        
+        // Select property to give away (low value, not in complete set)
+        Card propertyToGive = selectPropertyToGiveAway(state, player);
+        
+        // Select property to receive (high value, not in complete set)
+        Card propertyToReceive = selectStealableProperty(state, target, player);
+        
+        if (propertyToGive == null || propertyToReceive == null) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played Forced Deal but cannot complete the trade!",
+                "warning"));
+            return;
+        }
+        
+        // Swap properties
+        player.getProperties().remove(propertyToGive);
+        target.getProperties().add(propertyToGive);
+        
+        target.getProperties().remove(propertyToReceive);
+        player.getProperties().add(propertyToReceive);
+        
+        state.getLogs().add(new GameState.GameLog(
+            player.getName() + " swapped " + propertyToGive.getName() + 
+            " for " + propertyToReceive.getName() + " with " + target.getName() + "!",
+            "event"));
+        
+        log.info("{} traded {} for {} with {}", 
+            player.getName(), propertyToGive.getName(), propertyToReceive.getName(), target.getName());
+    }
+
+    private void handleDealBreaker(GameState state, Player player, Move move) {
+        // Select target player with complete set
+        int targetPlayerId = selectPlayerWithCompleteSet(state, player.getId());
+        
+        if (targetPlayerId == -1) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played Deal Breaker but no one has a complete set!",
+                "warning"));
+            return;
+        }
+        
+        Player target = state.getPlayers().get(targetPlayerId);
+        
+        // Find a complete set to steal
+        String colorToSteal = findCompleteSetToSteal(state, target);
+        
+        if (colorToSteal == null) {
+            state.getLogs().add(new GameState.GameLog(
+                player.getName() + " played Deal Breaker but couldn't find a complete set!",
+                "warning"));
+            return;
+        }
+        
+        // Steal entire set
+        List<Card> setCards = new ArrayList<>();
+        for (Card card : target.getProperties()) {
+            String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (colorToSteal.equals(cardColor)) {
+                setCards.add(card);
+            }
+        }
+        
+        for (Card card : setCards) {
+            target.getProperties().remove(card);
+            player.getProperties().add(card);
+        }
+        
+        state.getLogs().add(new GameState.GameLog(
+            player.getName() + " stole " + target.getName() + "'s complete " + 
+            colorToSteal + " set (" + setCards.size() + " properties)!",
+            "event"));
+        
+        log.info("{} stole complete {} set from {}", 
+            player.getName(), colorToSteal, target.getName());
+        
+        // Check if player now wins
+        checkWinCondition(state, player);
+    }
+
 
     private void handleDebtCollector(GameState state, Player player, Move move) {
         // Determine target player
@@ -270,6 +574,116 @@ public class GameEngine {
         return wealth;
     }
 
+    // Property manipulation helper methods
+    
+    private Card selectStealableProperty(GameState state, Player target, Player thief) {
+        // Cannot steal from complete sets
+        List<Card> stealableProps = new ArrayList<>();
+        
+        for (Card card : target.getProperties()) {
+            String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (color != null && !rentCalculator.hasCompleteSet(target, color)) {
+                stealableProps.add(card);
+            }
+        }
+        
+        if (stealableProps.isEmpty()) {
+            return null;
+        }
+        
+        // Prioritize properties that help thief complete sets
+        for (Card prop : stealableProps) {
+            String color = prop.getCurrentColor() != null ? prop.getCurrentColor() : prop.getColor();
+            if (color != null && wouldHelpCompleteSet(thief, color)) {
+                return prop;
+            }
+        }
+        
+        // Otherwise, steal highest value property
+        stealableProps.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        return stealableProps.get(0);
+    }
+
+    private Card selectPropertyToGiveAway(GameState state, Player player) {
+        // Give away lowest value property not in complete set
+        List<Card> tradableProps = new ArrayList<>();
+        
+        for (Card card : player.getProperties()) {
+            String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (color != null && !rentCalculator.hasCompleteSet(player, color)) {
+                tradableProps.add(card);
+            }
+        }
+        
+        if (tradableProps.isEmpty()) {
+            return null;
+        }
+        
+        // Sort by value (ascending) to give away lowest value
+        tradableProps.sort(Comparator.comparingInt(Card::getValue));
+        return tradableProps.get(0);
+    }
+
+    private boolean wouldHelpCompleteSet(Player player, String color) {
+        if (color == null) return false;
+        
+        int currentCount = 0;
+        for (Card card : player.getProperties()) {
+            String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (color.equals(cardColor)) {
+                currentCount++;
+            }
+        }
+        
+        // Check if adding one more would complete the set
+        return rentCalculator.hasCompleteSet(player, color) == false && currentCount > 0;
+    }
+
+    private int selectBestSlyDealTarget(GameState state, int playerId) {
+        int bestTarget = -1;
+        int maxValue = 0;
+        
+        for (Player opponent : state.getPlayers()) {
+            if (opponent.getId() != playerId) {
+                Card bestProperty = selectStealableProperty(state, opponent, state.getPlayers().get(playerId));
+                if (bestProperty != null && bestProperty.getValue() > maxValue) {
+                    maxValue = bestProperty.getValue();
+                    bestTarget = opponent.getId();
+                }
+            }
+        }
+        
+        return bestTarget != -1 ? bestTarget : (playerId + 1) % state.getPlayers().size();
+    }
+
+    private int selectBestForcedDealTarget(GameState state, int playerId) {
+        // Similar to Sly Deal, find player with valuable stealable properties
+        return selectBestSlyDealTarget(state, playerId);
+    }
+
+    private int selectPlayerWithCompleteSet(GameState state, int playerId) {
+        for (Player opponent : state.getPlayers()) {
+            if (opponent.getId() != playerId) {
+                if (findCompleteSetToSteal(state, opponent) != null) {
+                    return opponent.getId();
+                }
+            }
+        }
+        return -1;
+    }
+
+    private String findCompleteSetToSteal(GameState state, Player target) {
+        List<String> availableColors = rentCalculator.getAvailableRentColors(target);
+        
+        for (String color : availableColors) {
+            if (rentCalculator.hasCompleteSet(target, color)) {
+                return color;
+            }
+        }
+        
+        return null;
+    }
+
     private void handleRentCard(GameState state, Player player, Card rentCard, Move move) {
         state.getDiscardPile().add(rentCard);
         
@@ -308,14 +722,27 @@ public class GameEngine {
         // Calculate rent amount
         int rentAmount = rentCalculator.calculateRent(player, rentColor);
         
+        // Apply Double Rent multiplier if active
+        if (state.getTurnContext().isDoubleRentActive()) {
+            rentAmount *= 2;
+            state.getTurnContext().setDoubleRentActive(false); // Reset after use
+            state.getLogs().add(new GameState.GameLog(
+                "Double Rent activated! Rent doubled to $" + rentAmount + "M!",
+                "event"));
+        }
+        
         state.getLogs().add(new GameState.GameLog(
             player.getName() + " charged $" + rentAmount + "M rent for " + rentColor + " properties", "event"));
         
-        // Determine target(s)
+        // Determine target(s) and check for Just Say No
         if (rentCalculator.hasCompleteSet(player, rentColor)) {
             // Complete set - charge ALL opponents
             for (Player opponent : state.getPlayers()) {
                 if (opponent.getId() != player.getId()) {
+                    // Check if this opponent uses Just Say No
+                    if (checkForJustSayNoRent(state, player, opponent, rentAmount)) {
+                        continue; // This opponent blocked the rent
+                    }
                     createPaymentRequest(state, opponent.getId(), player.getId(), rentAmount, "rent", rentCard.getUid());
                 }
             }
@@ -328,7 +755,12 @@ public class GameEngine {
                 // Bot selects richest opponent
                 targetPlayerId = selectRichestOpponent(state, player.getId());
             }
-            createPaymentRequest(state, targetPlayerId, player.getId(), rentAmount, "rent", rentCard.getUid());
+            
+            // Check for Just Say No
+            Player target = state.getPlayers().get(targetPlayerId);
+            if (!checkForJustSayNoRent(state, player, target, rentAmount)) {
+                createPaymentRequest(state, targetPlayerId, player.getId(), rentAmount, "rent", rentCard.getUid());
+            }
         }
         
         // Process all pending payments
@@ -338,6 +770,42 @@ public class GameEngine {
                 handlePayment(state, request);
             }
         }
+    }
+
+    private boolean checkForJustSayNoRent(GameState state, Player charger, Player target, int rentAmount) {
+        // Check if target has Just Say No card
+        Card justSayNo = target.getHand().stream()
+            .filter(c -> c.getActionType() == ActionType.JUST_SAY_NO)
+            .findFirst()
+            .orElse(null);
+        
+        if (justSayNo == null) {
+            return false;
+        }
+        
+        // Bot decides whether to use Just Say No for rent
+        boolean shouldUse = false;
+        if (!target.isHuman()) {
+            // Use Just Say No if rent is high and bot has low money
+            int targetWealth = calculatePlayerWealth(target);
+            shouldUse = (rentAmount >= 3 && targetWealth < 5) || rentAmount >= 6;
+        }
+        
+        if (shouldUse) {
+            target.getHand().remove(justSayNo);
+            state.getDiscardPile().add(justSayNo);
+            
+            state.getLogs().add(new GameState.GameLog(
+                target.getName() + " played Just Say No! Rent was cancelled.",
+                "event"));
+            
+            log.info("{} used Just Say No to block ${} rent from {}", 
+                target.getName(), rentAmount, charger.getName());
+            
+            return true;
+        }
+        
+        return false;
     }
 
 

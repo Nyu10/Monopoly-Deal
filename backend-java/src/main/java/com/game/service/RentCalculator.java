@@ -83,9 +83,20 @@ public class RentCalculator {
      * Calculate bonus rent from buildings (house/hotel)
      */
     private int calculateBuildingBonus(Player player, String color) {
-        // TODO: Implement building tracking and bonus calculation
-        // For now, return 0 (buildings not yet implemented)
-        return 0;
+        int bonus = 0;
+        
+        for (Card card : player.getProperties()) {
+            String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (color.equals(cardColor)) {
+                if (card.hasHotel()) {
+                    bonus += 4; // Hotel adds $4M
+                } else if (card.hasHouse()) {
+                    bonus += 3; // House adds $3M
+                }
+            }
+        }
+        
+        return bonus;
     }
     
     /**

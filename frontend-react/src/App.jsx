@@ -930,62 +930,131 @@ export default function MonopolyDealV3() {
                </div>
            )}
 
-           {/* Opponent Grid */}
-           <div className="h-[40%] p-10 grid grid-cols-5 gap-8">
-               {players.slice(1).map(p => (
-                   <div key={p.id} className={`
-                        relative glass-panel rounded-[32px] p-5 flex flex-col transition-all duration-500
-                        ${turnIndex===p.id ? 'border-amber-500 ring-4 ring-amber-500/10 shadow-[0_0_50px_rgba(245,158,11,0.15)] bg-amber-500/5' : 'border-white/5 opacity-80'}
-                   `}>
-                       {/* Bot Status Header */}
-                       <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-xl bg-zinc-800 border ${turnIndex===p.id ? 'border-amber-500 text-amber-500' : 'border-white/10 text-zinc-500'}`}>
-                                    <Cpu size={16}/>
-                                </div>
-                                <div className="space-y-0.5">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-zinc-100">{p.name}</div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-1 h-1 rounded-full bg-green-500"></div>
-                                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest tracking-widest">Processing</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-amber-500 font-black font-mono text-sm">${p.bank.reduce((a,c)=>a+c.value,0)}M</div>
-                       </div>
+             {/* Opponents Area - Full Monopoly Deal Style (35% of screen) */}
+             <div className="h-[35%] px-8 py-6 border-b border-white/5 bg-gradient-to-b from-black/20 to-transparent overflow-y-auto custom-scrollbar">
+                 <div className="grid grid-cols-3 gap-6 h-full">
+                     {players.slice(1).map(p => (
+                         <div key={p.id} className={`
+                             relative rounded-2xl p-4 backdrop-blur-xl transition-all duration-300 flex flex-col min-h-0
+                             ${turnIndex === p.id 
+                                 ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.3)]' 
+                                 : 'bg-white/5 border border-white/10 hover:bg-white/10'}
+                         `}>
+                             {/* Opponent Header */}
+                             <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                                 <div className="flex items-center gap-2">
+                                     <div className={`p-1.5 rounded-lg ${turnIndex === p.id ? 'bg-amber-500/30 text-amber-400' : 'bg-white/10 text-zinc-400'}`}>
+                                         <Cpu size={14}/>
+                                     </div>
+                                     <span className="text-xs font-bold">{p.name}</span>
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                     <div className="text-xs font-mono font-black text-green-400">${p.bank.reduce((a,c)=>a+c.value,0)}M</div>
+                                     <div className="text-[10px] text-zinc-500">{p.hand.length} in hand</div>
+                                 </div>
+                             </div>
 
-                       {/* Bot Hand (Hidden visualization) */}
-                       <div className="h-14 flex items-center justify-center pl-4 mb-6">
-                            {p.hand.length === 0 ? (
-                                <span className="text-[9px] text-zinc-700 font-black uppercase tracking-widest italic tracking-widest">Out of cards</span>
-                            ) : (
-                                p.hand.slice(0, 6).map((c, idx) => (
-                                    <div key={c.uid} className="transform -ml-6 transition-all hover:-translate-y-2" style={{zIndex: idx, rotate: `${(idx - 3) * 6}deg`}}>
-                                        <CardComponent card={c} size="sm" faceDown className="shadow-2xl border-white/5"/>
-                                    </div>
-                                ))
-                            )}
-                       </div>
+                             {/* Opponent Content - Scrollable */}
+                             <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar">
+                                 {/* Properties Section */}
+                                 <div className="flex-shrink-0">
+                                     <div className="text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-2">Properties</div>
+                                     {getSets(p.properties).length > 0 ? (
+                                         <div className="flex flex-wrap gap-2">
+                                             {getSets(p.properties).map((s, i) => (
+                                                 <div 
+                                                     key={i} 
+                                                     onClick={() => s.cards.forEach(c => handleTargetClick(c, p.id))}
+                                                     className={`
+                                                         group relative rounded-lg p-2 transition-all cursor-pointer
+                                                         ${s.isComplete 
+                                                             ? 'bg-gradient-to-br from-amber-500/30 to-orange-500/30 border-2 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
+                                                             : 'bg-white/10 border border-white/20 hover:border-white/30'}
+                                                     `}
+                                                 >
+                                                     {s.isComplete && (
+                                                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                                                             <Trophy size={10} className="text-white"/>
+                                                         </div>
+                                                     )}
+                                                     <div className="flex flex-col gap-1">
+                                                         {s.cards.map(c => (
+                                                             <div 
+                                                                 key={c.uid} 
+                                                                 className="h-6 rounded shadow-sm border border-white/20 flex items-center justify-center px-2 transition-transform hover:scale-105" 
+                                                                 style={{backgroundColor: COLORS[c.currentColor||c.color]?.hex}}
+                                                             >
+                                                                 <span className="text-[7px] font-bold text-white drop-shadow truncate">{c.name}</span>
+                                                             </div>
+                                                         ))}
+                                                     </div>
+                                                 </div>
+                                             ))}
+                                         </div>
+                                     ) : (
+                                         <span className="text-[9px] text-zinc-600 italic">No properties</span>
+                                     )}
+                                 </div>
 
-                       {/* Bot Wealth Overview */}
-                       <div className="flex-1 flex flex-wrap gap-2 content-start overflow-y-auto custom-scrollbar">
-                           {getSets(p.properties).map((s, i) => (
-                               <div key={i} onClick={() => s.cards.forEach(c => handleTargetClick(c, p.id))} className={`
-                                    group relative p-1 rounded-xl border-2 transition-all cursor-pointer hover:border-white/20
-                                    ${s.isComplete ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'border-white/5 bg-white/5'}
-                               `}>
-                                   <div className="flex flex-col-reverse -space-y-4">
-                                       {s.cards.map(c => <div key={c.uid} className="w-5 h-7 rounded shadow-md border border-black/20" style={{backgroundColor: COLORS[c.currentColor||c.color]?.hex}}></div>)}
-                                   </div>
-                               </div>
-                           ))}
-                       </div>
-                   </div>
-               ))}
-           </div>
+                                 {/* Bank Section */}
+                                 <div className="flex-shrink-0">
+                                     <div className="text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-2">Bank (${p.bank.reduce((a,c)=>a+c.value,0)}M)</div>
+                                     {p.bank.length > 0 ? (
+                                         <div className="flex flex-wrap gap-1">
+                                             {p.bank.slice(0, 8).map(c => (
+                                                 <CardComponent 
+                                                     key={c.uid} 
+                                                     card={c} 
+                                                     size="xs"
+                                                     className="opacity-90 hover:opacity-100 hover:scale-110 transition-all"/>
+                                             ))}
+                                             {p.bank.length > 8 && (
+                                                 <div className="w-12 h-16 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                                                     <span className="text-[8px] font-black text-white">+{p.bank.length - 8}</span>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     ) : (
+                                         <span className="text-[9px] text-zinc-600 italic">No money</span>
+                                     )}
+                                 </div>
 
-           {/* Global Deck & Play Area */}
-           <div className="flex-1 flex items-center justify-center gap-20 relative">
+                                 {/* Hand Section (Hidden Cards) */}
+                                 <div className="flex-shrink-0">
+                                     <div className="text-[9px] font-black uppercase tracking-wider text-zinc-500 mb-2">Hand ({p.hand.length} cards)</div>
+                                     {p.hand.length > 0 ? (
+                                         <div className="flex gap-1">
+                                             {p.hand.slice(0, 7).map((c, idx) => (
+                                                 <CardComponent 
+                                                     key={c.uid} 
+                                                     card={c} 
+                                                     size="xs"
+                                                     faceDown
+                                                     className="opacity-80"/>
+                                             ))}
+                                             {p.hand.length > 7 && (
+                                                 <div className="w-12 h-16 rounded-lg bg-red-900/50 border-2 border-white/40 flex items-center justify-center">
+                                                     <span className="text-[8px] font-black text-white">+{p.hand.length - 7}</span>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     ) : (
+                                         <span className="text-[9px] text-zinc-600 italic">No cards</span>
+                                     )}
+                                 </div>
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+             </div>
+
+            {/* Enhanced Center Play Area */}
+            <div className="flex-1 flex items-center justify-center gap-20 relative">
+                {/* Animated Background Orbs */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+                    <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+                </div>
                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent pointer-events-none"></div>
                
                <div onClick={() => turnIndex === 0 && gameState === 'DRAW' && performDraw(0)} className={`
@@ -994,10 +1063,13 @@ export default function MonopolyDealV3() {
                `}>
                    {deck.length > 0 ? (
                        <div className="relative">
-                            <CardComponent faceDown size="lg" className="shadow-[0_20px_60px_rgba(0,0,0,0.8)] relative z-10"/>
+                             <CardComponent faceDown size="xl" className="shadow-[0_20px_60px_rgba(0,0,0,0.8)] relative z-10 border-4 border-white/90"/>
                             {/* Card Stack Illusion */}
-                            <div className="absolute top-1 left-1 w-full h-full bg-red-900 border-2 border-white/90 rounded-lg -z-10 translate-x-1 translate-y-1"></div>
-                            <div className="absolute top-2 left-2 w-full h-full bg-red-800 border-2 border-white/90 rounded-lg -z-20 translate-x-2 translate-y-2"></div>
+                             <div className="absolute top-1 left-1 w-full h-full bg-red-900 border-4 border-white/90 rounded-xl -z-10"></div>
+                             <div className="absolute top-2 left-2 w-full h-full bg-red-800 border-4 border-white/90 rounded-xl -z-20"></div>
+                             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 text-xs font-black text-zinc-500">
+                                 {deck.length} cards
+                             </div>
                        </div>
                    ) : (
                        <div className="w-36 h-56 border-4 border-dashed border-white/5 rounded-2xl flex items-center justify-center text-zinc-800 font-black uppercase text-xs">Deck Empty</div>
@@ -1043,8 +1115,8 @@ export default function MonopolyDealV3() {
                 </div>
            </div>
 
-           {/* Production Player Zone */}
-           <div className="h-[35%] glass-panel border-t border-white/10 p-10 flex items-start gap-12 relative shadow-[0_-20px_50px_rgba(0,0,0,0.4)]">
+            {/* Enhanced Player Zone - 45% of screen */}
+            <div className="h-[45%] glass-panel border-t-2 border-amber-500/30 p-10 flex items-start gap-12 relative shadow-[0_-20px_50px_rgba(0,0,0,0.4)] bg-gradient-to-t from-black/40 to-transparent backdrop-blur-xl">
                {/* Fixed Bank Display */}
                <div className="flex flex-col gap-4">
                    <div className="flex items-center justify-between">
@@ -1154,13 +1226,26 @@ export default function MonopolyDealV3() {
                          </div>
                      )}
 
-                     <div className="flex justify-center -space-x-16 hover:-space-x-10 transition-all duration-700 h-40 origin-bottom px-10">
-                         {players[0].hand.filter(c => c.uid !== pendingAction?.uid).map((c, i) => (
-                             <div key={c.uid} className="transform hover:-translate-y-20 hover:scale-125 transition-all duration-300 cursor-pointer origin-bottom" style={{zIndex: i, rotate: `${(i - (players[0].hand.length-1)/2) * 4}deg`}}>
-                                 <CardComponent card={c} onClick={playCard} className="shadow-[0_20px_50px_rgba(0,0,0,0.6)] border-white/10" />
-                             </div>
-                         ))}
-                     </div>
+                      <div className="flex justify-center -space-x-14 hover:-space-x-8 transition-all duration-700 h-48 origin-bottom px-10">
+                          {players[0].hand.filter(c => c.uid !== pendingAction?.uid).map((c, i) => (
+                              <div 
+                                  key={c.uid} 
+                                  className="transform hover:-translate-y-24 hover:scale-110 hover:rotate-0 transition-all duration-300 cursor-pointer origin-bottom hover:z-50" 
+                                  style={{
+                                      zIndex: i, 
+                                      rotate: `${(i - (players[0].hand.length-1)/2) * 3}deg`,
+                                      translateY: `${Math.abs(i - (players[0].hand.length-1)/2) * -2}px`
+                                  }}
+                              >
+                                  <CardComponent 
+                                      card={c} 
+                                      onClick={playCard} 
+                                      size="lg"
+                                      className="shadow-[0_20px_50px_rgba(0,0,0,0.8)] border-4 border-white/90 hover:shadow-[0_30px_70px_rgba(0,0,0,0.9)]" 
+                                  />
+                              </div>
+                          ))}
+                      </div>
                 </div>
                
                {/* Payment HUD */}

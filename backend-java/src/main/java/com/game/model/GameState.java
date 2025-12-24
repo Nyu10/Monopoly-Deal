@@ -40,9 +40,11 @@ public class GameState {
         private int turnTimer;
         private boolean paused;
         private List<PaymentRequest> pendingPayments;
+        private boolean doubleRentActive;
 
         public TurnContext() {
             this.pendingPayments = new ArrayList<>();
+            this.doubleRentActive = false;
         }
 
         public int getActivePlayerId() { return activePlayerId; }
@@ -63,6 +65,8 @@ public class GameState {
         public void setPaused(boolean paused) { this.paused = paused; }
         public List<PaymentRequest> getPendingPayments() { return pendingPayments; }
         public void setPendingPayments(List<PaymentRequest> pendingPayments) { this.pendingPayments = pendingPayments; }
+        public boolean isDoubleRentActive() { return doubleRentActive; }
+        public void setDoubleRentActive(boolean doubleRentActive) { this.doubleRentActive = doubleRentActive; }
     }
 
     public static class GameLog {
