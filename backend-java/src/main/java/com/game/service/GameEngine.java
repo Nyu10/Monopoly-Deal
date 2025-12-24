@@ -161,7 +161,14 @@ public class GameEngine {
                 break;
             case PROPERTY:
             case PROPERTY_WILD:
-                // Prevent banking properties (validation)
+                // Smart wild card color selection
+                if (card.getType() == CardType.PROPERTY_WILD) {
+                    String bestColor = selectBestWildCardColor(p, card);
+                    if (bestColor != null) {
+                        card.setCurrentColor(bestColor);
+                    }
+                }
+                
                 p.getProperties().add(card);
                 state.getLogs().add(new GameState.GameLog(p.getName() + " played property: " + card.getName(), "event"));
                 checkWinCondition(state, p);
@@ -413,11 +420,18 @@ public class GameEngine {
         target.getProperties().remove(propertyToSteal);
         player.getProperties().add(propertyToSteal);
         
+        String buildingInfo = "";
+        if (propertyToSteal.hasHotel()) {
+            buildingInfo = " (with Hotel)";
+        } else if (propertyToSteal.hasHouse()) {
+            buildingInfo = " (with House)";
+        }
+        
         state.getLogs().add(new GameState.GameLog(
-            player.getName() + " stole " + propertyToSteal.getName() + " from " + target.getName() + "!",
+            player.getName() + " stole " + propertyToSteal.getName() + buildingInfo + " from " + target.getName() + "!",
             "event"));
         
-        log.info("{} stole {} from {}", player.getName(), propertyToSteal.getName(), target.getName());
+        log.info("{} stole {}{} from {}", player.getName(), propertyToSteal.getName(), buildingInfo, target.getName());
     }
 
     private void handleForcedDeal(GameState state, Player player, Move move) {
@@ -872,6 +886,14 @@ public class GameEngine {
         
         int totalValue = calculateTotalValue(cardsToPayWith);
         
+        // Check if payment is insufficient
+        if (totalValue < request.getAmount()) {
+            state.getLogs().add(new GameState.GameLog(
+                payer.getName() + " can only pay $" + totalValue + "M of the $" + request.getAmount() + "M owed!",
+                "warning"
+            ));
+        }
+        
         // Transfer cards from payer to payee's bank
         for (Card card : cardsToPayWith) {
             payer.getHand().remove(card);
@@ -942,8 +964,7 @@ public class GameEngine {
     }
 
     private int countCompletedSets(Player player) {
-        // TODO: Implement proper set counting logic
-        // For now, simplified version
+        // Count completed property sets for win condition
         Map<String, Integer> colorCounts = new HashMap<>();
         for (Card card : player.getProperties()) {
             String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
@@ -954,7 +975,7 @@ public class GameEngine {
         
         int completed = 0;
         Map<String, Integer> requiredCounts = Map.of(
-            "brown", 2, "blue", 2, "lightblue", 3, "pink", 3,
+            "brown", 2, "dark_blue", 2, "light_blue", 3, "pink", 3,
             "orange", 3, "red", 3, "yellow", 3, "green", 3, "railroad", 4, "utility", 2
         );
         
@@ -966,6 +987,66 @@ public class GameEngine {
         }
         
         return completed;
+    }
+
+    private String selectBestWildCardColor(Player player, Card wildCard) {
+        // For rainbow wild cards, can be any color
+        List<String> possibleColors;
+        if (wildCard.isRainbow()) {
+            possibleColors = Arrays.asList("brown", "dark_blue", "light_blue", "pink", 
+                "orange", "red", "yellow", "green", "railroad", "utility");
+        } else if (wildCard.getColors() != null && !wildCard.getColors().isEmpty()) {
+            possibleColors = wildCard.getColors();
+        } else {
+            return wildCard.getCurrentColor(); // Already has a color
+        }
+        
+        // Count existing properties by color
+        Map<String, Integer> colorCounts = new HashMap<>();
+        for (Card card : player.getProperties()) {
+            String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+            if (color != null) {
+                colorCounts.put(color, colorCounts.getOrDefault(color, 0) + 1);
+            }
+        }
+        
+        // Set requirements
+        Map<String, Integer> requiredCounts = Map.of(
+            "brown", 2, "dark_blue", 2, "light_blue", 3, "pink", 3,
+            "orange", 3, "red", 3, "yellow", 3, "green", 3, "railroad", 4, "utility", 2
+        );
+        
+        // Strategy: Choose color that gets closest to completing a set
+        String bestColor = null;
+        int bestScore = -1;
+        
+        for (String color : possibleColors) {
+            int currentCount = colorCounts.getOrDefault(color, 0);
+            Integer required = requiredCounts.get(color);
+            
+            if (required != null) {
+                // Score: how close to completing the set
+                int score = currentCount;
+                
+                // Bonus if this would complete the set
+                if (currentCount + 1 >= required) {
+                    score += 100;
+                }
+                
+                // Bonus for colors with higher rent values
+                if (color.equals("dark_blue") || color.equals("green")) {
+                    score += 5;
+                }
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestColor = color;
+                }
+            }
+        }
+        
+        // If no good choice, pick first available color
+        return bestColor != null ? bestColor : possibleColors.get(0);
     }
 
     private void checkTurnEndAndTriggerBot(String roomId, GameState state) {

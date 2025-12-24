@@ -194,14 +194,14 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
   if (faceDown) {
     return (
       <div 
-        className={`${size === 'sm' ? 'w-10 h-14' : size === 'lg' ? 'w-36 h-56' : 'w-24 h-36'} bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-950 border-2 border-white/20 rounded-xl shadow-2xl flex items-center justify-center relative overflow-hidden group cursor-pointer ${className}`}
+        className={`${size === 'xs' ? 'w-12 h-16' : size === 'sm' ? 'w-14 h-20' : size === 'lg' ? 'w-40 h-60' : size === 'xl' ? 'w-48 h-72' : 'w-28 h-40'} bg-gradient-to-br from-red-800 via-red-700 to-red-900 border-4 border-white rounded-xl shadow-2xl flex items-center justify-center relative overflow-hidden group cursor-pointer ${className}`}
         onClick={onClick} style={style}
       >
-        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '12px 12px'}}></div>
-        <div className="absolute inset-2 border border-white/10 rounded-lg"></div>
-        <div className="z-10 text-center transform transition duration-500 group-hover:scale-110 group-hover:rotate-3">
-            <div className="text-white font-serif italic font-black text-2xl tracking-tighter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">DEAL</div>
-            <div className="bg-amber-500 text-black text-[0.4rem] px-1.5 py-0.5 font-black uppercase tracking-[0.2em] mt-1 rounded-sm">Hustle</div>
+        <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2px)', backgroundSize: '20px 20px'}}></div>
+        <div className="absolute inset-3 border-2 border-white/40 rounded-lg"></div>
+        <div className="z-10 text-center transform transition duration-300 group-hover:scale-110">
+            <div className="text-white font-black text-3xl tracking-tighter drop-shadow-lg" style={{fontFamily: 'Impact, sans-serif'}}>MONOPOLY</div>
+            <div className="bg-white text-red-900 text-xs px-2 py-1 font-black uppercase tracking-widest mt-1 rounded">DEAL</div>
         </div>
       </div>
     );
@@ -209,95 +209,123 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
 
   const isProp = card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD;
   const isMoney = card.type === CARD_TYPES.MONEY;
-  const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD || card.type === CARD_TYPES.JSN;
+  const isRent = card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD;
+  const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.JSN;
 
-  let headerColor = '#fff';
-  let textColor = 'black';
-  let bgClass = 'bg-[#ffffff]';
-  
-  if (card.isRainbow) {
-     headerColor = 'transparent';
-     textColor = 'white';
-     bgClass = 'bg-[conic-gradient(at_center,_var(--tw-gradient-stops))] from-indigo-500 via-purple-500 via-pink-500 via-red-500 via-orange-500 via-yellow-500 via-green-500 via-blue-500 to-indigo-500';
-  } else if (isProp) {
-      const cCode = card.currentColor || card.color;
-      if (cCode && COLORS[cCode]) {
-          headerColor = COLORS[cCode].hex;
-          textColor = COLORS[cCode].text || 'white';
-      }
-  } else if (isMoney) {
-      headerColor = '#10b981'; textColor = 'white';
-  } else if (isAction) {
-      headerColor = '#f59e0b'; textColor = 'white';
+  // Size configurations
+  const sizeClasses = {
+    xs: { card: 'w-12 h-16', text: 'text-[6px]', value: 'text-[8px]', icon: 8 },
+    sm: { card: 'w-14 h-20', text: 'text-[7px]', value: 'text-[9px]', icon: 10 },
+    md: { card: 'w-28 h-40', text: 'text-xs', value: 'text-sm', icon: 16 },
+    lg: { card: 'w-40 h-60', text: 'text-sm', value: 'text-base', icon: 20 },
+    xl: { card: 'w-48 h-72', text: 'text-base', value: 'text-lg', icon: 24 }
+  };
+  const s = sizeClasses[size] || sizeClasses.md;
+
+  const borderColor = selected ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900' : highlighted ? 'ring-4 ring-red-500 animate-pulse' : 'border-slate-300';
+
+  // MONEY CARD
+  if (isMoney) {
+    return (
+      <div 
+        onClick={() => onClick && onClick(card)}
+        className={`${s.card} bg-gradient-to-br from-emerald-100 to-green-50 rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        style={style}
+      >
+        <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 10px)'}}></div>
+        <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+          <DollarSign size={s.icon * 3} className="text-emerald-600 opacity-20 absolute"/>
+          <div className="text-emerald-700 font-black" style={{fontSize: `${s.icon * 2.5}px`, fontFamily: 'Impact, sans-serif'}}>${card.value}M</div>
+          <div className={`${s.text} text-emerald-600 font-bold uppercase tracking-wider mt-1`}>Money</div>
+        </div>
+        <div className={`absolute top-2 right-2 ${s.value} font-mono font-black text-emerald-700 bg-white/80 px-1.5 py-0.5 rounded`}>${card.value}M</div>
+      </div>
+    );
   }
 
-  const borderColor = selected ? 'ring-4 ring-amber-500 ring-offset-4 ring-offset-slate-900 border-amber-400' : highlighted ? 'ring-4 ring-red-500 animate-pulse' : 'border-white/10 hover:border-white/30';
+  // PROPERTY CARD
+  if (isProp) {
+    const cCode = card.currentColor || card.color;
+    const colorData = COLORS[cCode] || {};
+    const bgColor = colorData.hex || '#666';
+    const textCol = colorData.text || 'white';
+    const setCount = colorData.count || 2;
+    const rentValues = colorData.rent || [];
 
+    return (
+      <div 
+        onClick={() => onClick && onClick(card)}
+        className={`${s.card} bg-gradient-to-b from-slate-50 to-white rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        style={style}
+      >
+        {/* Property Color Bands */}
+        <div className="flex flex-col gap-0.5 p-1">
+          {Array.from({length: setCount}).map((_, i) => (
+            <div key={i} className="h-3 rounded-sm shadow-sm" style={{backgroundColor: bgColor}}></div>
+          ))}
+        </div>
+
+        {/* Property Name */}
+        <div className="px-2 py-1.5 text-center">
+          <div className={`${s.text} font-black uppercase leading-tight`} style={{color: bgColor}}>{card.name}</div>
+        </div>
+
+        {/* Rent Table */}
+        <div className="flex-1 flex flex-col justify-center px-2 space-y-0.5">
+          <div className={`${s.text} font-black uppercase text-center mb-1`}>RENT</div>
+          {rentValues.map((rent, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                {Array.from({length: i + 1}).map((_, j) => (
+                  <div key={j} className="w-3 h-3 rounded-sm shadow-sm" style={{backgroundColor: bgColor}}></div>
+                ))}
+              </div>
+              <div className={`${s.text} font-mono font-bold`}>M{rent}M</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Value */}
+        <div className={`absolute top-1 right-1 ${s.value} font-mono font-black bg-white/90 px-1.5 py-0.5 rounded shadow`}>${card.value}M</div>
+      </div>
+    );
+  }
+
+  // RENT CARD
+  if (isRent) {
+    return (
+      <div 
+        onClick={() => onClick && onClick(card)}
+        className={`${s.card} bg-gradient-to-br from-orange-100 to-amber-50 rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        style={style}
+      >
+        <div className="p-2 bg-orange-500 text-white text-center">
+          <div className={`${s.text} font-black uppercase tracking-wider`}>Rent Card</div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-2">
+          <div className={`${s.text} font-black text-orange-900 text-center uppercase mb-2`}>{card.name}</div>
+          <div className={`${s.text} text-orange-700 text-center leading-tight`}>{card.description || 'Charge rent to another player'}</div>
+        </div>
+        <div className={`absolute top-1 right-1 ${s.value} font-mono font-black text-orange-700 bg-white/90 px-1.5 py-0.5 rounded`}>${card.value}M</div>
+      </div>
+    );
+  }
+
+  // ACTION CARD
   return (
     <div 
       onClick={() => onClick && onClick(card)}
-      className={`
-        ${size === 'sm' ? 'w-10 h-14 text-[6px]' : size === 'lg' ? 'w-48 h-72' : 'w-24 h-36'} 
-        ${card.isRainbow ? bgClass : 'bg-white'} rounded-xl shadow-2xl border-2 ${borderColor} cursor-pointer 
-        transform transition-all duration-300 relative overflow-hidden flex flex-col select-none
-        ${selected ? '-translate-y-8 z-50 scale-110 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)]' : 'hover:-translate-y-4 hover:z-40 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]'}
-        ${className}
-      `}
+      className={`${s.card} bg-gradient-to-br from-slate-100 to-white rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
       style={style}
     >
-      {/* Gloss Effect */}
-      <div className="absolute top-0 left-0 w-full h-[40%] bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-10"></div>
-      
-      {/* Header */}
-      <div className="h-[22%] w-full flex items-center justify-between px-2 font-black uppercase tracking-tighter shadow-md z-20 relative pt-1"
-        style={{ background: headerColor, color: textColor }}>
-        <span className="truncate text-[0.55rem] leading-none max-w-[70%] drop-shadow-sm">{card.name}</span>
-        <span className="text-[0.6rem] font-mono">${card.value}M</span>
+      <div className="p-2 bg-slate-700 text-white text-center">
+        <div className={`${s.text} font-black uppercase tracking-wider`}>Action Card</div>
       </div>
-
-      <div className={`flex-1 flex flex-col items-center justify-center p-0 text-center relative overflow-hidden ${card.isRainbow ? '' : 'bg-[#fff] pattern-paper'}`}>
-         {/* Subtle pattern for non-rainbow cards */}
-         {!card.isRainbow && (
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '8px 8px'}}></div>
-         )}
-
-         {card.isRainbow && (
-             <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center">
-                 <div className="animate-spin-slow absolute inset-0 opacity-40 bg-[conic-gradient(from_0deg,transparent_0_300deg,white_360deg)]"></div>
-                 <Sparkles className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] animate-pulse" size={44} />
-             </div>
-         )}
-
-         {isProp && !card.isRainbow && COLORS[card.currentColor || card.color]?.img && (
-            <div className="absolute inset-0 z-0">
-                <img src={COLORS[card.currentColor || card.color].img} alt="prop" className="w-full h-full object-cover grayscale-[0.2] contrast-[1.1]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-            </div>
-         )}
-         
-         {!isProp && !card.isRainbow && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none z-0">
-                {isMoney ? <DollarSign size={60}/> : card.actionType === ACTION_TYPES.JUST_SAY_NO ? <ShieldAlert size={60}/> : card.actionType === ACTION_TYPES.HOUSE ? <Home size={60}/> : <Sparkles size={60}/>}
-            </div>
-         )}
-
-        {isProp && (
-            <div className="absolute bottom-4 left-0 right-0 z-10 px-2">
-                <div className="font-black text-white text-[0.6rem] drop-shadow-lg leading-tight flex items-center justify-center gap-1 uppercase tracking-widest">
-                    <MapPin size={8} className="text-amber-400"/> {card.name}
-                </div>
-            </div>
-        )}
-        
-        {isAction && <div className="font-black text-amber-950 text-[0.7rem] uppercase mb-1 leading-tight z-10 p-2 italic tracking-tighter">{card.name}</div>}
-        {isMoney && <div className="font-black text-emerald-600 text-3xl z-10 drop-shadow-sm font-serif">${card.value}M</div>}
-        {isAction && <div className="px-2 z-10 mb-2">
-            <p className="text-[0.45rem] font-bold text-slate-700 leading-tight bg-white/80 py-1.5 px-2 rounded-lg border border-slate-200 shadow-sm">{card.description}</p>
-        </div>}
+      <div className="flex-1 flex flex-col items-center justify-center p-3">
+        <div className={`${s.value} font-black text-slate-900 text-center uppercase mb-2 leading-tight`}>{card.name}</div>
+        <div className={`${s.text} text-slate-600 text-center leading-tight px-1`}>{card.description}</div>
       </div>
-      
-      {/* Value Badge */}
-      <div className="absolute bottom-1 right-1 text-slate-400 text-[0.4rem] font-black bg-white/90 px-1.5 py-0.5 rounded-md border border-slate-100 z-20 shadow-xs tracking-widest opacity-50">${card.value}M</div>
+      <div className={`absolute top-1 right-1 ${s.value} font-mono font-black text-slate-700 bg-white/90 px-1.5 py-0.5 rounded shadow`}>${card.value}M</div>
     </div>
   );
 };
@@ -1115,8 +1143,8 @@ export default function MonopolyDealV3() {
                 </div>
            </div>
 
-            {/* Enhanced Player Zone - 45% of screen */}
-            <div className="h-[45%] glass-panel border-t-2 border-amber-500/30 p-10 flex items-start gap-12 relative shadow-[0_-20px_50px_rgba(0,0,0,0.4)] bg-gradient-to-t from-black/40 to-transparent backdrop-blur-xl">
+            {/* Enhanced Player Zone - 40% of screen */}
+            <div className="h-[40%] glass-panel border-t-2 border-amber-500/30 p-10 flex items-start gap-12 relative shadow-[0_-20px_50px_rgba(0,0,0,0.4)] bg-gradient-to-t from-black/40 to-transparent backdrop-blur-xl">
                {/* Fixed Bank Display */}
                <div className="flex flex-col gap-4">
                    <div className="flex items-center justify-between">
