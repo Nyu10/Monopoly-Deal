@@ -265,9 +265,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
           </div>
         </div>
 
-        {/* Value badge (top-left) - matching property cards */}
-        <div className={`absolute top-2 left-2 ${s.value} font-mono font-black bg-white px-2 py-1 rounded shadow-md border-2 border-black`}>
-          ${card.value}M
+        {/* Value badge (top-left) - circular design like real cards */}
+        <div 
+          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
+          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: colors.text}}
+        >
+          <div className="text-xs font-black text-black">${card.value}M</div>
         </div>
       </div>
     );
@@ -288,12 +291,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
         className={`${s.card} rounded-xl shadow-xl border-4 border-white cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
         style={{...style, backgroundColor: bgColor}}
       >
-        {/* Value badge (top-right) - cream background with colored border like reference */}
+        {/* Value badge (top-left) - circular design */}
         <div 
-          className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md z-10`}
+          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
           style={{borderWidth: '3px', borderStyle: 'solid', borderColor: bgColor}}
         >
-          ${card.value}M
+          <div className="text-xs font-black text-black">${card.value}M</div>
         </div>
 
         {/* Property name and set indicators - colored area */}
@@ -374,10 +377,10 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
           <div className={`${s.text} text-orange-700 text-center leading-tight`}>{card.description || 'Charge rent to another player'}</div>
         </div>
         <div 
-          className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md`}
-          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#FB923C'}}
+          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
+          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#D97706'}}
         >
-          ${card.value}M
+          <div className="text-xs font-black text-black">${card.value}M</div>
         </div>
       </div>
     );
@@ -398,10 +401,10 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
         <div className={`${s.text} text-slate-600 text-center leading-tight px-1`}>{card.description}</div>
       </div>
       <div 
-        className={`absolute top-2 left-2 ${s.value} font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md`}
+        className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
         style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#475569'}}
       >
-        ${card.value}M
+        <div className="text-xs font-black text-black">${card.value}M</div>
       </div>
     </div>
   );

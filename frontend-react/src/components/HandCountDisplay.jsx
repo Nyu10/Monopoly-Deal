@@ -1,65 +1,58 @@
 import React from 'react';
 
 const HandCountDisplay = ({ cardCount, compact = false }) => {
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold">🎴 {cardCount}</span>
-      </div>
-    );
-  }
+  if (cardCount === 0) return null;
 
-  // Fan layout - create card positions
-  const cards = Array.from({ length: Math.min(cardCount, 7) }, (_, i) => {
-    const totalCards = Math.min(cardCount, 7);
-    const spreadAngle = 30; // degrees
-    const startAngle = -spreadAngle / 2;
-    const angleStep = totalCards > 1 ? spreadAngle / (totalCards - 1) : 0;
-    const rotation = startAngle + (i * angleStep);
-    
-    return {
-      rotation,
-      translateY: Math.abs(rotation) * 0.5 // Slight arc
-    };
-  });
-
+  // Poker-style fan layout
+  const maxCardsToShow = 7;
+  const cardsToDisplay = Math.min(cardCount, maxCardsToShow);
+  
+  // Calculate fan spread
+  const spreadAngle = 40; // Total spread in degrees
+  const cardWidth = 28;
+  const cardHeight = 40;
+  
   return (
-    <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-lg p-3 border-2 border-slate-200">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-black text-slate-800">🎴 Hand</span>
-        <span className="text-lg font-black text-slate-700">{cardCount}</span>
-      </div>
+    <div className="flex flex-col items-center gap-1">
+      <div className="text-xs font-bold text-white/80">Hand: {cardCount}</div>
       
-      {/* Fan visualization */}
-      <div className="relative h-16 flex items-end justify-center">
-        {cards.map((card, i) => (
-          <div
-            key={i}
-            className="absolute bottom-0 w-8 h-12 bg-gradient-to-br from-red-800 to-red-900 rounded border-2 border-white shadow-md transition-transform hover:scale-110"
-            style={{
-              transform: `rotate(${card.rotation}deg) translateY(${card.translateY}px)`,
-              left: `calc(50% - 16px + ${(i - cards.length / 2) * 12}px)`,
-              zIndex: i
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-white text-xs font-black opacity-40">M</div>
+      {/* Poker fan */}
+      <div className="relative" style={{ width: `${cardsToDisplay * 12 + 20}px`, height: `${cardHeight + 10}px` }}>
+        {Array.from({ length: cardsToDisplay }).map((_, i) => {
+          const totalCards = cardsToDisplay;
+          const startAngle = -spreadAngle / 2;
+          const angleStep = totalCards > 1 ? spreadAngle / (totalCards - 1) : 0;
+          const rotation = startAngle + (i * angleStep);
+          const translateY = Math.abs(rotation) * 0.3; // Slight arc
+          
+          return (
+            <div
+              key={i}
+              className="absolute bg-gradient-to-br from-red-800 to-red-900 rounded border-2 border-white shadow-lg transition-transform hover:scale-110 hover:-translate-y-2"
+              style={{
+                width: `${cardWidth}px`,
+                height: `${cardHeight}px`,
+                bottom: '0px',
+                left: `${i * 12}px`,
+                transform: `rotate(${rotation}deg) translateY(${translateY}px)`,
+                transformOrigin: 'bottom center',
+                zIndex: i
+              }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-black opacity-40">
+                M
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
-        {cardCount > 7 && (
-          <div className="absolute -top-2 right-0 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-            +{cardCount - 7}
+        {/* Count badge if more cards */}
+        {cardCount > maxCardsToShow && (
+          <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-20">
+            {cardCount}
           </div>
         )}
       </div>
-      
-      {cardCount === 0 && (
-        <div className="text-xs text-center text-gray-500 py-4">
-          No cards in hand
-        </div>
-      )}
     </div>
   );
 };

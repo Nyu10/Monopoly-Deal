@@ -40,15 +40,18 @@ const ACTION_TYPES = {
 };
 
 // Reusable value badge component
-const ValueBadge = ({ value, position = 'top-right' }) => {
+const ValueBadge = ({ value, position = 'top-left', borderColor = '#000' }) => {
   const positionClasses = {
     'top-left': 'top-2 left-2',
     'top-right': 'top-2 right-2'
   };
   
   return (
-    <div className={`absolute ${positionClasses[position]} text-sm font-mono font-black text-slate-900 bg-white px-2 py-1 rounded shadow-md border-2 border-slate-900 z-10`}>
-      {value}M
+    <div 
+      className={`absolute ${positionClasses[position]} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
+      style={{borderWidth: '3px', borderStyle: 'solid', borderColor}}
+    >
+      <div className="text-xs font-black text-black">${value}M</div>
     </div>
   );
 };
@@ -110,7 +113,7 @@ const GalleryCard = ({ card, isFlipped = false }) => {
     
     return (
       <div className="w-40 h-60 bg-white rounded-xl shadow-xl border-4 border-slate-300 relative overflow-hidden flex flex-col">
-        <ValueBadge value={card.value} position="top-right" />
+        <ValueBadge value={card.value} position="top-left" borderColor={colors.text} />
         
         {/* Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-4 relative" style={{backgroundColor: colors.bg}}>
@@ -468,7 +471,7 @@ const GalleryCard = ({ card, isFlipped = false }) => {
     
     return (
       <div className="w-40 h-60 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl shadow-xl border-4 border-amber-200 relative overflow-hidden flex flex-col">
-        <ValueBadge value={card.value} position="top-right" />
+        <ValueBadge value={card.value} position="top-left" borderColor="#D97706" />
         
         {/* Color ring and Rent text */}
         <div className="flex-1 flex items-center justify-center py-4">
@@ -521,7 +524,7 @@ const GalleryCard = ({ card, isFlipped = false }) => {
 
   return (
     <div className={`w-40 h-60 bg-gradient-to-br ${style.bg} rounded-xl shadow-xl border-4 ${style.border} relative overflow-hidden flex flex-col`}>
-      <ValueBadge value={card.value} position="top-right" />
+      <ValueBadge value={card.value} position="top-left" borderColor="#475569" />
       
       {/* Icon circle */}
       <div className="flex-1 flex items-center justify-center py-4">

@@ -2,45 +2,43 @@ import React from 'react';
 
 const BankDisplay = ({ cards, compact = false }) => {
   if (!cards || cards.length === 0) {
-    return (
-      <div className={`${compact ? 'text-xs' : 'text-sm'} text-gray-500`}>
-        💰 Bank: $0M
-      </div>
-    );
+    return null;
   }
 
   const totalValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
-  const topCard = [...cards].sort((a, b) => (b.value || 0) - (a.value || 0))[0];
+  const cardCount = cards.length;
 
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold">💰 ${totalValue}M</span>
-        <span className="text-xs text-gray-500">({cards.length})</span>
-      </div>
-    );
-  }
-
+  // Visual card stack - show cards stacked with slight offset
   return (
-    <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg p-3 border-2 border-emerald-200">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-black text-emerald-800">💰 Bank</span>
-        <span className="text-lg font-black text-emerald-700">${totalValue}M</span>
-      </div>
+    <div className="flex flex-col items-center gap-1">
+      <div className="text-xs font-bold text-white/80">Bank: ${totalValue}M</div>
       
-      {/* Top card preview */}
-      <div className="bg-white rounded-md p-2 border-2 border-emerald-300 shadow-sm">
-        <div className="text-center">
-          <div className="text-2xl font-black text-emerald-600">${topCard.value}M</div>
-          <div className="text-xs text-gray-500">Top Card</div>
-        </div>
+      {/* Card stack visualization */}
+      <div className="relative" style={{ width: '50px', height: `${Math.min(cardCount * 3 + 40, 80)}px` }}>
+        {Array.from({ length: Math.min(cardCount, 10) }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-12 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded border-2 border-white shadow-lg"
+            style={{
+              bottom: `${i * 3}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: i
+            }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-bold opacity-50">
+              $
+            </div>
+          </div>
+        ))}
+        
+        {/* Card count badge if more than 10 */}
+        {cardCount > 10 && (
+          <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-20">
+            {cardCount}
+          </div>
+        )}
       </div>
-      
-      {cards.length > 1 && (
-        <div className="text-xs text-center text-gray-600 mt-1">
-          + {cards.length - 1} more card{cards.length - 1 !== 1 ? 's' : ''}
-        </div>
-      )}
     </div>
   );
 };
