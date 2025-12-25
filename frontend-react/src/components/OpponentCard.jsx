@@ -8,7 +8,8 @@ const OpponentCard = ({
   isCurrentTurn = false, 
   isTargetable = false,
   onSelect,
-  compact = true 
+  compact = true,
+  showHand = true
 }) => {
   const handleClick = () => {
     if (isTargetable && onSelect) {
@@ -50,8 +51,8 @@ const OpponentCard = ({
         {/* Properties */}
         <PropertySetDisplay properties={player.properties || []} />
 
-        {/* Hand */}
-        <HandCountDisplay cardCount={player.hand?.length || 0} />
+        {/* Hand - only show if showHand is true */}
+        {showHand && <HandCountDisplay cardCount={player.hand?.length || 0} />}
       </div>
     </div>
   );

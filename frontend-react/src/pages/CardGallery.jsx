@@ -48,10 +48,10 @@ const ValueBadge = ({ value, position = 'top-left', borderColor = '#000' }) => {
   
   return (
     <div 
-      className={`absolute ${positionClasses[position]} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
-      style={{borderWidth: '3px', borderStyle: 'solid', borderColor}}
+      className={`absolute ${positionClasses[position]} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+      style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor}}
     >
-      <div className="text-xs font-black text-black">${value}M</div>
+      <span className="antialiased">${value}M</span>
     </div>
   );
 };
@@ -240,79 +240,114 @@ const GalleryCard = ({ card, isFlipped = false }) => {
     }
     
     if (isWild) {
-      // WILD PROPERTY CARD - Split design with arrows
+      // WILD PROPERTY CARD - Cleaner split design
       const color1Data = COLORS[card.colors[0]];
       const color2Data = COLORS[card.colors[1]];
       const color1 = color1Data?.hex || '#666';
       const color2 = color2Data?.hex || '#666';
       
+      // Create lighter shades for gradients
+      const lighterShade = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        const factor = 0.15;
+        const newR = Math.min(255, Math.floor(r + (255 - r) * factor));
+        const newG = Math.min(255, Math.floor(g + (255 - g) * factor));
+        const newB = Math.min(255, Math.floor(b + (255 - b) * factor));
+        return `rgb(${newR}, ${newG}, ${newB})`;
+      };
+      
       return (
-        <div className="w-40 h-60 bg-white rounded-xl shadow-xl border-4 border-slate-300 relative overflow-hidden flex flex-col">
+        <div className="w-40 h-60 bg-white rounded-xl shadow-2xl relative overflow-hidden flex flex-col"
+             style={{
+               border: '3px solid rgba(0, 0, 0, 0.1)',
+               boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+             }}>
           {/* Value badge */}
-          <div className="absolute top-2 right-2 text-xs font-mono font-black text-white px-1.5 py-0.5 rounded shadow-md z-10" style={{backgroundColor: color1}}>
-            ${card.value}M
-          </div>
+          <ValueBadge value={card.value} position="top-left" borderColor={color1} />
           
           {/* Header */}
-          <div className="px-2 py-1 bg-slate-800 text-white text-center">
-            <div className="text-[8px] font-black uppercase tracking-wider">Wild Property</div>
-            <div className="text-[7px] font-bold">Choose One Color</div>
+          <div className="px-3 py-2 bg-gradient-to-r from-slate-700 to-slate-800 text-white text-center relative">
+            <div className="text-[9px] font-black uppercase tracking-wider leading-tight">Wild Property</div>
+            <div className="text-[7px] font-semibold leading-tight opacity-90">Choose One Color</div>
           </div>
           
-          {/* Main content area */}
+          {/* Main content area - split design */}
           <div className="flex-1 flex">
             {/* Left side - Color 1 */}
-            <div className="flex-1 flex flex-col" style={{backgroundColor: color1}}>
-              <div className="flex-1 flex items-center justify-center p-1">
-                {/* Rent table for color 1 */}
-                <div className="space-y-0.5">
+            <div className="flex-1 flex flex-col relative" 
+                 style={{
+                   background: `linear-gradient(135deg, ${color1} 0%, ${lighterShade(color1)} 100%)`
+                 }}>
+              {/* Texture overlay */}
+              <div className="absolute inset-0 opacity-[0.03]"
+                   style={{
+                     backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)'
+                   }} />
+              
+              <div className="flex-1 flex flex-col items-center justify-center p-2 relative z-10">
+                {/* Color name */}
+                <div className="text-[8px] font-bold uppercase tracking-wider mb-2 text-white opacity-90"
+                     style={{textShadow: '0 1px 2px rgba(0,0,0,0.3)'}}>
+                  {color1Data?.name}
+                </div>
+                
+                {/* Rent table */}
+                <div className="space-y-1 bg-white/15 backdrop-blur-sm rounded-md px-2 py-1.5 border border-white/20">
                   {color1Data?.rent?.map((rent, i) => (
-                    <div key={i} className="flex items-center gap-1 text-white">
+                    <div key={i} className="flex items-center gap-1.5">
                       <div className="flex gap-0.5">
                         {Array.from({length: i + 1}).map((_, j) => (
-                          <div key={j} className="w-2 h-2 bg-white/90 rounded-sm border border-white"></div>
+                          <svg key={j} width="10" height="10" viewBox="0 0 24 24">
+                            <path d="M12 3L4 9v12h16V9l-8-6z" fill="white" stroke="rgba(0,0,0,0.3)" strokeWidth="2"/>
+                          </svg>
                         ))}
                       </div>
-                      <div className="text-[10px] font-black">${rent}M</div>
+                      <div className="text-[11px] font-black text-white" style={{textShadow: '0 1px 2px rgba(0,0,0,0.3)'}}>
+                        ${rent}M
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
             
-            {/* Center divider with arrows */}
-            <div className="w-8 bg-white flex flex-col items-center justify-center gap-1 border-x-2 border-slate-300">
-              {/* Up arrow */}
-              <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-700">
-                <path d="M8 2 L12 6 L10 6 L10 10 L6 10 L6 6 L4 6 Z" fill="currentColor" stroke="black" strokeWidth="0.5"/>
-              </svg>
-              
-              {/* Circular arrows icon */}
-              <div className="w-4 h-4 rounded-full border-2 border-slate-700 flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 12 12">
-                  <path d="M6 2 A4 4 0 0 1 10 6 L8 6 M6 10 A4 4 0 0 1 2 6 L4 6" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-                </svg>
-              </div>
-              
-              {/* Down arrow */}
-              <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-700">
-                <path d="M8 14 L4 10 L6 10 L6 6 L10 6 L10 10 L12 10 Z" fill="currentColor" stroke="black" strokeWidth="0.5"/>
-              </svg>
-            </div>
+            {/* Center divider - simplified */}
+            <div className="w-1 bg-gradient-to-b from-transparent via-white/50 to-transparent" />
             
             {/* Right side - Color 2 */}
-            <div className="flex-1 flex flex-col" style={{backgroundColor: color2}}>
-              <div className="flex-1 flex items-center justify-center p-1">
-                {/* Rent table for color 2 */}
-                <div className="space-y-0.5">
+            <div className="flex-1 flex flex-col relative" 
+                 style={{
+                   background: `linear-gradient(135deg, ${color2} 0%, ${lighterShade(color2)} 100%)`
+                 }}>
+              {/* Texture overlay */}
+              <div className="absolute inset-0 opacity-[0.03]"
+                   style={{
+                     backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)'
+                   }} />
+              
+              <div className="flex-1 flex flex-col items-center justify-center p-2 relative z-10">
+                {/* Color name */}
+                <div className="text-[8px] font-bold uppercase tracking-wider mb-2 text-white opacity-90"
+                     style={{textShadow: '0 1px 2px rgba(0,0,0,0.3)'}}>
+                  {color2Data?.name}
+                </div>
+                
+                {/* Rent table */}
+                <div className="space-y-1 bg-white/15 backdrop-blur-sm rounded-md px-2 py-1.5 border border-white/20">
                   {color2Data?.rent?.map((rent, i) => (
-                    <div key={i} className="flex items-center gap-1 text-white">
+                    <div key={i} className="flex items-center gap-1.5">
                       <div className="flex gap-0.5">
                         {Array.from({length: i + 1}).map((_, j) => (
-                          <div key={j} className="w-2 h-2 bg-white/90 rounded-sm border border-white"></div>
+                          <svg key={j} width="10" height="10" viewBox="0 0 24 24">
+                            <path d="M12 3L4 9v12h16V9l-8-6z" fill="white" stroke="rgba(0,0,0,0.3)" strokeWidth="2"/>
+                          </svg>
                         ))}
                       </div>
-                      <div className="text-[10px] font-black">${rent}M</div>
+                      <div className="text-[11px] font-black text-white" style={{textShadow: '0 1px 2px rgba(0,0,0,0.3)'}}>
+                        ${rent}M
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -320,10 +355,9 @@ const GalleryCard = ({ card, isFlipped = false }) => {
             </div>
           </div>
           
-          {/* Footer - inverted */}
-          <div className="px-2 py-1 bg-slate-800 text-white text-center transform rotate-180">
-            <div className="text-[8px] font-black uppercase tracking-wider">Wild Property</div>
-            <div className="text-[7px] font-bold">Choose One Color</div>
+          {/* Footer */}
+          <div className="px-3 py-1.5 bg-gradient-to-r from-slate-700 to-slate-800 text-white text-center">
+            <div className="text-[7px] font-semibold opacity-75">Can be used as either color</div>
           </div>
         </div>
       );
@@ -332,49 +366,131 @@ const GalleryCard = ({ card, isFlipped = false }) => {
     // REGULAR PROPERTY CARD
     const textCol = colorData.text || 'white';
     
+    // Create a lighter shade for gradient
+    const lighterShade = (hex) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const factor = 0.15;
+      const newR = Math.min(255, Math.floor(r + (255 - r) * factor));
+      const newG = Math.min(255, Math.floor(g + (255 - g) * factor));
+      const newB = Math.min(255, Math.floor(b + (255 - b) * factor));
+      return `rgb(${newR}, ${newG}, ${newB})`;
+    };
+    
     return (
       <div 
-        className="w-40 h-60 rounded-xl shadow-xl border-4 border-white relative overflow-hidden flex flex-col"
-        style={{backgroundColor: bgColor}}
+        className="w-40 h-60 rounded-xl shadow-2xl relative overflow-hidden flex flex-col"
+        style={{
+          background: `linear-gradient(135deg, ${bgColor} 0%, ${lighterShade(bgColor)} 100%)`,
+          border: '3px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
+        }}
       >
-        {/* Value badge (top-left) - cream background with colored border */}
+        {/* Subtle texture overlay */}
         <div 
-          className="absolute top-2 left-2 text-sm font-black text-black bg-amber-50 px-2 py-1 rounded-md shadow-md z-10"
-          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: bgColor}}
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)'
+          }}
+        />
+        
+        {/* Value badge (top-left) - improved design */}
+        <div 
+          className="absolute top-2.5 left-2.5 text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10"
+          style={{
+            border: `2.5px solid ${bgColor}`,
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
         >
-          ${card.value}M
+          <span className="text-xs">$</span>{card.value}<span className="text-[10px]">M</span>
         </div>
 
-        {/* Property name and set indicators */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-6">
+        {/* Header strip with property name */}
+        <div 
+          className="px-3 py-2.5 relative"
+          style={{
+            background: 'rgba(0, 0, 0, 0.15)',
+            borderBottom: '2px solid rgba(255, 255, 255, 0.2)'
+          }}
+        >
           <div 
-            className="font-black uppercase text-center leading-tight mb-3 text-base"
-            style={{color: textCol, textShadow: textCol === 'white' ? '1px 1px 2px rgba(0,0,0,0.3)' : 'none'}}
+            className="font-bold text-center leading-tight text-sm tracking-wide"
+            style={{
+              color: textCol, 
+              textShadow: textCol === 'white' ? '0 1px 3px rgba(0,0,0,0.4)' : 'none',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              letterSpacing: '0.02em'
+            }}
           >
-            {card.name}
+            {card.name.toUpperCase()}
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 relative">
+          {/* Set completion indicator with house icons */}
+          <div className="mb-4">
+            <div className="text-[9px] font-bold uppercase tracking-wider mb-1.5 opacity-90" style={{color: textCol}}>
+              Complete Set
+            </div>
+            <div className="flex gap-1.5 justify-center">
+              {Array.from({length: setCount}).map((_, i) => (
+                <svg key={i} width="16" height="16" viewBox="0 0 24 24" className="drop-shadow-sm">
+                  <path 
+                    d="M12 3L4 9v12h16V9l-8-6z" 
+                    fill="white" 
+                    stroke={textCol === 'white' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)'} 
+                    strokeWidth="1.5"
+                  />
+                  <rect x="10" y="14" width="4" height="7" fill={bgColor} opacity="0.6" />
+                </svg>
+              ))}
+            </div>
           </div>
 
-          <div className="flex gap-1 mb-2">
-            {Array.from({length: setCount}).map((_, i) => (
-              <div key={i} className="bg-white rounded-sm shadow-sm w-3 h-3" style={{border: '1px solid rgba(0,0,0,0.2)'}}></div>
-            ))}
-          </div>
-
-          <div className="space-y-0.5">
+          {/* Rent table */}
+          <div className="space-y-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5 border border-white/20">
+            <div className="text-[8px] font-bold uppercase tracking-wider text-center mb-1" style={{color: textCol, opacity: 0.8}}>
+              Rent
+            </div>
             {rentValues.map((rent, i) => (
-              <div key={i} className="flex items-center gap-1 justify-center">
-                <div className="flex gap-0.5">
+              <div key={i} className="flex items-center gap-2 justify-between">
+                <div className="flex gap-1">
                   {Array.from({length: i + 1}).map((_, j) => (
-                    <div key={j} className="bg-white rounded-sm w-2 h-2" style={{border: '1px solid rgba(0,0,0,0.2)'}}></div>
+                    <svg key={j} width="12" height="12" viewBox="0 0 24 24">
+                      <path 
+                        d="M12 3L4 9v12h16V9l-8-6z" 
+                        fill="white" 
+                        stroke={textCol === 'white' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'} 
+                        strokeWidth="2"
+                      />
+                    </svg>
                   ))}
                 </div>
-                <div className="font-bold text-xs" style={{color: textCol, textShadow: textCol === 'white' ? '1px 1px 1px rgba(0,0,0,0.3)' : 'none'}}>
+                <div 
+                  className="font-black text-sm min-w-[32px] text-right" 
+                  style={{
+                    color: textCol, 
+                    textShadow: textCol === 'white' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+                    fontFamily: 'system-ui, -apple-system, sans-serif'
+                  }}
+                >
                   ${rent}M
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Footer accent line */}
+        <div 
+          className="h-2"
+          style={{
+            background: 'rgba(0, 0, 0, 0.2)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        />
       </div>
     );
   }
@@ -470,8 +586,8 @@ const GalleryCard = ({ card, isFlipped = false }) => {
     };
     
     return (
-      <div className="w-40 h-60 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl shadow-xl border-4 border-amber-200 relative overflow-hidden flex flex-col">
-        <ValueBadge value={card.value} position="top-left" borderColor="#D97706" />
+      <div className="w-40 h-60 bg-white rounded-xl shadow-xl border-4 border-slate-300 relative overflow-hidden flex flex-col">
+        <ValueBadge value={card.value} position="top-left" borderColor={isWild ? "#F59E0B" : "#10B981"} />
         
         {/* Color ring and Rent text */}
         <div className="flex-1 flex items-center justify-center py-4">
@@ -492,6 +608,53 @@ const GalleryCard = ({ card, isFlipped = false }) => {
   }
 
   // ACTION CARD
+  // Special rendering for House and Hotel cards
+  if (card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) {
+    const isHouse = card.actionType === ACTION_TYPES.HOUSE;
+    const buildingColor = isHouse ? '#10B981' : '#EF4444'; // Green for house, Red for hotel
+    const buildingIcon = isHouse ? '🏠' : '🏨';
+    const buildingName = isHouse ? 'HOUSE' : 'HOTEL';
+    
+    return (
+      <div className="w-40 h-60 bg-white rounded-xl shadow-xl border-4 border-slate-300 relative overflow-hidden flex flex-col">
+        <ValueBadge value={card.value} position="top-left" borderColor={buildingColor} />
+        
+        {/* Header */}
+        <div className="px-3 py-2 border-b-2 border-slate-200">
+          <div className="text-[10px] font-black uppercase tracking-wider text-center text-slate-900">
+            Action Card
+          </div>
+        </div>
+        
+        {/* Large centered circle */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="relative">
+            {/* Circle background */}
+            <div 
+              className="w-32 h-32 rounded-full border-4 border-black bg-white flex items-center justify-center"
+            >
+              <div className="text-center">
+                {/* Building icon */}
+                <div className="text-5xl mb-1">{buildingIcon}</div>
+                {/* Building name */}
+                <div className="text-lg font-black uppercase" style={{color: buildingColor}}>
+                  {buildingName}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Description */}
+        <div className="px-3 pb-4 text-center">
+          <div className="text-[9px] leading-tight text-slate-600 font-medium">
+            {card.description}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   // Define color schemes for different action types
   const getActionStyle = (actionType) => {
     switch(actionType) {
@@ -524,7 +687,7 @@ const GalleryCard = ({ card, isFlipped = false }) => {
 
   return (
     <div className={`w-40 h-60 bg-gradient-to-br ${style.bg} rounded-xl shadow-xl border-4 ${style.border} relative overflow-hidden flex flex-col`}>
-      <ValueBadge value={card.value} position="top-left" borderColor="#475569" />
+      <ValueBadge value={card.value} position="top-left" borderColor={style.color} />
       
       {/* Icon circle */}
       <div className="flex-1 flex items-center justify-center py-4">
@@ -549,10 +712,10 @@ const GalleryCard = ({ card, isFlipped = false }) => {
           {/* Card name in circle */}
           <div className="absolute inset-0 flex items-end justify-center pb-2">
             <div 
-              className="text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full text-white shadow-lg"
+              className="text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full text-white shadow-lg max-w-full"
               style={{ backgroundColor: style.color }}
             >
-              {card.name.length > 15 ? card.name.substring(0, 13) + '...' : card.name}
+              <div className="truncate">{card.name}</div>
             </div>
           </div>
         </div>

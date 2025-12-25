@@ -265,12 +265,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
           </div>
         </div>
 
-        {/* Value badge (top-left) - circular design like real cards */}
+        {/* Value badge (top-left) - clean white background */}
         <div 
-          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
-          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: colors.text}}
+          className={`absolute top-2 left-2 ${s.value} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+          style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor: colors.text}}
         >
-          <div className="text-xs font-black text-black">${card.value}M</div>
+          <span className="antialiased">${card.value}M</span>
         </div>
       </div>
     );
@@ -291,12 +291,12 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
         className={`${s.card} rounded-xl shadow-xl border-4 border-white cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
         style={{...style, backgroundColor: bgColor}}
       >
-        {/* Value badge (top-left) - circular design */}
+        {/* Value badge (top-left) - clean white background */}
         <div 
-          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
-          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: bgColor}}
+          className={`absolute top-2 left-2 ${s.value} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+          style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor: bgColor}}
         >
-          <div className="text-xs font-black text-black">${card.value}M</div>
+          <span className="antialiased">${card.value}M</span>
         </div>
 
         {/* Property name and set indicators - colored area */}
@@ -366,27 +366,80 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
     return (
       <div 
         onClick={() => onClick && onClick(card)}
-        className={`${s.card} bg-gradient-to-br from-orange-100 to-amber-50 rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        className={`${s.card} bg-white rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
         style={style}
       >
-        <div className="p-2 bg-orange-500 text-white text-center">
-          <div className={`${s.text} font-black uppercase tracking-wider`}>Rent Card</div>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-2">
-          <div className={`${s.text} font-black text-orange-900 text-center uppercase mb-2`}>{card.name}</div>
-          <div className={`${s.text} text-orange-700 text-center leading-tight`}>{card.description || 'Charge rent to another player'}</div>
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className={`${s.text} font-black text-slate-900 text-center uppercase mb-2`}>{card.name}</div>
+          <div className={`${s.text} text-slate-600 text-center leading-tight`}>{card.description || 'Charge rent to another player'}</div>
         </div>
         <div 
-          className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
-          style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#D97706'}}
+          className={`absolute top-2 left-2 ${s.value} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+          style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor: '#10B981'}}
         >
-          <div className="text-xs font-black text-black">${card.value}M</div>
+          <span className="antialiased">${card.value}M</span>
         </div>
       </div>
     );
   }
 
   // ACTION CARD
+  // Special rendering for House and Hotel cards
+  if (card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) {
+    const isHouse = card.actionType === ACTION_TYPES.HOUSE;
+    const buildingColor = isHouse ? '#10B981' : '#EF4444';
+    const buildingIcon = isHouse ? '🏠' : '🏨';
+    const buildingName = isHouse ? 'HOUSE' : 'HOTEL';
+    
+    return (
+      <div 
+        onClick={() => onClick && onClick(card)}
+        className={`${s.card} bg-white rounded-xl shadow-xl border-4 ${borderColor} cursor-pointer transform transition-all duration-200 relative overflow-hidden flex flex-col select-none hover:-translate-y-2 hover:shadow-2xl ${selected ? '-translate-y-4 scale-105' : ''} ${className}`}
+        style={style}
+      >
+        <div 
+          className={`absolute top-2 left-2 ${s.value} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+          style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor: buildingColor}}
+        >
+          <span className="antialiased">${card.value}M</span>
+        </div>
+        
+        <div className="px-3 py-2 border-b-2 border-slate-200">
+          <div className={`${s.text} font-black uppercase tracking-wider text-center text-slate-900`}>Action Card</div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="relative">
+            <div 
+              className="rounded-full border-4 border-black bg-white flex items-center justify-center"
+              style={{
+                width: size === 'xs' ? '60px' : size === 'sm' ? '80px' : '128px',
+                height: size === 'xs' ? '60px' : size === 'sm' ? '80px' : '128px'
+              }}
+            >
+              <div className="text-center">
+                <div style={{fontSize: size === 'xs' ? '1.5rem' : size === 'sm' ? '2rem' : '3rem'}}>{buildingIcon}</div>
+                <div 
+                  className="font-black uppercase"
+                  style={{
+                    color: buildingColor,
+                    fontSize: size === 'xs' ? '0.6rem' : size === 'sm' ? '0.8rem' : '1.125rem'
+                  }}
+                >
+                  {buildingName}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="px-3 pb-4 text-center">
+          <div className={`${s.text} text-slate-600 leading-tight`}>{card.description}</div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div 
       onClick={() => onClick && onClick(card)}
@@ -401,10 +454,10 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
         <div className={`${s.text} text-slate-600 text-center leading-tight px-1`}>{card.description}</div>
       </div>
       <div 
-        className={`absolute top-2 left-2 ${s.value} w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md z-10`}
-        style={{borderWidth: '3px', borderStyle: 'solid', borderColor: '#475569'}}
+        className={`absolute top-2 left-2 ${s.value} text-sm font-black text-black bg-white px-2.5 py-1.5 rounded-lg shadow-lg z-10`}
+        style={{borderWidth: '2.5px', borderStyle: 'solid', borderColor: '#9333EA'}}
       >
-        <div className="text-xs font-black text-black">${card.value}M</div>
+        <span className="antialiased">${card.value}M</span>
       </div>
     </div>
   );

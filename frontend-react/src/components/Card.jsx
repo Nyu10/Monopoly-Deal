@@ -11,11 +11,11 @@ const Card = ({ card, onClick, size = 'md', faceDown = false, selected = false, 
   const isRent = card?.type === CARD_TYPES.RENT || card?.type === CARD_TYPES.RENT_WILD;
 
   const sizes = {
-    xs: { w: 'w-12', h: 'h-16', text: 'text-[6px]', value: 'text-[5px]', icon: 12 },
-    sm: { w: 'w-16', h: 'h-24', text: 'text-[8px]', value: 'text-[6px]', icon: 16 },
-    md: { w: 'w-24', h: 'h-36', text: 'text-[10px]', value: 'text-[8px]', icon: 24 },
-    lg: { w: 'w-32', h: 'h-48', text: 'text-[12px]', value: 'text-[10px]', icon: 32 },
-    xl: { w: 'w-40', h: 'h-60', text: 'text-[14px]', value: 'text-[12px]', icon: 40 }
+    xs: { w: 'w-12', h: 'h-16', text: 'text-[7px]', value: 'text-[6px]', icon: 16, circle: 'w-14 h-14', emoji: 'text-xl' },
+    sm: { w: 'w-16', h: 'h-24', text: 'text-[9px]', value: 'text-[7px]', icon: 24, circle: 'w-18 h-18', emoji: 'text-2xl' },
+    md: { w: 'w-24', h: 'h-36', text: 'text-[13px]', value: 'text-[10px]', icon: 36, circle: 'w-28 h-28', emoji: 'text-5xl' },
+    lg: { w: 'w-32', h: 'h-48', text: 'text-[16px]', value: 'text-[12px]', icon: 48, circle: 'w-36 h-36', emoji: 'text-6xl' },
+    xl: { w: 'w-40', h: 'h-60', text: 'text-[20px]', value: 'text-[14px]', icon: 60, circle: 'w-44 h-44', emoji: 'text-7xl' }
   };
 
   const s = sizes[size] || sizes.md;
@@ -178,20 +178,40 @@ const Card = ({ card, onClick, size = 'md', faceDown = false, selected = false, 
     );
   }
 
-  // Action Card Design (orange/yellow)
+  // Action Card Design (professional circular layout with color-coding)
   if (isAction || isRent) {
-    const getActionIcon = () => {
-      if (card.actionType === ACTION_TYPES.PASS_GO) return <RotateCcw size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.DEAL_BREAKER) return <Zap size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.JUST_SAY_NO) return <ShieldAlert size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.SLY_DEAL) return <Shuffle size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR) return <TrendingUp size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.BIRTHDAY) return <Gift size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.HOUSE) return <Home size={s.icon} />;
-      if (card.actionType === ACTION_TYPES.HOTEL) return <Hotel size={s.icon} />;
-      if (isRent) return <Repeat size={s.icon} />;
-      return <Zap size={s.icon} />;
+    // Color-coded action styles (from CardGallery - superior design)
+    const getActionStyle = (actionType) => {
+      if (isRent) {
+        return { bg: 'from-purple-50 to-violet-100', border: 'border-purple-200', icon: '🎯', color: '#9333EA', name: 'Rent Card' };
+      }
+      switch(actionType) {
+        case ACTION_TYPES.PASS_GO:
+          return { bg: 'from-yellow-50 to-amber-100', border: 'border-yellow-200', icon: '🎲', color: '#F59E0B', name: 'Pass Go' };
+        case ACTION_TYPES.DEAL_BREAKER:
+          return { bg: 'from-purple-50 to-violet-100', border: 'border-purple-200', icon: '💥', color: '#9333EA', name: 'Deal Breaker' };
+        case ACTION_TYPES.JUST_SAY_NO:
+          return { bg: 'from-blue-50 to-cyan-100', border: 'border-blue-200', icon: '🚫', color: '#3B82F6', name: 'Just Say No' };
+        case ACTION_TYPES.SLY_DEAL:
+          return { bg: 'from-green-50 to-emerald-100', border: 'border-green-200', icon: '🏃', color: '#10B981', name: 'Sly Deal' };
+        case ACTION_TYPES.FORCED_DEAL:
+          return { bg: 'from-teal-50 to-cyan-100', border: 'border-teal-200', icon: '🔄', color: '#14B8A6', name: 'Forced Deal' };
+        case ACTION_TYPES.DEBT_COLLECTOR:
+          return { bg: 'from-gray-50 to-slate-100', border: 'border-gray-300', icon: '💰', color: '#6B7280', name: 'Debt Collector' };
+        case ACTION_TYPES.BIRTHDAY:
+          return { bg: 'from-pink-50 to-rose-100', border: 'border-pink-200', icon: '🎂', color: '#EC4899', name: 'Birthday' };
+        case ACTION_TYPES.HOUSE:
+          return { bg: 'from-lime-50 to-green-100', border: 'border-lime-200', icon: '🏠', color: '#84CC16', name: 'House' };
+        case ACTION_TYPES.HOTEL:
+          return { bg: 'from-sky-50 to-blue-100', border: 'border-sky-200', icon: '🏨', color: '#0EA5E9', name: 'Hotel' };
+        case ACTION_TYPES.DOUBLE_RENT:
+          return { bg: 'from-orange-50 to-amber-100', border: 'border-orange-200', icon: '×2', color: '#F97316', name: 'Double Rent' };
+        default:
+          return { bg: 'from-slate-50 to-gray-100', border: 'border-slate-300', icon: '⚡', color: '#64748B', name: 'Action' };
+      }
     };
+
+    const actionStyle = getActionStyle(card.actionType);
 
     return (
       <motion.div
@@ -202,44 +222,85 @@ const Card = ({ card, onClick, size = 'md', faceDown = false, selected = false, 
         whileTap={{ scale: 0.95 }}
         onClick={() => onClick && onClick(card)}
         className={`
-          ${s.w} ${s.h} rounded-xl shadow-2xl border-4 border-white cursor-pointer 
+          ${s.w} ${s.h} rounded-xl shadow-2xl border-4 ${actionStyle.border} cursor-pointer 
           relative overflow-hidden flex flex-col select-none
+          bg-gradient-to-br ${actionStyle.bg}
           ${selected ? 'ring-4 ring-yellow-400 scale-105 z-40' : ''}
           ${className}
         `}
-        style={{ ...style, background: isRent ? 'linear-gradient(135deg, #E1BEE7 0%, #BA68C8 50%, #AB47BC 100%)' : 'linear-gradient(135deg, #FFE0B2 0%, #FFB74D 50%, #FFA726 100%)' }}
+        style={{ 
+          ...style,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)'
+        }}
       >
-        {/* Value Badge (top-left red circle) */}
-        <div className={`absolute top-2 left-2 rounded-full bg-red-500 border-2 border-white font-black text-white flex items-center justify-center shadow-lg ${size === 'xs' || size === 'sm' ? 'w-6 h-6 text-[8px]' : size === 'md' ? 'w-8 h-8 text-[10px]' : 'w-10 h-10 text-[12px]'}`}>
+        {/* Subtle background texture */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              transparent,
+              transparent 10px,
+              rgba(0,0,0,0.03) 10px,
+              rgba(0,0,0,0.03) 20px
+            )`
+          }}>
+        </div>
+
+        {/* Enhanced Value Badge (top-left red circle with glow) */}
+        <div className={`absolute top-2 left-2 rounded-full bg-gradient-to-br from-red-500 to-red-600 border-3 border-white font-black text-white flex items-center justify-center shadow-2xl ring-2 ring-red-400/50 z-20 ${size === 'xs' || size === 'sm' ? 'w-6 h-6 text-[8px]' : size === 'md' ? 'w-9 h-9 text-[11px]' : 'w-11 h-11 text-[13px]'}`}
+          style={{ boxShadow: '0 4px 12px rgba(239, 68, 68, 0.6)' }}>
           ${card.value}M
         </div>
 
-        {/* Card Name */}
-        <div className="h-[25%] flex items-center justify-center px-2 bg-gradient-to-r from-orange-600 to-orange-500">
-          <span className="text-white font-black uppercase tracking-tight text-center ${s.text}">
-            {card.name}
-          </span>
+        {/* Circular Icon Design (CardGallery's superior layout) */}
+        <div className="flex-1 flex items-center justify-center py-4">
+          <div className={`relative ${s.circle}`}>
+            {/* Colored background circle */}
+            <div className="absolute inset-0 rounded-full opacity-20"
+              style={{ backgroundColor: actionStyle.color }} />
+            
+            {/* Icon/Emoji */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                {card.actionType === ACTION_TYPES.DOUBLE_RENT ? (
+                  <div className={`${s.emoji} font-black`} style={{ color: actionStyle.color }}>×2</div>
+                ) : (
+                  <div className={s.emoji}>{actionStyle.icon}</div>
+                )}
+              </div>
+            </div>
+            
+            {/* Card name badge integrated into circle */}
+            {size !== 'xs' && (
+              <div className="absolute inset-0 flex items-end justify-center pb-1">
+                <div className="text-xs font-black uppercase tracking-wide px-2 py-1 rounded-full text-white shadow-lg max-w-full"
+                  style={{ 
+                    backgroundColor: actionStyle.color,
+                    fontSize: size === 'sm' ? '6px' : size === 'md' ? '8px' : size === 'lg' ? '10px' : '12px'
+                  }}>
+                  <div className="truncate">{card.name}</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Icon and Description */}
-        <div className="flex-1 flex flex-col items-center justify-center p-3 relative">
-          <div className="text-orange-800 opacity-40 mb-2">
-            {getActionIcon()}
-          </div>
-          {card.description && size !== 'xs' && size !== 'sm' && (
-            <p className="text-[8px] text-gray-800 text-center leading-tight font-semibold max-w-[90%]">
+        {/* Description with improved readability */}
+        {card.description && size !== 'xs' && size !== 'sm' && (
+          <div className="px-3 pb-4 text-center">
+            <p className="text-center leading-snug font-bold text-slate-900 max-w-[90%] mx-auto"
+              style={{
+                fontSize: size === 'md' ? '10px' : size === 'lg' ? '12px' : '14px',
+                textShadow: '0 1px 2px rgba(255,255,255,0.3)'
+              }}>
               {card.description}
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Bottom stripe */}
-        <div className="h-[15%] bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center">
-          <span className="text-white font-black text-[8px] uppercase tracking-wider">Action Card</span>
-        </div>
-
+        {/* Selection overlay */}
         {selected && (
-          <div className="absolute inset-0 bg-yellow-400/20 pointer-events-none border-4 border-yellow-400"></div>
+          <div className="absolute inset-0 bg-yellow-400/20 pointer-events-none border-4 border-yellow-400 rounded-xl"></div>
         )}
       </motion.div>
     );

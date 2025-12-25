@@ -7,24 +7,16 @@ const HandCountDisplay = ({ cardCount, compact = false }) => {
   const maxCardsToShow = 7;
   const cardsToDisplay = Math.min(cardCount, maxCardsToShow);
   
-  // Calculate fan spread
-  const spreadAngle = 40; // Total spread in degrees
+  // Calculate fan spread - horizontal spread
   const cardWidth = 28;
   const cardHeight = 40;
+  const cardSpacing = 12; // Horizontal spacing between cards
   
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="text-xs font-bold text-white/80">Hand: {cardCount}</div>
-      
-      {/* Poker fan */}
-      <div className="relative" style={{ width: `${cardsToDisplay * 12 + 20}px`, height: `${cardHeight + 10}px` }}>
+    <div className="flex flex-col items-center gap-1">      
+      {/* Poker fan - horizontal spread */}
+      <div className="relative" style={{ width: `${cardsToDisplay * cardSpacing + cardWidth}px`, height: `${cardHeight}px` }}>
         {Array.from({ length: cardsToDisplay }).map((_, i) => {
-          const totalCards = cardsToDisplay;
-          const startAngle = -spreadAngle / 2;
-          const angleStep = totalCards > 1 ? spreadAngle / (totalCards - 1) : 0;
-          const rotation = startAngle + (i * angleStep);
-          const translateY = Math.abs(rotation) * 0.3; // Slight arc
-          
           return (
             <div
               key={i}
@@ -33,9 +25,7 @@ const HandCountDisplay = ({ cardCount, compact = false }) => {
                 width: `${cardWidth}px`,
                 height: `${cardHeight}px`,
                 bottom: '0px',
-                left: `${i * 12}px`,
-                transform: `rotate(${rotation}deg) translateY(${translateY}px)`,
-                transformOrigin: 'bottom center',
+                left: `${i * cardSpacing}px`,
                 zIndex: i
               }}
             >

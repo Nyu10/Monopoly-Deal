@@ -1,5 +1,6 @@
 import React from 'react';
 import OpponentCard from './OpponentCard';
+import HandCountDisplay from './HandCountDisplay';
 
 const StadiumLayout = ({ 
   players = [], 
@@ -11,13 +12,13 @@ const StadiumLayout = ({
   const opponents = players.filter(p => p.id !== currentPlayerId);
   const currentPlayer = players.find(p => p.id === currentPlayerId);
   
-  // Calculate position around an ellipse
+  // Calculate position around an ellipse for player info boxes (closer to center)
   const getPlayerPosition = (index, totalOpponents) => {
     // Ellipse parameters (percentage of container)
     const centerX = 50; // Center X (%)
     const centerY = 40; // Center Y (%) - slightly higher to leave room for player at bottom
-    const radiusX = 40; // Horizontal radius (%)
-    const radiusY = 30; // Vertical radius (%)
+    const radiusX = 35; // Horizontal radius (%) - closer to center
+    const radiusY = 25; // Vertical radius (%) - closer to center
     
     // Start from top and go clockwise
     // Angle in radians (0 = right, π/2 = bottom, π = left, 3π/2 = top)
@@ -32,7 +33,33 @@ const StadiumLayout = ({
     return {
       left: `${x}%`,
       top: `${y}%`,
-      transform: 'translate(-50%, -50%)' // Center the card on the position
+      transform: 'translate(-50%, -50%)', // Center the card on the position
+      angle: angle // Pass angle for card fan positioning
+    };
+  };
+
+  // Calculate position for card fans (further out, around the table)
+  const getCardFanPosition = (index, totalOpponents) => {
+    const centerX = 50;
+    const centerY = 40;
+    const radiusX = 45; // Further out from center
+    const radiusY = 35; // Further out from center
+    
+    const startAngle = -Math.PI / 2;
+    const angleStep = (2 * Math.PI) / totalOpponents;
+    const angle = startAngle + (index * angleStep);
+    
+    const x = centerX + radiusX * Math.cos(angle);
+    const y = centerY + radiusY * Math.sin(angle);
+    
+    // Calculate rotation so cards face the center
+    const rotationDeg = (angle * 180 / Math.PI) + 90;
+    
+    return {
+      left: `${x}%`,
+      top: `${y}%`,
+      transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+      angle: angle
     };
   };
 
@@ -89,23 +116,46 @@ const StadiumLayout = ({
 
         {/* Opponents positioned around the table */}
         {opponents.map((opponent, index) => {
-          const position = getPlayerPosition(index, opponents.length);
+          const infoPosition = getPlayerPosition(index, opponents.length);
+          const fanPosition = getCardFanPosition(index, opponents.length);
           const isCurrentTurn = players[currentTurnIndex]?.id === opponent.id;
           
           return (
-            <div
-              key={opponent.id}
-              className="absolute z-20"
-              style={position}
-            >
-              <OpponentCard
-                player={opponent}
-                isCurrentTurn={isCurrentTurn}
-                isTargetable={false}
-                onSelect={onOpponentSelect}
-                compact={opponents.length > 3}
-              />
-            </div>
+            <React.Fragment key={opponent.id}>
+              {/* Player info box (bank & properties) - closer to center */}
+              <div
+                className="absolute z-20"
+                style={{
+                  left: infoPosition.left,
+                  top: infoPosition.top,
+                  transform: infoPosition.transform
+                }}
+              >
+                <OpponentCard
+                  player={opponent}
+                  isCurrentTurn={isCurrentTurn}
+                  isTargetable={false}
+                  onSelect={onOpponentSelect}
+                  compact={opponents.length > 3}
+                  showHand={false}
+                />
+              </div>
+              
+              {/* Card fan - around table perimeter */}
+              <div
+                className="absolute z-10"
+                style={{
+                  left: fanPosition.left,
+                  top: fanPosition.top,
+                  transform: fanPosition.transform
+                }}
+              >
+                <HandCountDisplay 
+                  cardCount={opponent.hand?.length || 0}
+                  compact={true}
+                />
+              </div>
+            </React.Fragment>
           );
         })}
 
@@ -121,43 +171,84 @@ const StadiumLayout = ({
 
       {/* Current Player Area at bottom */}
       {currentPlayer && (
-        <div className="bg-gradient-to-t from-slate-900 via-slate-800 to-transparent p-6 border-t-4 border-amber-600">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-4 border-4 border-amber-500 shadow-2xl">
-              <div className="flex items-center justify-between text-white">
-                {/* Player info */}
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-black text-xl border-4 border-white shadow-lg">
-                    {currentPlayer.name?.[0]?.toUpperCase() || 'Y'}
-                  </div>
-                  <div>
-                    <div className="font-black text-xl">{currentPlayer.name || 'You'}</div>
-                    <div className="text-sm text-amber-400 font-bold">
-                      {players[currentTurnIndex]?.id === currentPlayerId ? '🎯 YOUR TURN' : 'Waiting...'}
-                    </div>
+        <div className="bg-gradient-to-t from-slate-900 via-slate-800 to-transparent p-4 border-t-4 border-amber-600">
+          <div className="max-w-7xl mx-auto">
+            {/* Player header bar */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-black text-xl border-4 border-white shadow-lg text-white">
+                  {currentPlayer.name?.[0]?.toUpperCase() || 'Y'}
+                </div>
+                <div>
+                  <div className="font-black text-xl text-white">{currentPlayer.name || 'You'}</div>
+                  <div className="text-sm text-amber-400 font-bold">
+                    {players[currentTurnIndex]?.id === currentPlayerId ? '🎯 YOUR TURN' : 'Waiting...'}
                   </div>
                 </div>
-                
-                {/* Stats */}
-                <div className="flex gap-8 text-sm">
-                  <div className="text-center">
-                    <div className="text-slate-400 text-xs mb-1">Bank</div>
-                    <div className="font-black text-2xl text-green-400">
-                      ${currentPlayer.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
-                    </div>
+              </div>
+              
+              <div className="flex gap-4 text-sm text-white">
+                <div className="bg-slate-700/50 px-4 py-2 rounded-lg border border-slate-600">
+                  <div className="text-slate-400 text-xs mb-1">Hand</div>
+                  <div className="font-black text-xl text-purple-400">
+                    {currentPlayer.hand?.length || 0}
                   </div>
-                  <div className="text-center">
-                    <div className="text-slate-400 text-xs mb-1">Properties</div>
-                    <div className="font-black text-2xl text-blue-400">
-                      {currentPlayer.properties?.length || 0}
-                    </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Bank and Properties Display */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Bank */}
+              <div className="bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm rounded-xl p-4 border-2 border-slate-600">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-white/80">💰 Bank</h3>
+                  <div className="text-xl font-black text-green-400">
+                    ${currentPlayer.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
                   </div>
-                  <div className="text-center">
-                    <div className="text-slate-400 text-xs mb-1">Hand</div>
-                    <div className="font-black text-2xl text-purple-400">
-                      {currentPlayer.hand?.length || 0}
-                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {currentPlayer.bank?.length > 0 ? (
+                    currentPlayer.bank.map((card, idx) => (
+                      <div
+                        key={idx}
+                        className="w-12 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded border-2 border-white shadow-md flex items-center justify-center"
+                      >
+                        <div className="text-white font-black text-sm">${card.value}M</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-slate-500 text-sm italic">No money in bank</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Properties */}
+              <div className="bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm rounded-xl p-4 border-2 border-slate-600">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-white/80">🏠 Properties</h3>
+                  <div className="text-xl font-black text-blue-400">
+                    {currentPlayer.properties?.length || 0}
                   </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {currentPlayer.properties?.length > 0 ? (
+                    currentPlayer.properties.map((prop, idx) => (
+                      <div
+                        key={idx}
+                        className="w-12 h-16 rounded border-2 border-white shadow-md flex items-center justify-center"
+                        style={{
+                          backgroundColor: prop.currentColor || prop.color || '#666'
+                        }}
+                      >
+                        <div className="text-white font-black text-xs">
+                          {prop.name?.substring(0, 3) || '?'}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-slate-500 text-sm italic">No properties</div>
+                  )}
                 </div>
               </div>
             </div>
