@@ -80,9 +80,9 @@ export const generateOfficialDeck = () => {
   // 4. Action Cards (34 total)
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.DEAL_BREAKER, value: 5, name: 'Deal Breaker', description: 'Steal a complete set' }, 2);
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.JUST_SAY_NO, value: 4, name: 'Just Say No', description: 'Cancel action against you' }, 3);
-  add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.SLY_DEAL, value: 3, name: 'Sly Deal', description: 'Steal a property (non-complete)' }, 3);
+  add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.SLY_DEAL, value: 3, name: 'Sly Deal', description: 'You may not steal a property that\'s part of a complete set' }, 3);
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.FORCED_DEAL, value: 3, name: 'Forced Deal', description: 'Swap properties (non-complete)' }, 3);
-  add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.DEBT_COLLECTOR, value: 3, name: 'Debt Collector', description: 'Force 1 player to pay $2M' }, 3);
+  add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.DEBT_COLLECTOR, value: 5, name: 'Debt Collector', description: 'Force 1 player to pay $5M' }, 3);
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.BIRTHDAY, value: 2, name: 'It\'s My Birthday', description: 'All pay you $2M' }, 3);
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.PASS_GO, value: 1, name: 'Pass Go', description: 'Draw 2 cards' }, 10);
   add({ type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.HOUSE, value: 3, name: 'House', description: '+3M Rent on Full Set' }, 3);

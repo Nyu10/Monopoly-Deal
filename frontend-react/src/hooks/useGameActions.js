@@ -20,6 +20,8 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
       ACTION_TYPES.SLY_DEAL,
       ACTION_TYPES.FORCED_DEAL,
       ACTION_TYPES.DEAL_BREAKER,
+      ACTION_TYPES.DEBT_COLLECTOR,  // Needs player selection
+      ACTION_TYPES.BIRTHDAY,         // Targets all players but needs confirmation
     ];
     
     const buildingActions = [ACTION_TYPES.HOUSE, ACTION_TYPES.HOTEL];
@@ -141,6 +143,8 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
     if (card.actionType === ACTION_TYPES.SLY_DEAL) return 'PROPERTY';
     if (card.actionType === ACTION_TYPES.FORCED_DEAL) return 'PROPERTY_SWAP';
     if (card.actionType === ACTION_TYPES.DEAL_BREAKER) return 'COMPLETE_SET';
+    if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR) return 'PLAYER';
+    if (card.actionType === ACTION_TYPES.BIRTHDAY) return 'ALL_PLAYERS';
     if (card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) {
       return 'OWN_COMPLETE_SET';
     }

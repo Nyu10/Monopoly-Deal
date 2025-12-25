@@ -10,7 +10,9 @@ const OpponentCard = ({
   onSelect,
   onCardClick,
   compact = true,
-  showHand = true
+  showHand = true,
+  tooltipDirection = 'top',
+  tooltipAlign = 'center'
 }) => {
   const handleClick = () => {
     if (isTargetable && onSelect) {
@@ -50,7 +52,12 @@ const OpponentCard = ({
         <BankDisplay cards={player.bank || []} onCardClick={(card) => onCardClick && onCardClick(card, player.id)} />
 
         {/* Properties */}
-        <PropertySetDisplay properties={player.properties || []} onCardClick={(card) => onCardClick && onCardClick(card, player.id)} />
+        <PropertySetDisplay 
+          properties={player.properties || []} 
+          onCardClick={(card) => onCardClick && onCardClick(card, player.id)} 
+          tooltipDirection={tooltipDirection}
+          tooltipAlign={tooltipAlign}
+        />
 
         {/* Hand - only show if showHand is true */}
         {showHand && <HandCountDisplay cardCount={player.hand?.length || 0} />}

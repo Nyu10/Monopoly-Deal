@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Wifi, WifiOff, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy } from 'lucide-react';
 import StadiumLayout from '../components/StadiumLayout';
-import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog } from '../components/ActionDialogs';
+import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog } from '../components/ActionDialogs';
 import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
 import { BOT_DIFFICULTY } from '../ai/BotEngine';
+import { ACTION_TYPES } from '../utils/gameHelpers';
 
 /**
  * Main Game Component
@@ -19,6 +20,7 @@ const Game = () => {
   const navigate = useNavigate();
   const { roomId } = useParams();
   const [showCardActionDialog, setShowCardActionDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
 
   // Determine game mode
@@ -38,6 +40,7 @@ const Game = () => {
   const gameState = isMultiplayer ? (backendGameState?.gameState || 'SETUP') : localGame.gameState;
   const movesLeft = isMultiplayer ? (backendGameState?.movesLeft || 0) : localGame.movesLeft;
   const winner = isMultiplayer ? backendGameState?.winner : localGame.winner;
+  const matchLog = isMultiplayer ? (backendGameState?.matchLog || []) : localGame.matchLog;
 
   // Initialize game actions hook
   const gameActions = useGameActions(backendGameState, sendMove, !isMultiplayer);
@@ -58,11 +61,33 @@ const Game = () => {
   };
 
   const handleEndTurn = () => {
+    // Check for excess cards before ending turn
+    const currentPlayer = players.find(p => p.id === 'player-0'); // Assuming 'player-0' is always human in local game
+    // For multiplayer, we'd check checking against backendGameState.players[backendGameState.socketId] ?
+
+    if (!isMultiplayer && currentPlayer && currentPlayer.hand.length > 7) {
+      setShowDiscardDialog(true);
+      return;
+    }
+
     if (isMultiplayer) {
       gameActions.endTurn();
     } else {
       localGame.endTurn();
     }
+  };
+
+  const handleDiscardConfirm = (cardsToDiscard) => {
+    const cardIds = cardsToDiscard.map(c => c.id);
+    if (isMultiplayer) {
+      // Multiplayer implementation would go here (likely a specific move type)
+      // For now, assuming local game for this feature as requested context implies local play mostly
+      console.warn("Multiplayer discard not fully implemented in UI layer yet");
+    } else {
+      localGame.discardCards(cardIds);
+      localGame.endTurn();
+    }
+    setShowDiscardDialog(false);
   };
 
   const handleCardClick = (card) => {
@@ -89,7 +114,13 @@ const Game = () => {
       gameActions.playCard(selectedCard, actionType);
     } else {
       // Local game: determine destination
-      const destination = actionType === 'BANK' ? 'BANK' : 'PROPERTIES';
+      let destination = 'PROPERTIES';
+      if (actionType === 'BANK') {
+        destination = 'BANK';
+      } else if (actionType === 'ACTION' || actionType === 'RENT') {
+        destination = 'DISCARD';
+      }
+      
       localGame.playCard(selectedCard.id, destination);
     }
     
@@ -103,11 +134,39 @@ const Game = () => {
   };
 
   const handleTargetSelect = (target) => {
-    gameActions.selectTarget(target);
+    if (isMultiplayer) {
+      gameActions.selectTarget(target);
+    } else {
+      // Local game: handle target selection
+      if (gameActions.pendingAction) {
+        const card = gameActions.pendingAction;
+        
+        // For Debt Collector and Birthday, pass the targetPlayerId
+        if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR || card.actionType === ACTION_TYPES.BIRTHDAY) {
+          localGame.playCard(card.id, 'DISCARD', target.playerId);
+        } else {
+          // Other actions would be handled here
+          localGame.playCard(card.id, 'DISCARD', target.playerId, target.cardId);
+        }
+        
+        gameActions.cancelAction();
+      }
+    }
   };
 
   const handlePaymentConfirm = (cards) => {
     gameActions.selectPayment(cards);
+  };
+  
+  const handleFlipConfirm = () => {
+    if (!selectedCard) return;
+    if (isMultiplayer) {
+      console.warn("Multiplayer flip not implemented");
+    } else {
+      localGame.flipWildCard(selectedCard.id);
+    }
+    setShowCardActionDialog(false);
+    setSelectedCard(null);
   };
 
   const handleNewGame = () => {
@@ -168,12 +227,12 @@ const Game = () => {
                 Start Game
               </button>
             )}
-            {gameState === 'PLAYING' && currentTurnIndex === 0 && movesLeft === 0 && (
+            {currentTurnIndex === 0 && gameState !== 'GAME_OVER' && gameState !== 'SETUP' && (
               <button
                 onClick={handleEndTurn}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-md"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-md hover:shadow-lg active:scale-95"
               >
-                End Turn
+                End
               </button>
             )}
           </div>
@@ -218,7 +277,7 @@ const Game = () => {
       )}
 
       {/* Stadium Layout */}
-      <div className="h-[calc(100vh-80px)]">
+      <div className="h-[calc(100vh-80px)] relative overflow-hidden">
         <StadiumLayout
           players={players}
           currentPlayerId="player-0"
@@ -229,17 +288,59 @@ const Game = () => {
             console.log('Selected opponent:', player.name);
           }}
           onCardClick={handleCardClick}
+          deck={isMultiplayer ? (backendGameState?.deck || []) : localGame.deck}
+          discardPile={isMultiplayer ? (backendGameState?.discardPile || []) : localGame.discardPile}
+          matchLog={matchLog}
+          actionConfirmation={
+            showCardActionDialog && selectedCard ? (
+              <CardActionDialog
+                card={selectedCard}
+                onConfirm={handleCardActionConfirm}
+                onCancel={handleCardActionCancel}
+                onFlip={handleFlipConfirm}
+              />
+            ) : null
+          }
         />
-      </div>
 
-      {/* Action Dialogs */}
-      {showCardActionDialog && selectedCard && (
-        <CardActionDialog
-          card={selectedCard}
-          onConfirm={handleCardActionConfirm}
-          onCancel={handleCardActionCancel}
-        />
-      )}
+        {/* Floating Game Controls (Bottom Right) */}
+        {currentTurnIndex === 0 && gameState !== 'GAME_OVER' && gameState !== 'SETUP' && (
+          <div className="absolute bottom-8 right-8 flex flex-col items-end gap-3 z-40">
+            {!hasDrawnThisTurn && (
+              <div className="bg-blue-600 text-white px-6 py-3 rounded-xl shadow-2xl border-2 border-blue-400 animate-pulse font-black uppercase tracking-wider mb-2">
+                Draw Cards to Move!
+              </div>
+            )}
+            {movesLeft >= 0 && hasDrawnThisTurn && (
+              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 animate-bounce">
+                <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>
+                <span className="text-sm font-bold text-slate-700">{movesLeft} Moves Left</span>
+              </div>
+            )}
+            <button
+              onClick={handleEndTurn}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-10 py-5 rounded-2xl font-black text-xl transition-all shadow-2xl hover:shadow-red-500/20 active:scale-95 border-b-4 border-red-900 group flex items-center gap-3"
+            >
+              <span>End</span>
+              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        )}
+
+        {/* Status Indicators (Bottom Left) */}
+        {currentTurnIndex !== 0 && (
+          <div className="absolute bottom-8 left-8 z-40">
+            <div className="bg-slate-900/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+              <span className="text-white font-bold">{players[currentTurnIndex]?.name}'s Turn...</span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {gameActions.targetSelectionMode && (
         <TargetSelectionDialog
@@ -258,6 +359,15 @@ const Game = () => {
           player={players.find(p => p.id === 'player-0')}
           onConfirm={handlePaymentConfirm}
           onCancel={gameActions.cancelAction}
+        />
+      )}
+
+      {showDiscardDialog && (
+        <DiscardDialog
+          cards={players.find(p => p.id === 'player-0')?.hand || []}
+          movesLeft={movesLeft}
+          onConfirm={handleDiscardConfirm}
+          onCancel={movesLeft > 0 ? () => setShowDiscardDialog(false) : undefined}
         />
       )}
     </div>

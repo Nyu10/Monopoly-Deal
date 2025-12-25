@@ -138,7 +138,7 @@ class ActionCardTest {
         // Give opponent money
         opponent.getBank().add(createMoneyCard(5));
         
-        Card debtCollector = createActionCard(ActionType.DEBT_COLLECTOR, "Debt Collector", 3);
+        Card debtCollector = createActionCard(ActionType.DEBT_COLLECTOR, "Debt Collector", 5);
         player.getHand().add(debtCollector);
         
         // Note: Payment mechanics not fully implemented yet

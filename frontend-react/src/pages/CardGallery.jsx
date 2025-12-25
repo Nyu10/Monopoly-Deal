@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Filter } from 'lucide-react';
-import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import { ArrowLeft, Search } from 'lucide-react';
+import { CARD_TYPES } from '../utils/gameHelpers';
 import { generateOfficialDeck } from '../utils/deckGenerator';
 import Card from '../components/Card';
 
@@ -9,13 +9,25 @@ export default function CardGallery() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [flippedCards, setFlippedCards] = useState(new Set());
+  const [rotatedCards, setRotatedCards] = useState(new Set());
   
-  const allCards = useMemo(() => generateOfficialDeck(), []);
-  
+  // Use useMemo to ensure deck is only generated once
+  const allCards = useMemo(() => {
+    console.log("CardGallery: Generating deck...");
+    try {
+      const deck = generateOfficialDeck();
+      console.log("CardGallery: Deck generated, length:", deck?.length);
+      return deck || [];
+    } catch (e) {
+      console.error("Failed to generate deck:", e);
+      return [];
+    }
+  }, []);
+
   const filteredCards = allCards.filter(card => {
+    if (!card) return false;
     const matchesFilter = filter === 'ALL' || card.type === filter;
-    const matchesSearch = card.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (card.name || '').toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -27,8 +39,8 @@ export default function CardGallery() {
     RENT: filteredCards.filter(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD)
   };
 
-  const toggleFlip = (cardUid) => {
-    setFlippedCards(prev => {
+  const toggleRotate = (cardUid) => {
+    setRotatedCards(prev => {
       const newSet = new Set(prev);
       if (newSet.has(cardUid)) {
         newSet.delete(cardUid);
@@ -38,6 +50,30 @@ export default function CardGallery() {
       return newSet;
     });
   };
+
+  if (!allCards || allCards.length === 0) {
+    return <div className="p-8 text-center text-red-500">Error loading deck. Please refresh.</div>;
+  }
+
+  /* Inline Error Boundary Component */
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { hasError: true, error };
+    }
+    render() {
+      if (this.state.hasError) {
+        return <div className="p-4 bg-red-100 border border-red-500 text-red-700">
+          <h3>Component Error:</h3>
+          <pre>{this.state.error.toString()}</pre>
+        </div>;
+      }
+      return this.props.children;
+    }
+  }
 
   return (
     <div className="min-h-screen h-screen overflow-y-auto bg-white">
@@ -106,25 +142,27 @@ export default function CardGallery() {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {cards.map(card => (
                       <div key={card.uid} className="flex flex-col items-center gap-2">
-                        <div 
-                          className="cursor-pointer transition-transform duration-500 ease-in-out"
-                          style={{
-                            transform: flippedCards.has(card.uid) ? 'rotate(180deg)' : 'rotate(0deg)'
-                          }}
-                          onClick={() => toggleFlip(card.uid)}
-                        >
-                          <Card card={card} enableHover={false} />
-                        </div>
+                        <ErrorBoundary>
+                           <div 
+                             className="cursor-pointer transition-all duration-300 hover:scale-105"
+                             onClick={() => toggleRotate(card.uid)}
+                           >
+                             <Card 
+                               card={card} 
+                               className={`transition-transform duration-500 ${rotatedCards.has(card.uid) ? 'rotate-180' : ''}`}
+                             />
+                           </div>
+                        </ErrorBoundary>
                         
-                        <div className="text-xs text-slate-600 text-center">{card.name}</div>
+                        <div className="text-xs text-slate-600 text-center font-bold px-2 truncate w-full">{card.name}</div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleFlip(card.uid);
+                            toggleRotate(card.uid);
                           }}
-                          className="text-[10px] text-blue-600 hover:text-blue-700 font-bold uppercase tracking-wider"
+                          className="text-[10px] text-blue-600 hover:text-blue-700 font-bold uppercase tracking-wider border border-blue-200 rounded-full px-3 py-1 bg-blue-50 hover:bg-blue-100 transition-colors"
                         >
-                          {flippedCards.has(card.uid) ? '↻ Rotate Back' : '↻ Rotate 180°'}
+                          {rotatedCards.has(card.uid) ? 'Flip 180' : 'Flip 180'}
                         </button>
                       </div>
                     ))}
@@ -135,26 +173,28 @@ export default function CardGallery() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredCards.map(card => (
-                <div key={card.uid} className="flex flex-col items-center gap-2">
-                  <div 
-                    className="cursor-pointer transition-transform duration-500 ease-in-out"
-                    style={{
-                      transform: flippedCards.has(card.uid) ? 'rotate(180deg)' : 'rotate(0deg)'
-                    }}
-                    onClick={() => toggleFlip(card.uid)}
+                      <div key={card.uid} className="flex flex-col items-center gap-2">
+                        <ErrorBoundary>
+                           <div 
+                             className="cursor-pointer transition-all duration-300 hover:scale-105"
+                             onClick={() => toggleRotate(card.uid)}
+                           >
+                             <Card 
+                               card={card} 
+                               className={`transition-transform duration-500 ${rotatedCards.has(card.uid) ? 'rotate-180' : ''}`}
+                             />
+                           </div>
+                        </ErrorBoundary>
+                        
+                        <div className="text-xs text-slate-600 text-center font-bold px-2 truncate w-full">{card.name}</div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRotate(card.uid);
+                          }}
+                    className="text-[10px] text-blue-600 hover:text-blue-700 font-bold uppercase tracking-wider border border-blue-200 rounded-full px-3 py-1 bg-blue-50 hover:bg-blue-100 transition-colors"
                   >
-                    <Card card={card} enableHover={false} />
-                  </div>
-                  
-                  <div className="text-xs text-slate-600 text-center">{card.name}</div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFlip(card.uid);
-                    }}
-                    className="text-[10px] text-blue-600 hover:text-blue-700 font-bold uppercase tracking-wider"
-                  >
-                    {flippedCards.has(card.uid) ? '↻ Rotate Back' : '↻ Rotate 180°'}
+                    {rotatedCards.has(card.uid) ? 'Flip 180' : 'Flip 180'}
                   </button>
                 </div>
               ))}

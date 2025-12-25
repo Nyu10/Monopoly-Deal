@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@testing-library/react": "^16.3.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
@@ -29,8 +31,11 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
+    "happy-dom": "^20.0.11",
+    "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^4.0.16"
   }
 }

@@ -1,1 +1,8 @@
 node_modules/
+target/
+*.class
+.DS_Store
+
+# Spring Boot Secrets
+**/src/main/resources/application.properties
+

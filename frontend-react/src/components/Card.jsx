@@ -1,6 +1,8 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import { createPortal } from 'react-dom';
+import CARD_BACK_STYLES from '../utils/cardBackStyles';
 
 // ============================================================================
 // SHARED COMPONENTS
@@ -22,7 +24,7 @@ const ValueBadge = ({ value, size = 'lg' }) => {
   );
 };
 
-const CardWrapper = ({ children, onClick, size, selected, className, style, layoutId, enableHover = true }) => {
+const CardWrapper = ({ children, onClick, size, selected, className, style, layoutId, enableHover = true, onHoverStart, onHoverEnd }) => {
   const orientations = {
     xs: { w: 'w-12', h: 'h-18', rounded: 'rounded-md' },
     sm: { w: 'w-20', h: 'h-30', rounded: 'rounded-lg' },
@@ -33,21 +35,39 @@ const CardWrapper = ({ children, onClick, size, selected, className, style, layo
 
   const o = orientations[size] || orientations.lg;
 
-  const WrapperComponent = layoutId ? motion.div : 'div';
-  const hoverProps = enableHover ? { whileHover: { y: -5, scale: 1.02 } } : {};
+  const WrapperComponent = (layoutId || enableHover) ? motion.div : 'div';
+  
+  const hoverProps = enableHover ? { 
+    whileHover: { y: -15, scale: 1.05, zIndex: 50 },
+    onHoverStart: onHoverStart,
+    onHoverEnd: onHoverEnd,
+    transition: { type: "spring", stiffness: 300, damping: 20 }
+  } : {};
+
+  const commonProps = {
+    className: `${o.w} ${o.h} ${o.rounded} shadow-xl relative overflow-hidden flex flex-col ${
+      selected ? 'ring-4 ring-blue-500 shadow-blue-500/50' : ''
+    } ${className}`,
+    style: style,
+    onClick: () => onClick && onClick()
+  };
+
+  if (layoutId || enableHover) {
+    return (
+      <WrapperComponent
+        layoutId={layoutId}
+        {...hoverProps}
+        {...commonProps}
+      >
+        {children}
+      </WrapperComponent>
+    );
+  }
 
   return (
-    <WrapperComponent
-      layoutId={layoutId}
-      {...hoverProps}
-      onClick={() => onClick && onClick()}
-      className={`${o.w} ${o.h} ${o.rounded} shadow-xl relative overflow-hidden flex flex-col ${
-        selected ? 'ring-4 ring-blue-500 shadow-blue-500/50' : ''
-      } ${className}`}
-      style={style}
-    >
+    <div {...commonProps}>
       {children}
-    </WrapperComponent>
+    </div>
   );
 };
 
@@ -57,29 +77,44 @@ const CardWrapper = ({ children, onClick, size, selected, className, style, layo
 
 const CardBack = ({ size = 'lg', onClick, className, style, layoutId }) => {
   return (
-    <CardWrapper size={size} onClick={onClick} className={`bg-gradient-to-br from-slate-100 to-slate-200 border-2 border-slate-300 ${className}`} style={style} layoutId={layoutId}>
-      {/* Subtle pattern */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'radial-gradient(circle at 10px 10px, #64748b 2px, transparent 0)',
-        backgroundSize: '20px 20px'
+    <CardWrapper 
+      size={size} 
+      onClick={onClick} 
+      className={`bg-gradient-to-br ${CARD_BACK_STYLES.gradient} border ${CARD_BACK_STYLES.border} ${CARD_BACK_STYLES.shadow} ${className}`} 
+      style={style} 
+      layoutId={layoutId} 
+      enableHover={false}
+    >
+      {/* Technical Grid Pattern */}
+      <div className="absolute inset-0 opacity-40" style={{
+        backgroundImage: CARD_BACK_STYLES.patternDots,
+        backgroundSize: CARD_BACK_STYLES.patternSize
       }}></div>
       
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
-        {/* Large circle with M */}
-        <div className="w-32 h-32 rounded-full bg-white shadow-lg flex items-center justify-center border-2 border-slate-300">
-          <div className="text-center">
-            <div className="text-6xl font-black text-slate-700" style={{ fontFamily: 'Impact, sans-serif' }}>
+        {/* Modern Geometric Square with M */}
+        <div className="w-28 h-28 rounded-2xl bg-slate-900/50 backdrop-blur-md shadow-2xl flex items-center justify-center border border-slate-700/50 relative overflow-hidden group">
+          {/* Inner glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-50"></div>
+          
+          <div className="text-center relative z-10">
+            <div className="text-6xl font-black tracking-tighter" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
               M
             </div>
           </div>
+          
+          {/* Corner accents */}
+          <div className="absolute top-2 left-2 w-2 h-2 border-t border-l" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
+          <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
         </div>
         
-        {/* Text below */}
-        <div className="mt-4 text-center">
-          <div className="text-sm font-black text-slate-600 uppercase tracking-widest">
+        {/* Text Area */}
+        <div className="mt-6 text-center">
+          <div className={`text-[10px] font-black uppercase tracking-[0.3em] ${CARD_BACK_STYLES.textPrimary}`}>
             Monopoly Deal
           </div>
+          <div className="w-12 h-0.5 mx-auto mt-2 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
         </div>
       </div>
     </CardWrapper>
@@ -129,6 +164,17 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
   const bgColor = colorData.hex || '#666';
   const rentValues = colorData.rent || [];
 
+  // Size adjustments for smaller cards
+  const isSmall = size === 'md' || size === 'sm';
+  const pt = isSmall ? 'pt-4' : 'pt-10';
+  const circleSize = isSmall ? 'w-20 h-20' : 'w-28 h-28';
+  const pb = isSmall ? 'pb-2' : 'pb-6';
+  const px = isSmall ? 'px-2' : 'px-5';
+  const rentTitleClass = isSmall 
+    ? "text-[8px] font-black text-slate-900/40 uppercase tracking-[0.2em] mb-0.5" 
+    : "text-[10px] font-black text-slate-900/40 uppercase tracking-[0.2em] mb-1";
+  const rentTextSize = isSmall ? 'text-[8px]' : 'text-[10px]';
+
   return (
     <CardWrapper 
       size={size} 
@@ -140,8 +186,8 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
     >
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex flex-col items-center pt-10">
-        <div className="relative w-28 h-28 flex items-center justify-center">
+      <div className={`flex-1 flex flex-col items-center ${pt}`}>
+        <div className={`relative ${circleSize} flex items-center justify-center`}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full rotate-[-90deg]">
             <circle cx="50" cy="50" r="40" fill="none" stroke={bgColor} strokeWidth="2" strokeDasharray="188 251" strokeLinecap="round" />
           </svg>
@@ -153,13 +199,13 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
         </div>
       </div>
 
-      <div className="px-5 pb-6 text-center">
-        <p className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.2em] mb-1">Rent Value</p>
+      <div className={`${px} ${pb} text-center`}>
+        <p className={rentTitleClass}>Rent Value</p>
         <div className="flex justify-center gap-1.5">
           {rentValues.map((rent, i) => (
             <div key={i} className="flex flex-col items-center">
               <div className="w-1.5 h-1.5 rounded-full mb-1" style={{ backgroundColor: bgColor }} />
-              <span className="text-[10px] font-black text-slate-900">${rent}M</span>
+              <span className={`${rentTextSize} font-black text-slate-900`}>${rent}M</span>
             </div>
           ))}
         </div>
@@ -174,7 +220,7 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
 // WILD PROPERTY CARD (Dual Color)
 // ============================================================================
 
-const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId }) => {
+const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
   const color1Data = COLORS[card.colors[0]] || { hex: '#666', name: 'Unknown' };
   const color2Data = COLORS[card.colors[1]] || { hex: '#666', name: 'Unknown' };
   const color1 = color1Data.hex;
@@ -182,63 +228,88 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
   const text1 = color1Data.text === 'black' ? 'text-slate-900' : 'text-white';
   const text2 = color2Data.text === 'black' ? 'text-slate-900' : 'text-white';
   
+  // Helper to get darker version of color for better text contrast
+  const getTextColor = (hexColor, colorKey) => {
+    // For yellow and other light colors, use a much darker shade for text
+    if (colorKey === 'yellow') return '#B8860B'; // Dark goldenrod
+    if (colorKey === 'utility') return '#9E9D24'; // Dark lime
+    if (colorKey === 'light_blue') return '#0277BD'; // Dark cyan
+    return hexColor; // Use original color for other colors
+  };
+
+  const textColor1 = getTextColor(color1, card.colors[0]);
+  const textColor2 = getTextColor(color2, card.colors[1]);
+  
   return (
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
       {/* Top Header Hook (Color 1) */}
       <div className="absolute top-0 left-0 right-0 h-10 z-10" style={{ backgroundColor: color1 }}>
-        <div className="h-full w-full flex items-center justify-end pr-4">
+        <div className="h-full w-full flex items-center justify-end pr-3">
           <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${text1}`}>Wild Card</span>
         </div>
       </div>
 
       {/* Bottom Header Hook (Color 2 - Rotated) */}
       <div className="absolute bottom-0 left-0 right-0 h-10 z-10" style={{ backgroundColor: color2 }}>
-        <div className="h-full w-full flex items-center justify-end pr-4 transform rotate-180">
+        <div className="h-full w-full flex items-center justify-end pr-3 transform rotate-180">
           <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${text2}`}>Wild Card</span>
         </div>
       </div>
 
       <ValueBadge value={card.value} size={size} />
       
+      {!showDescription && (
       <div className="absolute inset-x-0 top-10 bottom-10 flex">
         {/* Color 1 Column (White Aesthetic) */}
-        <div className="w-1/2 h-full flex flex-col p-2 pt-4 items-center border-r border-slate-100 bg-white">
-          <div className="text-[8px] font-black uppercase tracking-wider mb-3 text-center" style={{ color: color1 }}>
+        <div className="w-1/2 h-full flex flex-col p-1.5 pt-2 items-center border-r border-slate-100 bg-white">
+          <div className="text-[8px] font-black uppercase tracking-wider mb-2 text-center" style={{ color: textColor1 }}>
             {color1Data.name}
           </div>
           <div className="space-y-1 w-full">
             {color1Data.rent?.map((rent, i) => (
-              <div key={i} className="flex items-center justify-between px-1.5 py-1 rounded border w-full gap-2" style={{ borderColor: color1 + '33' }}>
+              <div key={i} className="flex items-center justify-between px-1 py-1 rounded border w-full gap-1" style={{ borderColor: color1 + '33' }}>
                 <div className="flex gap-0.5">
                   {Array.from({length: i+1}).map((_, j) => (
-                    <div key={j} className="w-1.5 h-1.5 rounded-[1px]" style={{ backgroundColor: color1 }} />
+                    <div key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color1 }} />
                   ))}
                 </div>
-                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: color1 }}>${rent}M</div>
+                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: textColor1 }}>${rent}M</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Color 2 Column (White Aesthetic - Rotated) */}
-        <div className="w-1/2 h-full flex flex-col p-2 pt-4 items-center border-l border-slate-100 transform rotate-180 bg-white">
-          <div className="text-[8px] font-black uppercase tracking-wider mb-3 text-center" style={{ color: color2 }}>
+        <div className="w-1/2 h-full flex flex-col p-1.5 pt-2 items-center border-l border-slate-100 transform rotate-180 bg-white">
+          <div className="text-[8px] font-black uppercase tracking-wider mb-2 text-center" style={{ color: textColor2 }}>
             {color2Data.name}
           </div>
           <div className="space-y-1 w-full">
             {color2Data.rent?.map((rent, i) => (
-              <div key={i} className="flex items-center justify-between px-1.5 py-1 rounded border w-full gap-2" style={{ borderColor: color2 + '33' }}>
+              <div key={i} className="flex items-center justify-between px-1 py-1 rounded border w-full gap-1" style={{ borderColor: color2 + '33' }}>
                 <div className="flex gap-0.5">
                   {Array.from({length: i+1}).map((_, j) => (
-                    <div key={j} className="w-1.5 h-1.5 rounded-[1px]" style={{ backgroundColor: color2 }} />
+                    <div key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color2 }} />
                   ))}
                 </div>
-                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: color2 }}>${rent}M</div>
+                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: textColor2 }}>${rent}M</div>
               </div>
             ))}
           </div>
         </div>
       </div>
+      )}
+
+      {/* Show Description Overlay */}
+      {showDescription && (
+        <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-20 bg-white/50 backdrop-blur-[1px]">
+          <p className="text-[10px] text-center font-bold text-slate-800 leading-tight">
+            This card can be used as part of any property set of the colors shown. 
+            <br/><br/>
+            <span className="text-blue-600">Click anytime during your turn to flip and swap sets.</span>
+          </p>
+        </div>
+      )}
     </CardWrapper>
   );
 };
@@ -247,18 +318,12 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
 // RAINBOW WILD PROPERTY CARD
 // ============================================================================
 
-const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId }) => {
+const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
+  const isSmall = size === 'md' || size === 'sm';
+  const circleSize = isSmall ? 'w-24 h-24' : 'w-32 h-32';
+  
   const rainbowColors = [
-    { hex: '#795548', name: 'Brown' },
-    { hex: '#03A9F4', name: 'Lt Blue' },
-    { hex: '#C2185B', name: 'Pink' },
-    { hex: '#EF6C00', name: 'Orange' },
-    { hex: '#D32F2F', name: 'Red' },
-    { hex: '#FBC02D', name: 'Yellow' },
-    { hex: '#2E7D32', name: 'Green' },
-    { hex: '#0D47A1', name: 'Dk Blue' },
-    { hex: '#212121', name: 'Railroad' },
-    { hex: '#AFB42B', name: 'Utility' }
+    '#EF5350', '#FFA726', '#FFEB3B', '#66BB6A', '#42A5F5', '#AB47BC'
   ];
   
   return (
@@ -266,30 +331,42 @@ const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, styl
       <ValueBadge value={card.value} size={size} />
       
       <div className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="text-6xl mb-3">🌈</div>
-        
-        <div className="text-center mb-4">
-          <div className="text-2xl font-black text-slate-900 italic leading-none mb-1">WILD</div>
-          <div className="text-xs font-bold text-slate-600 uppercase tracking-widest">Any Color</div>
-        </div>
-        
-        <div className="grid grid-cols-5 gap-1.5 mb-2">
-          {rainbowColors.map((color, i) => (
-            <div 
-              key={i}
-              className="w-5 h-5 rounded-md shadow-sm border border-white"
-              style={{ backgroundColor: color.hex }}
-              title={color.name}
-            />
-          ))}
+        <div className={`relative ${circleSize} flex items-center justify-center`}>
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full rotate-[-90deg]">
+            {rainbowColors.map((color, i) => {
+              const segment = 251 / rainbowColors.length;
+              return (
+                <circle 
+                  key={i}
+                  cx="50" cy="50" r="40" fill="none" 
+                  stroke={color} strokeWidth="3" 
+                  strokeDasharray={`${segment-2} 251`} strokeLinecap="round"
+                  transform={`rotate(${i * (360/rainbowColors.length)}, 50, 50)`}
+                />
+              );
+            })}
+          </svg>
+          
+          <div className="text-center z-10">
+            <div className="text-xl font-black text-slate-900 italic leading-none">WILD</div>
+          </div>
         </div>
       </div>
       
       <div className="px-4 pb-4 text-center">
         <p className="text-[10px] text-slate-700 font-medium leading-snug">
-          Can be used as any color property
+          Use as any color property
         </p>
       </div>
+      {showDescription && (
+        <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
+          <p className="text-[10px] font-bold text-slate-800">
+             Universal Wild Card
+             <br/><br/>
+             <span className="text-blue-600">Place in any set anytime.</span>
+          </p>
+        </div>
+      )}
     </CardWrapper>
   );
 };
@@ -298,73 +375,190 @@ const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, styl
 // ACTION CARD
 // ============================================================================
 
-const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId }) => {
+const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
   const getActionStyle = (actionType) => {
     switch(actionType) {
-      case ACTION_TYPES.PASS_GO:
-        return { icon: '🎲', color: '#F59E0B' };
-      case ACTION_TYPES.DEAL_BREAKER:
-        return { icon: '🤝', color: '#9333EA' };
-      case ACTION_TYPES.JUST_SAY_NO:
-        return { icon: '🚫', color: '#3B82F6' };
-      case ACTION_TYPES.SLY_DEAL:
-        return { icon: '🏃', color: '#10B981' };
-      case ACTION_TYPES.FORCED_DEAL:
-        return { icon: '📋', color: '#14B8A6' };
-      case ACTION_TYPES.DEBT_COLLECTOR:
-        return { icon: '👆', color: '#6B7280' };
-      case ACTION_TYPES.BIRTHDAY:
-        return { icon: '🎂', color: '#EC4899' };
-      case ACTION_TYPES.HOUSE:
-        return { icon: '🏠', color: '#84CC16' };
-      case ACTION_TYPES.HOTEL:
-        return { icon: '🏨', color: '#0EA5E9' };
-      case ACTION_TYPES.DOUBLE_RENT:
-        return { icon: '×2', color: '#F97316' };
-      default:
-        return { icon: '⚡', color: '#64748B' };
+      case ACTION_TYPES.PASS_GO: return { borderColor: '#F59E0B', iconColor: '#D97706' };
+      case ACTION_TYPES.DEAL_BREAKER: return { borderColor: '#C084FC', iconColor: '#9333EA' };
+      case ACTION_TYPES.JUST_SAY_NO: return { borderColor: '#93C5FD', iconColor: '#3B82F6' };
+      case ACTION_TYPES.SLY_DEAL: return { borderColor: '#86EFAC', iconColor: '#10B981' };
+      case ACTION_TYPES.FORCED_DEAL: return { borderColor: '#5EEAD4', iconColor: '#14B8A6' };
+      case ACTION_TYPES.DEBT_COLLECTOR: return { borderColor: '#CBD5E1', iconColor: '#64748B' };
+      case ACTION_TYPES.BIRTHDAY: return { borderColor: '#FBCFE8', iconColor: '#EC4899' };
+      case ACTION_TYPES.HOUSE: return { borderColor: '#10B981', iconColor: '#059669' };
+      case ACTION_TYPES.HOTEL: return { borderColor: '#3B82F6', iconColor: '#1D4ED8' };
+      case ACTION_TYPES.DOUBLE_RENT: return { borderColor: '#FED7AA', iconColor: '#F97316' };
+      default: return { borderColor: '#CBD5E1', iconColor: '#64748B' };
     }
   };
 
   const actionStyle = getActionStyle(card.actionType);
+  const isSmall = size === 'sm';
+  const isTiny = size === 'xs';
+
+  const ActionIcon = () => {
+    const iconSize = isTiny ? 24 : isSmall ? 32 : 48;
+    const strokeWidth = 2.5;
+    
+    switch(card.actionType) {
+      case ACTION_TYPES.PASS_GO:
+        return (
+          <div className="flex flex-col items-center justify-center text-center py-2 px-1">
+            <div className="text-4xl font-black italic tracking-tighter leading-none" style={{ color: actionStyle.iconColor }}>PASS</div>
+            <div className="text-6xl font-black italic tracking-tighter leading-none -mt-1" style={{ color: actionStyle.iconColor }}>GO</div>
+            {!isTiny && (
+              <div className="text-[7.5px] font-black uppercase tracking-[0.25em] mt-3 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-xl">
+                Draw 2 Cards
+              </div>
+            )}
+          </div>
+        );
+      case ACTION_TYPES.DEAL_BREAKER:
+        return (
+          <div className="relative flex items-center justify-center scale-110">
+             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
+                <path d="M12 2v20M2 12h20" strokeLinecap="round" opacity="0.1"/>
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 5l2 2M17 17l2 2M17 5l-2 2M5 17l2-2" strokeLinecap="round" opacity="0.5"/>
+             </svg>
+             <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-1.5 h-16 bg-white/30 rotate-45 blur-md" />
+             </div>
+          </div>
+        );
+      case ACTION_TYPES.JUST_SAY_NO:
+        return (
+          <div className="p-2 bg-red-50 rounded-2xl border-4 border-red-500 shadow-lg scale-110">
+            <svg width={iconSize - 12} height={iconSize - 12} viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth={4}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M15 9l-6 6M9 9l6 6" strokeLinecap="round" />
+            </svg>
+          </div>
+        );
+      case ACTION_TYPES.SLY_DEAL:
+        return (
+          <div className="relative scale-110">
+             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" strokeLinecap="round" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" strokeLinecap="round" />
+                <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+             </svg>
+             <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-slate-900" />
+          </div>
+        );
+      case ACTION_TYPES.FORCED_DEAL:
+        return (
+          <div className="bg-slate-50 p-3 rounded-2xl border-2 border-slate-200">
+            <svg width={iconSize - 10} height={iconSize - 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
+              <path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        );
+      case ACTION_TYPES.DEBT_COLLECTOR:
+        return (
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-5xl drop-shadow-2xl">💰</div>
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">$5M Due</div>
+          </div>
+        );
+      case ACTION_TYPES.BIRTHDAY:
+        return (
+          <div className="flex flex-col items-center">
+            <div className="text-6xl drop-shadow-2xl animate-bounce">🎂</div>
+          </div>
+        );
+      case ACTION_TYPES.HOUSE:
+        const houseColor = '#10B981'; // Emerald
+        return (
+          <div className="relative group p-4 bg-emerald-50 rounded-3xl border-2 border-emerald-200 shadow-xl">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+              <path d="M3 10L12 3L21 10V21H3V10Z" fill={houseColor} />
+              <path d="M12 3L21 10H3L12 3Z" fill="#34D399" />
+              <rect x="7" y="13" width="3" height="3" fill="#065F46" opacity="0.3" />
+              <rect x="14" y="13" width="3" height="3" fill="#065F46" opacity="0.3" />
+              <path d="M10 21V16H14V21H10Z" fill="#064E3B" />
+            </svg>
+          </div>
+        );
+      case ACTION_TYPES.HOTEL:
+        const hotelColor = '#3B82F6'; // Blue
+        return (
+          <div className="relative group p-4 bg-blue-50 rounded-3xl border-2 border-blue-200 shadow-xl">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+              <path d="M6 21V3H18V21H6Z" fill={hotelColor} />
+              <path d="M6 3H18L6 5V3Z" fill="#60A5FA" />
+              {[6, 10, 14].map(y => (
+                <React.Fragment key={y}>
+                  <rect x="8" y={y} width="2.5" height="2.5" fill="white" opacity="0.5" />
+                  <rect x="13.5" y={y} width="2.5" height="2.5" fill="white" opacity="0.5" />
+                </React.Fragment>
+              ))}
+              <path d="M10 21V18H14V21H10Z" fill="#1E3A8A" />
+              <path d="M4 21H20" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </div>
+        );
+      case ACTION_TYPES.DOUBLE_RENT:
+        return (
+          <div className="flex flex-col items-center justify-center p-4 bg-orange-50 rounded-3xl border-2 border-orange-200 shadow-inner">
+            <div className="text-6xl font-black italic tracking-tighter text-orange-600 drop-shadow-xl">x2</div>
+          </div>
+        );
+      default:
+        return <div className="text-4xl text-slate-300">⚡</div>;
+    }
+  };
+
+  const circleSize = isTiny ? 'w-16 h-16' : isSmall ? 'w-24 h-24' : 'w-32 h-32';
 
   return (
-    <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
+    <CardWrapper 
+      size={size} onClick={onClick} selected={selected} 
+      className={`bg-white border-2 border-slate-200 ${className}`} 
+      style={style} layoutId={layoutId}
+    >
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex items-center justify-center py-6">
-        <div className="relative w-32 h-32">
-          <div 
-            className="absolute inset-0 rounded-full opacity-10"
-            style={{ backgroundColor: actionStyle.color }}
-          />
-          
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              {card.actionType === ACTION_TYPES.DOUBLE_RENT ? (
-                <div className="text-5xl font-black italic" style={{ color: actionStyle.color }}>×2</div>
-              ) : (
-                <div className="text-6xl drop-shadow-lg">{actionStyle.icon}</div>
-              )}
+      <div className="flex-1 flex flex-col items-center justify-center p-3">
+        <div className={`relative ${circleSize} flex flex-col items-center justify-center`}>
+          {/* Circular Frame matching Property Arch style */}
+          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full rotate-[-90deg]">
+             <circle 
+               cx="50" cy="50" r="42" fill="none" 
+               stroke={actionStyle.borderColor} strokeWidth="1.5" 
+               strokeDasharray="200 264" strokeLinecap="round" 
+             />
+          </svg>
+
+          {/* Card Title inside the circle at the top */}
+          {!isTiny && (
+            <div className="z-10 text-center mb-1 px-4">
+              <h3 className={`font-black text-slate-800 uppercase tracking-tight leading-none ${isSmall ? 'text-[9px]' : 'text-[13px]'}`}>
+                {card.name}
+              </h3>
             </div>
-          </div>
-          
-          <div className="absolute inset-0 flex items-end justify-center pb-1">
-            <div 
-              className="text-[8px] font-black uppercase tracking-wider px-3 py-1 rounded-full text-white shadow-xl max-w-full italic"
-              style={{ backgroundColor: actionStyle.color }}
-            >
-              <div className="truncate">{card.name}</div>
-            </div>
+          )}
+
+          {/* Illustration below title */}
+          <div className="z-10 flex items-center justify-center flex-1 w-full">
+            <ActionIcon />
           </div>
         </div>
       </div>
-      
-      <div className="px-5 pb-6 text-center">
-        <p className="text-[11px] leading-snug text-slate-900 font-medium">
-          {card.description}
-        </p>
-      </div>
+
+      {isTiny && (
+         <div className="border-t py-0.5 flex items-center justify-center bg-slate-50">
+           <span className="text-[6px] font-black text-slate-600 uppercase tracking-tighter truncate px-1">{card.name}</span>
+         </div>
+      )}
+
+      {showDescription && (
+        <div className="absolute inset-x-0 bottom-0 top-[60%] bg-white/95 backdrop-blur-sm p-3 text-center flex flex-col justify-center border-t border-slate-100 z-20">
+           <p className="text-[10px] font-bold text-slate-800 leading-tight">
+             {card.description}
+           </p>
+        </div>
+      )}
     </CardWrapper>
   );
 };
@@ -373,7 +567,7 @@ const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, la
 // RENT CARD
 // ============================================================================
 
-const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId }) => {
+const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
   const isWild = card.type === CARD_TYPES.RENT_WILD;
   const colors = isWild ? Object.keys(COLORS).filter(c => c !== 'multi') : (card.colors || []);
   
@@ -381,8 +575,8 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="relative w-32 h-32">
+      <div className="flex-1 flex items-center justify-center p-2">
+        <div className="relative w-28 h-28">
           <svg viewBox="0 0 100 100" className="w-full h-full">
             {isWild ? (
               ['brown', 'light_blue', 'pink', 'orange', 'red', 'yellow', 'green', 'dark_blue', 'railroad', 'utility'].map((color, i) => {
@@ -418,33 +612,37 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
                   fill={COLORS[colors[0]]?.hex || '#666'}
                   stroke="white"
                   strokeWidth="1"
+                  className="opacity-90"
                 />
                 <path
                   d="M 95 50 A 45 45 0 0 1 5 50 L 30 50 A 20 20 0 0 0 70 50 Z"
                   fill={COLORS[colors[1]]?.hex || '#666'}
                   stroke="white"
                   strokeWidth="1"
+                  className="opacity-90"
                 />
               </>
             )}
           </svg>
           
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg">
+            <div className="bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg border-2 border-slate-50">
               <span className="text-base font-black text-slate-900 leading-none">Rent</span>
             </div>
           </div>
         </div>
       </div>
       
-      <div className="px-5 pb-6 text-center">
-        <p className="text-[11px] leading-snug text-slate-900 font-medium">
-          {isWild 
-            ? "Force any player to pay you rent for any property you own"
-            : `All players pay you rent for properties you own in one of these colors`
-          }
-        </p>
-      </div>
+      {showDescription && (
+        <div className="px-4 pb-4 text-center">
+          <p className="text-[10px] leading-snug text-slate-900 font-medium">
+            {isWild 
+              ? "Force any player to pay you rent for any property you own"
+              : `All players pay you rent for properties you own in one of these colors`
+            }
+          </p>
+        </div>
+      )}
     </CardWrapper>
   );
 };
@@ -453,48 +651,60 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
 // MAIN CARD COMPONENT (Router)
 // ============================================================================
 
-const Card = ({ card, onClick, size = 'lg', faceDown = false, selected = false, className = '', style = {}, layoutId, enableHover = true }) => {
+// ============================================================================
+// MAIN CARD COMPONENT (Router)
+// ============================================================================
+
+const Card = ({ card, onClick, size = 'lg', faceDown = false, selected = false, className = '', style = {}, layoutId, enableHover = true, showDescription = false }) => {
   if (!card && !faceDown) return null;
 
   if (faceDown) {
     return <CardBack size={size} onClick={onClick} className={className} style={style} layoutId={layoutId} />;
   }
 
-  const cardType = card.type;
-  const isRainbow = card.isRainbow;
-  const isWildProperty = cardType === CARD_TYPES.PROPERTY_WILD;
+  // Render content logic
+  const renderCardContent = (forceShowDesc = false) => {
+    const cardType = card.type;
+    const isRainbow = card.isRainbow;
+    const isWildProperty = cardType === CARD_TYPES.PROPERTY_WILD;
 
-  if (isRainbow) {
-    return <RainbowWildCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    // Merge showDescription prop with forceShowDesc flag
+    const shouldShowDesc = showDescription || forceShowDesc;
 
-  if (isWildProperty && card.colors?.length === 2) {
-    return <WildPropertyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    if (isRainbow) {
+      return <RainbowWildCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} showDescription={shouldShowDesc} />;
+    }
 
-  if (cardType === CARD_TYPES.PROPERTY || isWildProperty) {
-    return <PropertyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    if (isWildProperty && card.colors?.length === 2) {
+      return <WildPropertyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} showDescription={shouldShowDesc} />;
+    }
 
-  if (cardType === CARD_TYPES.MONEY) {
-    return <MoneyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    if (cardType === CARD_TYPES.PROPERTY || isWildProperty) {
+      return <PropertyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
+    }
 
-  if (cardType === CARD_TYPES.ACTION) {
-    return <ActionCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    if (cardType === CARD_TYPES.MONEY) {
+      return <MoneyCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
+    }
 
-  if (cardType === CARD_TYPES.RENT || cardType === CARD_TYPES.RENT_WILD) {
-    return <RentCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} />;
-  }
+    if (cardType === CARD_TYPES.ACTION) {
+      return <ActionCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} showDescription={shouldShowDesc} />;
+    }
 
-  return (
-    <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-slate-200 ${className}`} style={style} layoutId={layoutId}>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-slate-600 text-xs">Unknown Card</div>
-      </div>
-    </CardWrapper>
-  );
+    if (cardType === CARD_TYPES.RENT || cardType === CARD_TYPES.RENT_WILD) {
+      return <RentCard card={card} size={size} onClick={onClick} selected={selected} className={className} style={style} layoutId={layoutId} showDescription={shouldShowDesc} />;
+    }
+
+    return (
+      <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-slate-200 ${className}`} style={style} layoutId={layoutId}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-slate-600 text-xs">Unknown Card</div>
+        </div>
+      </CardWrapper>
+    );
+  };
+
+  return renderCardContent(false);
 };
 
 export default Card;

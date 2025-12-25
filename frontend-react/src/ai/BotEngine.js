@@ -141,10 +141,15 @@ export class EasyBot {
       return { action: 'PLAY_PROPERTY', card: property };
     }
 
-    // Bank money
-    const money = hand.find(c => c.type === CARD_TYPES.MONEY);
-    if (money) {
-      return { action: 'BANK', card: money };
+    // Bank money or actions (but NEVER properties)
+    const bankableCard = hand.find(c => 
+      c.type === CARD_TYPES.MONEY || 
+      c.type === CARD_TYPES.ACTION || 
+      c.type === CARD_TYPES.RENT || 
+      c.type === CARD_TYPES.RENT_WILD
+    );
+    if (bankableCard && Math.random() < 0.5) {
+      return { action: 'BANK', card: bankableCard };
     }
 
     // Randomly use action cards (often suboptimal)
@@ -206,7 +211,19 @@ export class MediumBot {
       return { action: 'PLAY_PROPERTY', card: property };
     }
 
-    // Priority 4: Use rent cards if we have complete sets
+    // Priority 4: Use Debt Collector or Birthday if we need to drain opponents
+    const debtCollector = hand.find(c => c.actionType === ACTION_TYPES.DEBT_COLLECTOR);
+    if (debtCollector) {
+      const richest = this.getRichestOpponent();
+      return { action: 'PLAY_ACTION', card: debtCollector, target: richest };
+    }
+
+    const birthday = hand.find(c => c.actionType === ACTION_TYPES.BIRTHDAY);
+    if (birthday) {
+      return { action: 'PLAY_ACTION', card: birthday };
+    }
+
+    // Priority 5: Use rent cards if we have complete sets
     const hasCompleteSets = mySets.some(s => s.isComplete);
     if (hasCompleteSets) {
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
@@ -215,10 +232,13 @@ export class MediumBot {
       }
     }
 
-    // Priority 5: Bank money or low-value cards
-    const lowValueCard = hand.sort((a, b) => a.value - b.value)[0];
-    if (lowValueCard) {
-      return { action: 'BANK', card: lowValueCard };
+    // Priority 6: Bank money or action cards (NEVER properties)
+    const bankableCard = [...hand]
+      .filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD)
+      .sort((a, b) => a.value - b.value)[0];
+      
+    if (bankableCard) {
+      return { action: 'BANK', card: bankableCard };
     }
 
     return { action: 'END_TURN' };
@@ -309,7 +329,19 @@ export class HardBot {
       return { action: 'PLAY_PROPERTY', card: property };
     }
 
-    // Strategy 5: Charge rent with complete sets
+    // Strategy 5: Use Debt Collector/Birthday to gain liquidity
+    const debtCollector = hand.find(c => c.actionType === ACTION_TYPES.DEBT_COLLECTOR);
+    if (debtCollector) {
+      const richest = this.getRichestOpponent();
+      return { action: 'PLAY_ACTION', card: debtCollector, target: richest };
+    }
+
+    const birthday = hand.find(c => c.actionType === ACTION_TYPES.BIRTHDAY);
+    if (birthday) {
+      return { action: 'PLAY_ACTION', card: birthday };
+    }
+
+    // Strategy 6: Charge rent with complete sets
     if (completedSets > 0) {
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
       if (rentCard) {
@@ -317,15 +349,17 @@ export class HardBot {
       }
     }
 
-    // Strategy 6: Bank low-value cards
-    const sortedByValue = [...hand].sort((a, b) => {
-      const aVal = evaluateCardValue(a, myState, gameState);
-      const bVal = evaluateCardValue(b, myState, gameState);
-      return aVal - bVal;
-    });
+    // Strategy 7: Bank low-value cards (NEVER properties)
+    const bankableSorted = [...hand]
+      .filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD)
+      .sort((a, b) => {
+        const aVal = evaluateCardValue(a, myState, gameState);
+        const bVal = evaluateCardValue(b, myState, gameState);
+        return aVal - bVal;
+      });
     
-    if (sortedByValue[0]) {
-      return { action: 'BANK', card: sortedByValue[0] };
+    if (bankableSorted[0]) {
+      return { action: 'BANK', card: bankableSorted[0] };
     }
 
     return { action: 'END_TURN' };

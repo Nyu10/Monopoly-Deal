@@ -1,4 +1,4 @@
-import React from 'react';
+import MiniCard from './MiniCard';
 
 const BankDisplay = ({ cards, compact = false, onCardClick }) => {
   if (!cards || cards.length === 0) {
@@ -13,16 +13,16 @@ const BankDisplay = ({ cards, compact = false, onCardClick }) => {
     <div className="flex flex-col items-center gap-1">
       <div className="text-xs font-bold text-slate-600">Bank: ${totalValue}M</div>
       
-      {/* Card stack visualization */}
+      {/* Card stack visualization using actual cards */}
       <div 
         className="relative cursor-pointer transition-transform hover:scale-110" 
         onClick={() => onCardClick && onCardClick(cards[0])}
-        style={{ width: '50px', height: `${Math.min(cardCount * 3 + 40, 80)}px` }}
+        style={{ width: '48px', height: `${Math.min(cardCount * 3 + 72, 100)}px` }}
       >
         {Array.from({ length: Math.min(cardCount, 10) }).map((_, i) => (
           <div
             key={i}
-            className="absolute w-12 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded border-2 border-white shadow-lg"
+            className="absolute"
             style={{
               bottom: `${i * 3}px`,
               left: '50%',
@@ -30,9 +30,11 @@ const BankDisplay = ({ cards, compact = false, onCardClick }) => {
               zIndex: i
             }}
           >
-            <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-bold opacity-50">
-              $
-            </div>
+            <MiniCard 
+              card={cards[i] || cards[0]} 
+              scale={0.3} 
+              onClick={() => onCardClick && onCardClick(cards[i] || cards[0])}
+            />
           </div>
         ))}
         

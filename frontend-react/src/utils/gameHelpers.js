@@ -8,7 +8,7 @@ export const COLORS = {
   red: { hex: '#EF5350', count: 3, name: 'Red', rent: [2, 3, 6], text: 'white' },
   light_blue: { hex: '#4FC3F7', count: 3, name: 'Light Blue', rent: [1, 2, 3], text: 'black' },
   utility: { hex: '#D4E157', count: 2, name: 'Utility', rent: [1, 2], text: 'black' },
-  railroad: { hex: '#616161', count: 4, name: 'Railroad', rent: [1, 2, 4, 8], text: 'white' },
+  railroad: { hex: '#616161', count: 4, name: 'Railroad', rent: [1, 2, 3, 4], text: 'white' },
   multi: { hex: 'linear-gradient(45deg, #f06, #4a90e2, #7ed321, #f5a623)', count: 0, name: 'Multi', text: 'white', rent: [] }
 };
 

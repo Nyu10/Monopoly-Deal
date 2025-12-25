@@ -33,7 +33,7 @@ public class DeckGenerator {
         addAction(deck, ActionType.SLY_DEAL, 3, "Sly Deal", "Steal a property from any player. (Cannot be part of a completed set)", 3);
         addAction(deck, ActionType.FORCED_DEAL, 3, "Forced Deal", "Swap any property with another player. (Cannot be part of a completed set)", 3);
         addAction(deck, ActionType.PASS_GO, 1, "Pass Go", "Draw 2 extra cards.", 10);
-        addAction(deck, ActionType.DEBT_COLLECTOR, 3, "Debt Collector", "Force any player to pay you $2M.", 3);
+        addAction(deck, ActionType.DEBT_COLLECTOR, 5, "Debt Collector", "Force any player to pay you $5M.", 3);
         addAction(deck, ActionType.BIRTHDAY, 2, "It's My Birthday", "All players pay you $2M.", 3);
         addAction(deck, ActionType.HOUSE, 3, "House", "Add onto any completed set to add $3M to the rent value.", 3);
         addAction(deck, ActionType.HOTEL, 4, "Hotel", "Add onto any completed set that already has a house to add $4M to the rent value.", 2);

@@ -140,7 +140,7 @@ class BotEngineTest {
                 .name("Debt Collector")
                 .type(CardType.ACTION)
                 .actionType(ActionType.DEBT_COLLECTOR)
-                .value(3)
+                .value(5)
                 .build();
         bot.getHand().add(action);
         
@@ -171,7 +171,7 @@ class BotEngineTest {
                 .name("Debt Collector")
                 .type(CardType.ACTION)
                 .actionType(ActionType.DEBT_COLLECTOR)
-                .value(3)
+                .value(5)
                 .build();
         bot.getHand().add(action);
         

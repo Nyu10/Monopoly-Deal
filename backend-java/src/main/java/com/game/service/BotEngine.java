@@ -218,7 +218,7 @@ public class BotEngine {
         for (Player opponent : state.getPlayers()) {
             if (opponent.getId() != botId) {
                 int opponentWealth = opponent.getBank().stream().mapToInt(Card::getValue).sum();
-                if (opponentWealth >= 2) {
+                if (opponentWealth >= 5) {
                     return true;
                 }
             }
@@ -311,12 +311,12 @@ public class BotEngine {
                 break;
                 
             case "DEBT_COLLECTOR":
-                // Low-medium threat - losing $2M
+                // Low-medium threat - losing $5M
                 int targetWealth = calculateBotWealth(target);
                 if (targetWealth < 5) {
                     threatLevel = 7; // High threat if low on money
                 } else {
-                    threatLevel = 3; // Low threat if wealthy
+                    threatLevel = 5; // Low-medium threat if wealthy
                 }
                 break;
                 

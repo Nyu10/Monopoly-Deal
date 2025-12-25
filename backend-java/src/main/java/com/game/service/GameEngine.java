@@ -529,8 +529,8 @@ public class GameEngine {
             targetPlayerId = selectRichestOpponent(state, player.getId());
         }
         
-        // Create payment request for $2M
-        createPaymentRequest(state, targetPlayerId, player.getId(), 2, "debt_collector", null);
+        // Create payment request for $5M
+        createPaymentRequest(state, targetPlayerId, player.getId(), 5, "debt_collector", null);
         
         // Process payment immediately (for bots)
         PaymentRequest request = state.getTurnContext().getPendingPayments()

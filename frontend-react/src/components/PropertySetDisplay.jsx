@@ -1,47 +1,52 @@
 import React, { useState } from 'react';
+import { COLORS } from '../utils/gameHelpers';
+import { motion, AnimatePresence } from 'framer-motion';
+import MiniCard from './MiniCard';
+import Card from './Card';
 
-const COLORS = {
-  brown: { hex: '#5D4037', name: 'Brown', count: 2, rent: [1, 2] },
-  cyan: { hex: '#00BCD4', name: 'Light Blue', count: 3, rent: [1, 2, 3] },
-  pink: { hex: '#D81B60', name: 'Pink', count: 3, rent: [1, 2, 4] },
-  orange: { hex: '#EF6C00', name: 'Orange', count: 3, rent: [1, 3, 5] },
-  red: { hex: '#C62828', name: 'Red', count: 3, rent: [2, 3, 6] },
-  yellow: { hex: '#FBC02D', name: 'Yellow', count: 3, rent: [2, 4, 6] },
-  green: { hex: '#2E7D32', name: 'Green', count: 3, rent: [2, 4, 7] },
-  blue: { hex: '#1565C0', name: 'Dark Blue', count: 2, rent: [3, 8] },
-  railroad: { hex: '#212121', name: 'Railroad', count: 4, rent: [1, 2, 3, 4] },
-  utility: { hex: '#9E9D24', name: 'Utility', count: 2, rent: [1, 2] }
-};
-
-const PropertySetDisplay = ({ properties, compact = false, onCardClick }) => {
+const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center' }) => {
   const [expandedSet, setExpandedSet] = useState(null);
+  const [hoveredColor, setHoveredColor] = useState(null);
 
   if (!properties || properties.length === 0) {
     return null;
   }
 
-  // Group properties by color
+  // Group properties by color and separate buildings
   const sets = {};
   properties.forEach(card => {
     const color = card.currentColor || card.color;
     if (!color) return;
     
     if (!sets[color]) {
-      sets[color] = [];
+      sets[color] = {
+        properties: [],
+        houses: 0,
+        hotels: 0
+      };
     }
-    sets[color].push(card);
+    
+    if (card.actionType === ACTION_TYPES.HOUSE) {
+      sets[color].houses++;
+    } else if (card.actionType === ACTION_TYPES.HOTEL) {
+      sets[color].hotels++;
+    } else {
+      sets[color].properties.push(card);
+    }
   });
 
   // Calculate completion status
-  const setStatuses = Object.entries(sets).map(([color, cards]) => {
+  const setStatuses = Object.entries(sets).map(([color, setInfo]) => {
     const colorData = COLORS[color];
     const required = colorData?.count || 2;
-    const current = cards.length;
+    const current = setInfo.properties.length;
     const isComplete = current >= required;
     
     return {
       color,
-      cards,
+      cards: setInfo.properties,
+      houses: setInfo.houses,
+      hotels: setInfo.hotels,
       current,
       required,
       isComplete,
@@ -53,42 +58,62 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick }) => {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="text-xs font-bold text-slate-600">
-        Properties: {completedSets}/{setStatuses.length} complete
+      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+        Sets: {completedSets}/{setStatuses.length}
       </div>
       
       {/* Visual property cards */}
-      <div className="flex flex-wrap gap-1 justify-center max-w-[200px]">
-        {setStatuses.map(({ color, cards, current, required, isComplete, colorData }) => (
-          <div key={color} className="relative">
-            {/* Property card stack */}
+      <div className="flex flex-wrap gap-4 justify-center w-full py-4">
+        {setStatuses.map(({ color, cards, houses, hotels, current, required, isComplete, colorData }) => (
+          <div 
+            key={color} 
+            className="relative"
+            onMouseEnter={() => setHoveredColor(color)}
+            onMouseLeave={() => setHoveredColor(null)}
+          >
+            {/* House/Hotel floating indicators */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex gap-1 z-30">
+              {Array.from({ length: houses }).map((_, i) => (
+                <div key={`h-${i}`} className="w-5 h-5 bg-emerald-500 rounded-sm border-2 border-white shadow-lg flex items-center justify-center text-[10px] animate-in zoom-in duration-300">🏠</div>
+              ))}
+              {Array.from({ length: hotels }).map((_, i) => (
+                <div key={`ht-${i}`} className="w-5 h-5 bg-red-500 rounded-sm border-2 border-white shadow-lg flex items-center justify-center text-[10px] animate-in zoom-in duration-300">🏨</div>
+              ))}
+            </div>
+
+            {/* Property card stack using actual cards */}
             <div 
-              className="relative cursor-pointer transition-transform hover:scale-110"
+              className="relative cursor-pointer transition-transform hover:scale-110 active:scale-95"
               onClick={() => {
                 if (onCardClick && cards.length > 0) {
                   onCardClick(cards[0]);
                 }
                 setExpandedSet(expandedSet === color ? null : color);
               }}
-              style={{ width: '32px', height: '44px' }}
+                style={{ width: '68px', height: '96px' }}
             >
               {/* Show stacked cards */}
               {cards.slice(0, 3).map((card, i) => (
                 <div
                   key={i}
-                  className="absolute rounded border-2 border-white shadow-lg"
+                  className="absolute"
                   style={{
-                    width: '32px',
-                    height: '44px',
-                    backgroundColor: colorData?.hex,
                     left: `${i * 2}px`,
                     top: `${i * 2}px`,
                     zIndex: i
                   }}
                 >
-                  {i === cards.length - 1 && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-white text-xs font-black opacity-70">
+                  <MiniCard 
+                    card={card} 
+                    scale={0.4} 
+                    onClick={() => {
+                      if (onCardClick) onCardClick(card);
+                    }}
+                    className="shadow-lg border border-black/5 rounded-lg overflow-hidden"
+                  />
+                  {i === Math.min(cards.length, 3) - 1 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-white text-[12px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                         {current}
                       </div>
                     </div>
@@ -98,13 +123,57 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick }) => {
               
               {/* Completion indicator */}
               {isComplete && (
-                <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white z-10">
+                <div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white z-[60] shadow-md">
                   ✓
                 </div>
               )}
             </div>
             
-            {/* Expanded details */}
+            {/* Hover details tooltip */}
+            <AnimatePresence>
+              {hoveredColor === color && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                  className={`absolute ${tooltipDirection === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'} ${
+                    tooltipAlign === 'left' ? 'left-0' : 
+                    tooltipAlign === 'right' ? 'right-0' : 
+                    'left-1/2 -translate-x-1/2'
+                  } z-[100] pointer-events-none`}
+                >
+                  <div className="bg-slate-900/95 backdrop-blur-sm p-2.5 rounded-xl shadow-2xl border border-white/20 flex flex-col items-center gap-2">
+                    <div className="flex -space-x-8 px-4">
+                      {cards.map((card, idx) => (
+                        <div 
+                          key={card.uid || idx} 
+                          className="relative"
+                          style={{ zIndex: idx }}
+                        >
+                          <Card 
+                            card={card} 
+                            size="sm" 
+                            enableHover={false}
+                            className="shadow-xl border border-white/40"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-white text-[9px] font-black uppercase tracking-widest opacity-80">
+                      {colorData?.name} SET • {current}/{required}
+                    </div>
+                  </div>
+                  {/* Arrow */}
+                  <div className={`absolute ${tooltipDirection === 'top' ? 'top-full -mt-1 border-t-slate-900/95' : 'bottom-full -mb-1 border-b-slate-900/95'} ${
+                    tooltipAlign === 'left' ? 'left-5 -translate-x-1/2' : 
+                    tooltipAlign === 'right' ? 'right-5 translate-x-1/2' : 
+                    'left-1/2 -translate-x-1/2'
+                  } w-0 h-0 border-l-[6px] border-r-[6px] border-[6px] border-l-transparent border-r-transparent ${tooltipDirection === 'top' ? 'border-b-transparent' : 'border-t-transparent'}`}></div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Expanded details (legacy mobile/click view) */}
             {expandedSet === color && (
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-black/90 text-white p-3 rounded-lg shadow-2xl z-50 min-w-[150px]">
                 <div className="text-xs font-bold mb-2">{colorData?.name} Set</div>

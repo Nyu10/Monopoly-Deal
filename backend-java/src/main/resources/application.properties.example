@@ -1,0 +1,12 @@
+# AI Service Configuration Example
+# Copy this file to application.properties and fill in your details.
+
+# --- Option 1: OpenAI (Paid, High Quality) ---
+# openai.base-url=https://api.openai.com/v1
+# openai.api.key=sk-your-openai-key-here
+
+# --- Option 2: Groq (Free, Fast) ---
+# 1. Get a free key at https://console.groq.com/keys
+# 2. Use the following settings:
+# openai.base-url=https://api.groq.com/openai/v1
+# openai.api.key=gsk-your-groq-key-here
