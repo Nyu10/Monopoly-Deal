@@ -63,7 +63,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
       </div>
       
       {/* Visual property cards */}
-      <div className="flex flex-wrap gap-4 justify-center w-full py-4">
+      <div className="flex flex-wrap gap-2 justify-center w-full py-2">
         {setStatuses.map(({ color, cards, houses, hotels, current, required, isComplete, colorData }) => (
           <div 
             key={color} 
@@ -91,15 +91,15 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                 setExpandedSet(expandedSet === color ? null : color);
               }}
               style={{ 
-                width: `${192 * 0.35}px`, 
-                height: `${288 * 0.35 + (cards.length - 1) * 24}px`,
-                minHeight: `${288 * 0.35}px`
+                width: `${192 * 0.3}px`, 
+                height: `${288 * 0.3 + (cards.length - 1) * 16}px`,
+                minHeight: `${288 * 0.3}px`
               }}
             >
               {/* Show stacked cards - Front to Back fanning */}
               {[...cards].reverse().map((card, i, arr) => {
                 const actualIndex = arr.length - 1 - i;
-                const offset = actualIndex * 24;
+                const offset = actualIndex * 16;
                 
                 return (
                   <div
@@ -113,7 +113,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                   >
                     <MiniCard 
                       card={card} 
-                      scale={0.35} 
+                      scale={0.3} 
                       onClick={() => {
                         if (onCardClick) onCardClick(card);
                       }}

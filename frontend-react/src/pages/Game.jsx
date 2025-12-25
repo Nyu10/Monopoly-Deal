@@ -244,14 +244,6 @@ const Game = () => {
                 Start Game
               </button>
             )}
-            {currentTurnIndex === 0 && gameState !== 'GAME_OVER' && gameState !== 'SETUP' && (
-              <button
-                onClick={handleEndTurn}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-md hover:shadow-lg active:scale-95"
-              >
-                End
-              </button>
-            )}
           </div>
         </div>
       </div>

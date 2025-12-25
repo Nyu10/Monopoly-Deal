@@ -44,9 +44,9 @@ const StadiumLayout = ({
   const getPlayerPosition = (index, totalOpponents) => {
     // Ellipse parameters (percentage of container)
     const centerX = 50; // Center X (%)
-    const centerY = 40; // Center Y (%) - slightly higher to leave room for player at bottom
+    const centerY = 45; // Center Y (%) - moved down to give more room at top
     const radiusX = 35; // Horizontal radius (%) - closer to center
-    const radiusY = 25; // Vertical radius (%) - closer to center
+    const radiusY = 28; // Vertical radius (%) - increased to give more room at top
     
     // Start from bottom and go clockwise
     // Angle in radians (π/2 = bottom)
@@ -80,13 +80,10 @@ const StadiumLayout = ({
     const x = centerX + radiusX * Math.cos(angle);
     const y = centerY + radiusY * Math.sin(angle);
     
-    // Calculate rotation so cards face the center
-    const rotationDeg = (angle * 180 / Math.PI) + 90;
-    
     return {
       left: `${x}%`,
       top: `${y}%`,
-      transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+      transform: `translate(-50%, -50%)`,
       angle: angle
     };
   };
@@ -291,19 +288,19 @@ const StadiumLayout = ({
                 {/* Discard */}
                 <div className="flex flex-col items-center gap-2 mt-32">
                   {discardPile.length > 0 ? (
-                    <div className="relative">
+                    <div className="relative grayscale opacity-60">
                       <Card 
                         card={discardPile[discardPile.length - 1]} 
-                        size="sm"
-                        className="shadow-xl"
+                        size="xs"
+                        className="shadow-lg"
                       />
                     </div>
                   ) : (
-                    <div className="w-20 h-28 bg-gradient-to-br from-slate-400 to-slate-500 rounded-lg border-4 border-white shadow-xl flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">DISCARD</span>
+                    <div className="w-16 h-24 bg-gradient-to-br from-slate-300 to-slate-400 rounded-lg border-3 border-white shadow-lg flex items-center justify-center opacity-60">
+                      <span className="text-white text-[10px] font-bold">DISCARD</span>
                     </div>
                   )}
-                  <span className="text-slate-700 text-xs font-bold bg-white px-3 py-1.5 rounded-lg shadow-md border border-slate-200">DISCARD ({discardPile.length})</span>
+                  <span className="text-slate-600 text-xs font-bold bg-white px-3 py-1.5 rounded-lg shadow-md border border-slate-200">DISCARD ({discardPile.length})</span>
                 </div>
               </div>
             </div>
@@ -323,7 +320,7 @@ const StadiumLayout = ({
             
             return (
               <React.Fragment key={player.id}>
-                {/* Player info box (bank & properties) - closer to center */}
+                {/* Player info box (bank & properties & hand) - closer to center */}
                 {!isMe && (
                     <div
                       id={`tutorial-opponent-${index}`}
@@ -341,28 +338,11 @@ const StadiumLayout = ({
                       onSelect={onOpponentSelect}
                       onCardClick={onCardClick}
                       compact={seatedPlayers.length > 3}
-                      showHand={false}
+                      showHand={true}
                       tooltipDirection={parseInt(infoPosition.top) < 40 ? 'bottom' : 'top'}
                       tooltipAlign={tooltipAlign}
                     />
                   </div>
-                )}
-                
-                {/* Card fan - around table perimeter (only for bots) */}
-                {!isMe && (
-                <div
-                  className="absolute z-10"
-                  style={{
-                    left: fanPosition.left,
-                    top: fanPosition.top,
-                    transform: fanPosition.transform
-                  }}
-                >
-                  <HandCountDisplay 
-                    cardCount={player.hand?.length || 0}
-                    compact={true}
-                  />
-                </div>
                 )}
               </React.Fragment>
             );

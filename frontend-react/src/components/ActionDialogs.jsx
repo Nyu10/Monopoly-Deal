@@ -21,11 +21,8 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">
-            How to play
-          </h2>
+      <div className="bg-white rounded-xl shadow-2xl max-w-[280px] w-full p-3 animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-end mb-2">
           <button
             onClick={onCancel}
             className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-full"
@@ -34,18 +31,18 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           </button>
         </div>
 
-        <div className="flex justify-center mb-6">
-          <div className="shadow-2xl rounded-2xl">
-            <Card card={card} size="lg" enableHover={false} showDescription={true} />
+        <div className="flex justify-center mb-3">
+          <div className="shadow-xl rounded-xl">
+            <Card card={card} size="md" enableHover={false} showDescription={true} />
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* PLAY ACTION / PROPERTY BUTTON */}
           {(isAction || isProperty) && isInHand && (
             <button
               onClick={() => onConfirm(isProperty ? 'PROPERTY' : 'ACTION')}
-              className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-blue-500/30"
+              className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-blue-500/30"
             >
               <div className="flex flex-col text-left">
                 <span className="font-black uppercase tracking-wider text-sm">
@@ -67,7 +64,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           {card.type === CARD_TYPES.PROPERTY_WILD && card.colors?.length === 2 && onFlip && !isInHand && (
              <button
               onClick={onFlip}
-              className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-orange-500/30"
+              className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-orange-500/30"
             >
               <div className="flex flex-col text-left">
                 <span className="font-black uppercase tracking-wider text-sm">
@@ -87,7 +84,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           {!isProperty && isInHand && (
             <button
               onClick={() => onConfirm('BANK')}
-              className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-emerald-500/30"
+              className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-emerald-500/30"
             >
               <div className="flex flex-col text-left">
                 <span className="font-black uppercase tracking-wider text-sm">
@@ -106,7 +103,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           {/* CANCEL BUTTON */}
           <button
             onClick={onCancel}
-            className="w-full p-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors mt-2"
+            className="w-full p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold transition-colors"
           >
             Cancel
           </button>
@@ -208,12 +205,31 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                     </h3>
                     
                     {targetType === 'PLAYER' ? (
-                      <button
-                        onClick={() => onSelect({ playerId: player.id })}
-                        className="w-full bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-600 text-[10px] px-3 py-2 rounded-lg font-black transition-all uppercase tracking-wider"
-                      >
-                        Select {player.name}
-                      </button>
+                      <div className="space-y-2">
+                        {/* Show Bank Value */}
+                        <div className="flex items-center justify-between text-[10px] px-2">
+                          <span className="text-slate-500 font-bold">Bank:</span>
+                          <span className="text-green-600 font-black">
+                            ${player.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
+                          </span>
+                        </div>
+                        
+                        {/* Show Properties Count */}
+                        <div className="flex items-center justify-between text-[10px] px-2 mb-3">
+                          <span className="text-slate-500 font-bold">Properties:</span>
+                          <span className="text-blue-600 font-black">
+                            {player.properties?.length || 0}
+                          </span>
+                        </div>
+                        
+                        {/* Select Button */}
+                        <button
+                          onClick={() => onSelect({ playerId: player.id })}
+                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-xs px-4 py-3 rounded-lg font-black transition-all uppercase tracking-wider shadow-md hover:shadow-lg"
+                        >
+                          Select {player.name}
+                        </button>
+                      </div>
                     ) : (
                       <div className="grid grid-cols-4 gap-1.5">
                         {targetType === 'OWN_COMPLETE_SET' ? (
@@ -274,7 +290,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                                 }`}
                                 title={isProtected ? "Cannot steal from complete set" : undefined}
                               >
-                                <Card card={prop} size="xs" enableHover={false} selected={isSelected} />
+                                <Card card={prop} size="xs" enableHover={false} />
                                 {isProtected && (
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="bg-slate-900/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider backdrop-blur-sm">

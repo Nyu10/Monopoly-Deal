@@ -19,8 +19,8 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = true }) 
         className="relative cursor-pointer" 
         onClick={() => onCardClick && onCardClick(topCard)}
         style={{ 
-          width: `${192 * 0.5}px`, 
-          height: `${272 * 0.5 + (Math.min(cardCount, 5) - 1) * 8}px` 
+          width: `${192 * 0.4}px`, 
+          height: `${272 * 0.4 + (Math.min(cardCount, 5) - 1) * 6}px` 
         }}
       >
         {/* Visual card stack: show top cards as a vertical stack */}
@@ -29,14 +29,14 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = true }) 
             key={card.id || i}
             className="absolute shadow-lg rounded-lg overflow-hidden transition-all duration-300"
             style={{
-              bottom: `${i * 8}px`,
+              bottom: `${i * 6}px`,
               left: '0',
               zIndex: i
             }}
           >
             <MiniCard 
               card={card} 
-              scale={0.5} 
+              scale={0.4} 
               onClick={() => onCardClick && onCardClick(card)}
             />
           </div>
