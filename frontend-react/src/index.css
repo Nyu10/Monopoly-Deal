@@ -15,9 +15,9 @@
 body {
   margin: 0;
   overflow: hidden;
-  background-color: var(--bg-obsidian);
+  background-color: #ffffff;
   font-family: 'Outfit', sans-serif;
-  color: #f1f5f9;
+  color: #0f172a;
 }
 
 .font-serif-bold {
@@ -77,4 +77,17 @@ body {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8), 0 0 80px rgba(59, 130, 246, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

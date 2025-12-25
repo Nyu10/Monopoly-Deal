@@ -1,6 +1,6 @@
 import React from 'react';
 
-const BankDisplay = ({ cards, compact = false }) => {
+const BankDisplay = ({ cards, compact = false, onCardClick }) => {
   if (!cards || cards.length === 0) {
     return null;
   }
@@ -11,10 +11,14 @@ const BankDisplay = ({ cards, compact = false }) => {
   // Visual card stack - show cards stacked with slight offset
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="text-xs font-bold text-white/80">Bank: ${totalValue}M</div>
+      <div className="text-xs font-bold text-slate-600">Bank: ${totalValue}M</div>
       
       {/* Card stack visualization */}
-      <div className="relative" style={{ width: '50px', height: `${Math.min(cardCount * 3 + 40, 80)}px` }}>
+      <div 
+        className="relative cursor-pointer transition-transform hover:scale-110" 
+        onClick={() => onCardClick && onCardClick(cards[0])}
+        style={{ width: '50px', height: `${Math.min(cardCount * 3 + 40, 80)}px` }}
+      >
         {Array.from({ length: Math.min(cardCount, 10) }).map((_, i) => (
           <div
             key={i}

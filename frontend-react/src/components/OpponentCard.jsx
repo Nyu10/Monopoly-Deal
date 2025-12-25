@@ -8,6 +8,7 @@ const OpponentCard = ({
   isCurrentTurn = false, 
   isTargetable = false,
   onSelect,
+  onCardClick,
   compact = true,
   showHand = true
 }) => {
@@ -20,9 +21,9 @@ const OpponentCard = ({
   return (
     <div
       className={`
-        bg-slate-800/80 backdrop-blur-sm rounded-xl p-3 transition-all duration-300 border-2
-        ${isCurrentTurn ? 'border-green-400 shadow-lg shadow-green-500/50' : 'border-slate-600'}
-        ${isTargetable ? 'cursor-pointer hover:border-yellow-400 hover:shadow-yellow-500/50 hover:scale-105' : ''}
+        bg-white rounded-xl p-3 transition-all duration-300 border-2
+        ${isCurrentTurn ? 'border-blue-600 shadow-lg shadow-blue-500/20' : 'border-slate-200'}
+        ${isTargetable ? 'cursor-pointer hover:border-blue-400 hover:shadow-blue-500/20 hover:scale-105' : ''}
       `}
       onClick={handleClick}
       style={{ width: '220px' }}
@@ -33,11 +34,11 @@ const OpponentCard = ({
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-black text-sm border-2 border-white shadow">
             {player.name?.[0]?.toUpperCase() || '?'}
           </div>
-          <span className="font-black text-white text-sm">{player.name || 'Player'}</span>
+          <span className="font-black text-slate-900 text-sm">{player.name || 'Player'}</span>
         </div>
         
         {isCurrentTurn && (
-          <div className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+          <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
             TURN
           </div>
         )}
@@ -46,10 +47,10 @@ const OpponentCard = ({
       {/* Game state - stacked vertically */}
       <div className="space-y-3">
         {/* Bank */}
-        <BankDisplay cards={player.bank || []} />
+        <BankDisplay cards={player.bank || []} onCardClick={(card) => onCardClick && onCardClick(card, player.id)} />
 
         {/* Properties */}
-        <PropertySetDisplay properties={player.properties || []} />
+        <PropertySetDisplay properties={player.properties || []} onCardClick={(card) => onCardClick && onCardClick(card, player.id)} />
 
         {/* Hand - only show if showHand is true */}
         {showHand && <HandCountDisplay cardCount={player.hand?.length || 0} />}

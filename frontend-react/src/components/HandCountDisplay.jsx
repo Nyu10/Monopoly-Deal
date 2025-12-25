@@ -20,7 +20,7 @@ const HandCountDisplay = ({ cardCount, compact = false }) => {
           return (
             <div
               key={i}
-              className="absolute bg-gradient-to-br from-red-800 to-red-900 rounded border-2 border-white shadow-lg transition-transform hover:scale-110 hover:-translate-y-2"
+              className="absolute bg-gradient-to-br from-red-600 to-red-700 rounded border-2 border-white shadow-lg transition-transform hover:scale-110 hover:-translate-y-2"
               style={{
                 width: `${cardWidth}px`,
                 height: `${cardHeight}px`,
@@ -29,9 +29,9 @@ const HandCountDisplay = ({ cardCount, compact = false }) => {
                 zIndex: i
               }}
             >
-              <div className="absolute inset-0 flex items-center justify-center text-white text-xs font-black opacity-40">
-                M
-              </div>
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px)'
+              }}></div>
             </div>
           );
         })}

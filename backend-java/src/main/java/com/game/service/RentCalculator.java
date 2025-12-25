@@ -32,7 +32,7 @@ public class RentCalculator {
         Map.entry("yellow", new int[]{2, 4, 6}),
         Map.entry("green", new int[]{2, 4, 7}),
         Map.entry("dark_blue", new int[]{3, 8}),
-        Map.entry("railroad", new int[]{1, 2, 3, 4}),
+        Map.entry("railroad", new int[]{1, 2, 4, 8}),
         Map.entry("utility", new int[]{1, 2})
     );
     
@@ -90,7 +90,8 @@ public class RentCalculator {
             if (color.equals(cardColor)) {
                 if (card.hasHotel()) {
                     bonus += 4; // Hotel adds $4M
-                } else if (card.hasHouse()) {
+                }
+                if (card.hasHouse()) {
                     bonus += 3; // House adds $3M
                 }
             }

@@ -3,6 +3,9 @@
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/constants/GameConstants.java
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/controller/GameController.java
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/controller/LobbyController.java
+/Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/dto/CreateGameRequest.java
+/Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/dto/CreateSessionRequest.java
+/Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/dto/SessionResponse.java
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/model/ActionType.java
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/model/Card.java
 /Users/nehemiah/Documents/Code/Monopoly-Deal/backend-java/src/main/java/com/game/model/CardType.java

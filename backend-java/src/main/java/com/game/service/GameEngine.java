@@ -295,7 +295,6 @@ public class GameEngine {
         for (Card card : player.getProperties()) {
             String cardColor = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
             if (targetColor.equals(cardColor) && card.hasHouse() && !card.hasHotel()) {
-                card.setHasHouse(false);
                 card.setHasHotel(true);
                 state.getLogs().add(new GameState.GameLog(
                     player.getName() + " upgraded to a Hotel on " + card.getName() + "!",

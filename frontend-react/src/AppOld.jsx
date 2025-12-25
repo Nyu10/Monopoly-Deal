@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AlertCircle, RotateCcw, Check, X, DollarSign, Layers, Trophy, MessageSquare, Sparkles, Send, MapPin, User, Cpu, ShieldAlert, HandMetal, Home, Building, SkipForward, Info, BookOpen, Brain, Zap, Target } from 'lucide-react';
 import HowToPlay from './components/HowToPlay';
+import StadiumLayout from './components/StadiumLayout';
 import { createBot, BOT_DIFFICULTY } from './ai/BotEngine';
 
 // --- API & Configuration ---
@@ -465,7 +466,7 @@ const CardComponent = ({ card, onClick, size = 'md', faceDown = false, selected 
 
 // --- Main Game ---
 
-export default function MonopolyDealV3() {
+export default function MonopolyDealV3({ layout = 'standard' }) {
   const [gameState, setGameState] = useState('SETUP'); 
   const [deck, setDeck] = useState([]);
   const [discardPile, setDiscardPile] = useState([]);
@@ -484,6 +485,7 @@ export default function MonopolyDealV3() {
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [selectedForPayment, setSelectedForPayment] = useState([]);
   const drawLock = useRef(false);
+  const movesLeftRef = useRef(0); // Track moves synchronously for bot AI
   
   const logsEndRef = useRef(null);
   useEffect(() => logsEndRef.current?.scrollIntoView({ behavior: "smooth" }), [logs]);
@@ -586,6 +588,7 @@ export default function MonopolyDealV3() {
 
         if (gameState === 'DRAW') {
             setMovesLeft(3);
+            movesLeftRef.current = 3; // Sync ref
             setGameState('PLAYING');
         }
         
@@ -594,21 +597,34 @@ export default function MonopolyDealV3() {
   };
 
   const playCard = (card) => {
-      // Use the new confirmation flow for human players
-      if (players[turnIndex].isHuman) {
-          if (gameState !== 'PLAYING' || movesLeft <= 0 || turnIndex !== 0) return;
-          if (!players[0].hand.find(c => c.uid === card.uid)) return;
-          setPendingAction(card);
+      console.log('playCard called with:', card.name, 'State:', gameState, 'Moves:', movesLeft, 'Turn:', turnIndex);
+      
+      if (turnIndex !== 0) {
+          console.log('playCard rejected: Not your turn');
           return;
       }
-      
-      // Direct execution for bots
-      executeAction(card, turnIndex);
+
+      // If user clicks a card in DRAW state, help them out by drawing first
+      if (gameState === 'DRAW') {
+          console.log('playCard: In DRAW state, performing draw first');
+          performDraw(0);
+          return;
+      }
+
+      // Use the new confirmation flow for human players
+      // The turnIndex !== 0 check above already ensures it's the human player's turn.
+      if (gameState !== 'PLAYING' || movesLeft <= 0) {
+          console.log('playCard rejected: invalid state or no moves left');
+          return;
+      }
+      if (!players[0].hand.find(c => c.uid === card.uid)) return;
+      setPendingAction(card);
+      return;
   };
 
   const executeConfirmedMove = (card, targetType = 'AUTO') => {
       // 1. Immediate validation
-      if (!players[0].hand.find(c => c.uid === card.uid)) {
+      if (!players[0].hand.find(c => c.uid === card.uid)) { 
           setPendingAction(null);
           return;
       }
@@ -889,7 +905,8 @@ export default function MonopolyDealV3() {
   };
 
   const runCpuTurn = (idx) => {
-      if (gameState !== 'PLAYING' || turnIndex !== idx || movesLeft <= 0) return;
+      // Check moves using ref for synchronous access
+      if (gameState !== 'PLAYING' || turnIndex !== idx || movesLeftRef.current <= 0) return;
 
       const cpu = players[idx];
       const hand = cpu.hand;
@@ -995,6 +1012,7 @@ export default function MonopolyDealV3() {
   const decrementMoves = () => {
     setMovesLeft(m => {
         const next = m - 1;
+        movesLeftRef.current = next; // Update ref synchronously
         if (next === 0) {
             // Use a timeout to allow the UI to reflect the move before ending the turn
             setTimeout(() => {
@@ -1132,8 +1150,9 @@ export default function MonopolyDealV3() {
   );
 
   return (
-    <div className="w-full h-screen bg-mesh flex overflow-hidden font-sans text-slate-200 select-none">
-       {/* New High-Precision Sidebar */}
+    <div className={`w-full h-screen flex overflow-hidden font-sans select-none ${layout === 'stadium' ? 'bg-white' : 'bg-mesh text-slate-200'}`}>
+       {/* Sidebar - Hide in stadium mode */}
+       {layout !== 'stadium' && (
        <div className="w-80 glass-panel border-r border-white/5 flex flex-col z-20">
            <div className="p-8 border-b border-white/5">
                 <h2 className="font-serif-bold italic text-3xl text-glow-gold bg-gradient-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent uppercase tracking-tighter">Hustle</h2>
@@ -1192,13 +1211,14 @@ export default function MonopolyDealV3() {
                </div>
            )}
        </div>
+       )}
 
        {/* Enhanced Main Arena */}
        <div className="flex-1 flex flex-col relative">
            {/* Reaction Overlay */}
            {gameState === 'REACTION' && reactionContext && players[reactionContext.target].isHuman && (
                <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
-                   <div className="max-w-md w-full glass-panel p-10 rounded-[40px] border-amber-500/30 text-center space-y-8 animate-float">
+                   <div className="max-w-md w-full glass-panel p-10 rounded-[40px] border-amber-500/30 text-center space-y-8 animate-float pointer-events-auto">
                        <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto text-amber-500 border border-amber-500/30">
                            <ShieldAlert size={40}/>
                        </div>
@@ -1222,13 +1242,60 @@ export default function MonopolyDealV3() {
 
            {gameState === 'TARGET_SELECT' && (
                <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                    <div className="glass-panel px-8 py-3 rounded-full border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] flex items-center gap-4 animate-bounce">
+                    <div className="glass-panel px-8 py-3 rounded-full border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] flex items-center gap-4 animate-bounce pointer-events-auto">
                         <MapPin className="text-amber-500" size={18}/>
                         <span className="text-amber-500 font-black uppercase tracking-[0.2em] text-xs">Choose Target Property</span>
                     </div>
                </div>
            )}
 
+            {layout === 'stadium' ? (
+                <div className="flex-1 relative overflow-hidden bg-white">
+                    <StadiumLayout
+                        players={players}
+                        currentPlayerId={0}
+                        currentTurnIndex={turnIndex}
+                        onCardClick={playCard}
+                        onOpponentSelect={(p) => {
+                            if (gameState === 'TARGET_SELECT') handleTargetClick(null, p.id);
+                        }}
+                        deck={deck}
+                        discardPile={discardPile}
+                        onDraw={() => turnIndex === 0 && gameState === 'DRAW' && performDraw(0)}
+                    />
+                    
+                    {/* Turn Status Overlay for Stadium Mode */}
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50">
+                        <div className="glass-panel px-6 py-3 rounded-full border-white/10 flex items-center gap-8 bg-black/60 backdrop-blur-xl shadow-2xl">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-2 h-2 rounded-full ${turnIndex === 0 ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white">
+                                    {turnIndex === 0 ? "It's Your Turn" : `${players[turnIndex].name}'s Turn`}
+                                </span>
+                            </div>
+                            <div className="w-px h-4 bg-white/20"></div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex gap-1">
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className={`w-2 h-2 rounded-full ${i <= movesLeft ? 'bg-amber-500' : 'bg-white/10'}`}></div>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={() => endTurn(0)}
+                                    disabled={gameState !== 'PLAYING' || turnIndex !== 0}
+                                    className={`
+                                        px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-tighter transition-all
+                                        ${gameState === 'PLAYING' && turnIndex === 0 ? 'bg-white text-black hover:scale-105' : 'bg-white/5 text-zinc-500'}
+                                    `}
+                                >
+                                    End Phase
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <>
              {/* Opponents Area - Full Monopoly Deal Style (35% of screen) */}
              <div className="h-[35%] px-8 py-6 border-b border-white/5 bg-gradient-to-b from-black/20 to-transparent overflow-y-auto custom-scrollbar">
                  <div className="grid grid-cols-3 gap-6 h-full">
@@ -1282,7 +1349,7 @@ export default function MonopolyDealV3() {
                                                                  key={c.uid} 
                                                                  className="h-6 rounded shadow-sm border border-white/20 flex items-center justify-center px-2 transition-transform hover:scale-105" 
                                                                  style={{backgroundColor: COLORS[c.currentColor||c.color]?.hex}}
-                                                             >
+                                                              >
                                                                  <span className="text-[7px] font-bold text-white drop-shadow truncate">{c.name}</span>
                                                              </div>
                                                          ))}
@@ -1382,7 +1449,7 @@ export default function MonopolyDealV3() {
                </div>
 
                 {/* Turn Info UI */}
-                <div className="glass-panel p-8 rounded-full border-white/10 flex items-center gap-12 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                <div className="glass-panel p-8 rounded-full border-white/10 flex items-center gap-12 shadow-[0_0_50px_rgba(0,0_0,0.5)]">
                     <div className="text-center space-y-1">
                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Active Turn</div>
                         <div className="text-lg font-black italic uppercase tracking-tighter text-white">{players[turnIndex].name}</div>
@@ -1391,7 +1458,7 @@ export default function MonopolyDealV3() {
                     <div className="text-center space-y-1">
                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Moves Remaining</div>
                         <div className="flex gap-1.5 justify-center">
-                            {[1,2,3].map(i => (
+                            {[1, 2, 3].map(i => (
                                 <div key={i} className={`w-3 h-3 rounded-full transition-all duration-500 ${i <= movesLeft ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-white/5 ring-1 ring-white/10'}`}></div>
                             ))}
                         </div>
@@ -1412,41 +1479,13 @@ export default function MonopolyDealV3() {
                         </button>
                     </div>
                 </div>
-           </div>
+            </div>
+            </>
+            )}
 
-            {/* Enhanced Player Zone - 40% of screen */}
+            {/* Primary Player Zone - Hide in stadium mode */}
+            {layout !== 'stadium' && (
             <div className="h-[40%] glass-panel border-t-2 border-amber-500/30 p-10 flex items-start gap-12 relative shadow-[0_-20px_50px_rgba(0,0,0,0.4)] bg-gradient-to-t from-black/40 to-transparent backdrop-blur-xl">
-               {/* Fixed Bank Display */}
-               <div className="flex flex-col gap-4">
-                   <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Liquid Assets</span>
-                        <div className="bg-green-500/10 text-green-500 px-2 py-0.5 rounded-lg text-[10px] font-black">${players[0].bank.reduce((a,c)=>a+c.value,0)}M</div>
-                   </div>
-                   <div className="flex -space-x-12 hover:-space-x-6 transition-all duration-500 h-40">
-                       {players[0].bank.map(c => (
-                            <CardComponent 
-                                key={c.uid} 
-                                card={c} 
-                                size="sm" 
-                                className="shadow-2xl hover:scale-110 active:z-50"
-                                selected={selectedForPayment.find(s=>s.uid===c.uid)} 
-                                onClick={() => {
-                                    if (gameState === 'PAYMENT') {
-                                        setSelectedForPayment(prev => prev.find(s=>s.uid===c.uid) ? prev.filter(s=>s.uid!==c.uid) : [...prev, c]);
-                                    } else if (gameState === 'TARGET_SELECT') {
-                                        handleTargetClick(c, 0);
-                                    }
-                                }}
-                            />
-                       ))}
-                       {players[0].bank.length === 0 && (
-                           <div className="w-24 h-36 rounded-2xl border-2 border-dashed border-white/5 flex items-center justify-center opacity-40">
-                               <DollarSign size={24} className="text-zinc-600"/>
-                           </div>
-                       )}
-                   </div>
-               </div>
-
                {/* Real Estate Portfolio */}
                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Real Estate Portfolio</span>
@@ -1494,37 +1533,11 @@ export default function MonopolyDealV3() {
                </div>
 
                 <div className="flex flex-col gap-4 relative">
-                     <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Tactical Hand</span>
-                          <span className="text-zinc-600 font-bold text-[10px]">{players[0].hand.length}/7</span>
-                     </div>
-                     
-                     {/* Move Confirmation Overlay */}
-                     {pendingAction && (
-                         <div className="absolute -top-32 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-4 animate-in slide-in-from-bottom-10 duration-500 w-max">
-                              <div className="glass-panel p-5 rounded-[28px] border-amber-500/30 flex items-center gap-6 shadow-[0_20px_80px_rgba(0,0,0,0.6)] bg-zinc-950/90 backdrop-blur-3xl">
-                                  <div className="flex flex-col">
-                                      <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Confirm Move</span>
-                                      <span className="text-lg font-black text-white italic">{pendingAction.name}</span>
-                                  </div>
-                                  <div className="h-8 w-px bg-white/10"></div>
-                                  <div className="flex gap-3">
-                                      {pendingAction.type === CARD_TYPES.PROPERTY || pendingAction.type === CARD_TYPES.PROPERTY_WILD ? (
-                                          <button onClick={() => executeConfirmedMove(pendingAction, 'PROPERTY')} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-black rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-transform"><Check size={12}/> Play to Board</button>
-                                      ) : pendingAction.type === CARD_TYPES.ACTION || pendingAction.type === CARD_TYPES.RENT || pendingAction.type === CARD_TYPES.RENT_WILD ? (
-                                          <>
-                                              <button onClick={() => executeConfirmedMove(pendingAction, 'ACTION')} className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-black rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 transition-transform"><Check size={12}/> Action</button>
-                                              <button onClick={() => executeConfirmedMove(pendingAction, 'BANK')} className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-white/20 transition-all"><DollarSign size={12}/> Bank</button>
-                                          </>
-                                      ) : (
-                                          <button onClick={() => executeConfirmedMove(pendingAction, 'BANK')} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform"><Check size={12}/> Bank</button>
-                                      )}
-                                      <button onClick={() => setPendingAction(null)} className="p-2.5 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"><X size={16}/></button>
-                                  </div>
-                              </div>
-                         </div>
-                     )}
-
+                      <div className="flex items-center justify-between">
+                           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Tactical Hand</span>
+                           <span className="text-zinc-600 font-bold text-[10px]">{players[0].hand.length}/7</span>
+                      </div>
+                      
                       <div className="flex justify-center -space-x-14 hover:-space-x-8 transition-all duration-700 h-48 origin-bottom px-10">
                           {players[0].hand.filter(c => c.uid !== pendingAction?.uid).map((c, i) => (
                               <div 
@@ -1550,7 +1563,7 @@ export default function MonopolyDealV3() {
                {/* Payment HUD */}
                {gameState === 'PAYMENT' && paymentRequest && paymentRequest.debtor === 0 && (
                    <div className="absolute inset-0 z-[100] bg-red-950/40 backdrop-blur-xl flex items-center justify-center">
-                        <div className="max-w-md w-full glass-panel p-8 rounded-[40px] border-red-500/30 text-center space-y-6 shadow-[0_0_100px_rgba(239,68,68,0.2)]">
+                        <div className="max-w-md w-full glass-panel p-8 rounded-[40px] border-red-500/30 text-center space-y-6 shadow-[0_0_100px_rgba(239,68,68,0.2)] pointer-events-auto">
                             <div className="space-y-1">
                                 <div className="text-[10px] font-black uppercase tracking-[0.5em] text-red-500">Liquidation Required</div>
                                 <div className="text-6xl font-black text-white italic font-serif-bold tracking-tighter">${paymentRequest.amount}M</div>
@@ -1568,10 +1581,11 @@ export default function MonopolyDealV3() {
                                 </button>
                             </div>
                         </div>
-                   </div>
-               )}
-           </div>
-       </div>
+                    </div>
+                )}
+            </div>
+            )}
+        </div>
 
        {/* Floating UI Elements */}
        <div className="fixed top-8 right-8 z-[100] flex gap-4">

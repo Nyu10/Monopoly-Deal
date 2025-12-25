@@ -13,7 +13,7 @@ const COLORS = {
   utility: { hex: '#9E9D24', name: 'Utility', count: 2, rent: [1, 2] }
 };
 
-const PropertySetDisplay = ({ properties, compact = false }) => {
+const PropertySetDisplay = ({ properties, compact = false, onCardClick }) => {
   const [expandedSet, setExpandedSet] = useState(null);
 
   if (!properties || properties.length === 0) {
@@ -53,7 +53,7 @@ const PropertySetDisplay = ({ properties, compact = false }) => {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="text-xs font-bold text-white/80">
+      <div className="text-xs font-bold text-slate-600">
         Properties: {completedSets}/{setStatuses.length} complete
       </div>
       
@@ -64,7 +64,12 @@ const PropertySetDisplay = ({ properties, compact = false }) => {
             {/* Property card stack */}
             <div 
               className="relative cursor-pointer transition-transform hover:scale-110"
-              onClick={() => setExpandedSet(expandedSet === color ? null : color)}
+              onClick={() => {
+                if (onCardClick && cards.length > 0) {
+                  onCardClick(cards[0]);
+                }
+                setExpandedSet(expandedSet === color ? null : color);
+              }}
               style={{ width: '32px', height: '44px' }}
             >
               {/* Show stacked cards */}

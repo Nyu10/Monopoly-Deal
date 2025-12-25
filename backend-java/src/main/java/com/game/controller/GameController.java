@@ -3,7 +3,7 @@ package com.game.controller;
 import com.game.model.GameState;
 import com.game.model.Move;
 import com.game.service.GameEngine;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -12,8 +12,11 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class GameController {
 
-    @Autowired
-    private GameEngine gameEngine;
+    private final GameEngine gameEngine;
+
+    public GameController(GameEngine gameEngine) {
+        this.gameEngine = gameEngine;
+    }
 
     @MessageMapping("/game/{roomId}/move")
     @SendTo("/topic/game/{roomId}")

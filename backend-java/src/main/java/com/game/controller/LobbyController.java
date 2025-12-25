@@ -1,16 +1,16 @@
 package com.game.controller;
 
+import com.game.dto.CreateGameRequest;
+import com.game.dto.CreateSessionRequest;
+import com.game.dto.SessionResponse;
 import com.game.model.LobbyGame;
 import com.game.model.UserSession;
 import com.game.service.LobbyService;
 import com.game.service.SessionManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * REST controller for lobby operations
@@ -21,23 +21,26 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class LobbyController {
     
-    @Autowired
-    private SessionManager sessionManager;
+    private final SessionManager sessionManager;
+    private final LobbyService lobbyService;
     
-    @Autowired
-    private LobbyService lobbyService;
+    public LobbyController(SessionManager sessionManager, LobbyService lobbyService) {
+        this.sessionManager = sessionManager;
+        this.lobbyService = lobbyService;
+    }
     
     /**
      * Create a guest session (no auth required)
      */
     @PostMapping("/session")
-    public ResponseEntity<Map<String, Object>> createSession(@RequestBody Map<String, String> request) {
-        String username = request.getOrDefault("username", "Guest" + System.currentTimeMillis() % 10000);
-        UserSession session = sessionManager.createGuestSession(username);
+    public ResponseEntity<SessionResponse> createSession(@RequestBody CreateSessionRequest request) {
+        String username = request.getUsername();
+        if (username == null || username.trim().isEmpty()) {
+            username = "Guest" + System.currentTimeMillis() % 10000;
+        }
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("sessionId", session.getSessionId());
-        response.put("username", session.getUsername());
+        UserSession session = sessionManager.createGuestSession(username);
+        SessionResponse response = new SessionResponse(session.getSessionId(), session.getUsername());
         
         return ResponseEntity.ok(response);
     }
@@ -46,16 +49,17 @@ public class LobbyController {
      * Get current session info
      */
     @GetMapping("/session/{sessionId}")
-    public ResponseEntity<Map<String, Object>> getSession(@PathVariable String sessionId) {
+    public ResponseEntity<SessionResponse> getSession(@PathVariable String sessionId) {
         UserSession session = sessionManager.getSession(sessionId);
         if (session == null) {
             return ResponseEntity.notFound().build();
         }
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("sessionId", session.getSessionId());
-        response.put("username", session.getUsername());
-        response.put("currentGameId", session.getCurrentGameId());
+        SessionResponse response = new SessionResponse(
+            session.getSessionId(),
+            session.getUsername(),
+            session.getCurrentGameId()
+        );
         
         return ResponseEntity.ok(response);
     }
@@ -74,13 +78,14 @@ public class LobbyController {
     @PostMapping("/games")
     public ResponseEntity<LobbyGame> createGame(
             @RequestHeader("X-Session-Id") String sessionId,
-            @RequestBody Map<String, Object> request) {
-        
-        String gameName = (String) request.getOrDefault("gameName", "New Game");
-        int maxPlayers = (int) request.getOrDefault("maxPlayers", 4);
+            @RequestBody CreateGameRequest request) {
         
         try {
-            LobbyGame lobby = lobbyService.createLobby(sessionId, gameName, maxPlayers);
+            LobbyGame lobby = lobbyService.createLobby(
+                sessionId,
+                request.getGameName(),
+                request.getMaxPlayers()
+            );
             return ResponseEntity.ok(lobby);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().build();

@@ -1,14 +1,14 @@
 export const COLORS = {
-  brown: { hex: '#795548', count: 2, name: 'Brown', rent: [1, 2], text: 'white' },
-  dark_blue: { hex: '#0D47A1', count: 2, name: 'Dark Blue', rent: [3, 8], text: 'white' },
-  green: { hex: '#2E7D32', count: 3, name: 'Green', rent: [2, 4, 7], text: 'white' },
-  yellow: { hex: '#FBC02D', count: 3, name: 'Yellow', rent: [2, 4, 6], text: 'black' },
-  orange: { hex: '#EF6C00', count: 3, name: 'Orange', rent: [1, 3, 5], text: 'white' },
-  pink: { hex: '#C2185B', count: 3, name: 'Pink', rent: [1, 2, 4], text: 'white' },
-  red: { hex: '#D32F2F', count: 3, name: 'Red', rent: [2, 3, 6], text: 'white' },
-  light_blue: { hex: '#03A9F4', count: 3, name: 'Light Blue', rent: [1, 2, 3], text: 'black' },
-  utility: { hex: '#AFB42B', count: 2, name: 'Utility', rent: [1, 2], text: 'black' },
-  railroad: { hex: '#212121', count: 4, name: 'Railroad', rent: [1, 2, 4, 8], text: 'white' },
+  brown: { hex: '#A1887F', count: 2, name: 'Brown', rent: [1, 2], text: 'white' },
+  dark_blue: { hex: '#42A5F5', count: 2, name: 'Dark Blue', rent: [3, 8], text: 'white' },
+  green: { hex: '#66BB6A', count: 3, name: 'Green', rent: [2, 4, 7], text: 'white' },
+  yellow: { hex: '#FFEB3B', count: 3, name: 'Yellow', rent: [2, 4, 6], text: 'black' },
+  orange: { hex: '#FFA726', count: 3, name: 'Orange', rent: [1, 3, 5], text: 'white' },
+  pink: { hex: '#EC407A', count: 3, name: 'Pink', rent: [1, 2, 4], text: 'white' },
+  red: { hex: '#EF5350', count: 3, name: 'Red', rent: [2, 3, 6], text: 'white' },
+  light_blue: { hex: '#4FC3F7', count: 3, name: 'Light Blue', rent: [1, 2, 3], text: 'black' },
+  utility: { hex: '#D4E157', count: 2, name: 'Utility', rent: [1, 2], text: 'black' },
+  railroad: { hex: '#616161', count: 4, name: 'Railroad', rent: [1, 2, 4, 8], text: 'white' },
   multi: { hex: 'linear-gradient(45deg, #f06, #4a90e2, #7ed321, #f5a623)', count: 0, name: 'Multi', text: 'white', rent: [] }
 };
 
