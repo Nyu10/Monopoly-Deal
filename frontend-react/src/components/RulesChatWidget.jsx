@@ -106,7 +106,7 @@ const RulesChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-4 font-sans">
+    <div className="fixed top-6 right-[340px] z-[9999] flex flex-col items-end gap-4 font-sans">
       {/* Chat Window */}
       {isOpen && (
         <div className="w-[350px] h-[500px] bg-zinc-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">

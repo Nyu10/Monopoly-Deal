@@ -42,117 +42,125 @@ const QuickRules = ({ isOpen, onClose }) => {
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto max-h-[70vh] p-6 space-y-6 bg-slate-50">
+        <div className="overflow-y-auto max-h-[75vh] p-6 space-y-8 bg-slate-50/50">
           
-          {/* Important Rules (Top bullets) */}
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3 text-red-600">
-              <AlertCircle size={18} />
-              <h3 className="font-bold text-xs uppercase tracking-wider">Critical Rules</h3>
+          {/* Section 1: The Goal */}
+          <section className="animate-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-amber-100 p-2 rounded-lg text-amber-600">
+                <Trophy size={20} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-amber-600 leading-none mb-1">The Objective</h3>
+                <h4 className="font-bold text-base text-slate-900 leading-none">How To Win</h4>
+              </div>
             </div>
-            <ul className="space-y-2">
-               {[
-                 "You may not pay a debt with cards from your hand.",
-                 "Properties never go in your Bank.",
-                 "Change is never given when paying a debt.",
-                 "If you don't have enough money in your Bank, pay with property.",
-                 "You may change the color of a wild property card anytime during your turn."
-               ].map((rule, i) => (
-                 <li key={i} className="text-xs text-slate-700 leading-relaxed flex items-start gap-2">
-                   <span className="text-red-400 mt-0.5">•</span>
-                   {rule}
-                 </li>
-               ))}
-            </ul>
-          </div>
-
-          {/* How To Win */}
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-amber-100 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2 text-amber-600">
-              <Trophy size={18} strokeWidth={2.5} />
-              <h3 className="font-black text-xs uppercase tracking-wider">How To Win</h3>
+            <div className="bg-gradient-to-br from-white to-amber-50/30 border border-amber-100 rounded-2xl p-5 shadow-sm">
+              <p className="text-sm font-bold text-slate-800 leading-relaxed italic">
+                "Be the first player to collect <span className="text-amber-600 underline decoration-amber-200 underline-offset-4">3 complete property sets</span> in different colors."
+              </p>
             </div>
-            <p className="text-sm font-bold text-slate-800">
-              Collect 3 complete property sets, each in a different color.
-            </p>
-          </div>
+          </section>
 
-          {/* Set Up */}
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-2 text-slate-600">
-              <Layers size={18} strokeWidth={2.5} />
-              <h3 className="font-black text-xs uppercase tracking-wider">Set Up</h3>
-            </div>
-            <p className="text-xs text-slate-600">
-              Each player starts with <span className="font-bold text-slate-900">5 cards</span>.
-            </p>
-          </div>
-
-          {/* On Your Turn */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3 text-blue-600">
-              <PlayCircle size={18} strokeWidth={2.5} />
-              <h3 className="font-black text-xs uppercase tracking-wider">On Your Turn</h3>
+          {/* Section 2: Gameplay */}
+          <section className="animate-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                <PlayCircle size={20} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-blue-600 leading-none mb-1">Game Loop</h3>
+                <h4 className="font-bold text-base text-slate-900 leading-none">On Your Turn</h4>
+              </div>
             </div>
             
-            <div className="space-y-4 relative">
-              {/* Timeline line */}
-              <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-blue-200/50"></div>
+            <div className="space-y-6 relative ml-2">
+              <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-200 via-blue-100 to-transparent"></div>
 
               {/* Step 1 */}
-              <div className="relative flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 z-10 ring-4 ring-blue-50">1</div>
+              <div className="relative flex gap-4">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0 z-10 shadow-lg shadow-blue-200 ring-4 ring-white">1</div>
                 <div>
                    <h4 className="font-bold text-sm text-slate-800">Draw 2 Cards</h4>
-                   <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide mt-0.5">Start of turn</p>
+                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-1">Start of your turn</p>
                 </div>
               </div>
 
               {/* Step 2 */}
-              <div className="relative flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 z-10 ring-4 ring-blue-50">2</div>
+              <div className="relative flex gap-4">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0 z-10 shadow-lg shadow-blue-200 ring-4 ring-white">2</div>
                 <div className="w-full">
-                   <h4 className="font-bold text-sm text-slate-800 mb-2">Play up to 3 cards</h4>
-                   <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm space-y-2">
-                      <div className="flex items-start gap-2 text-xs text-slate-600">
-                        <ArrowRight size={14} className="text-blue-400 mt-0.5 shrink-0" />
-                        <span>Add money/action cards to your <span className="font-bold text-slate-800">Bank</span>.</span>
-                      </div>
-                      <div className="flex items-start gap-2 text-xs text-slate-600">
-                        <ArrowRight size={14} className="text-blue-400 mt-0.5 shrink-0" />
-                        <span>Add properties to your <span className="font-bold text-slate-800">Collection</span>.</span>
-                      </div>
-                      <div className="flex items-start gap-2 text-xs text-slate-600">
-                        <ArrowRight size={14} className="text-blue-400 mt-0.5 shrink-0" />
-                        <span>Play an <span className="font-bold text-slate-800">Action Card</span> into center.</span>
-                      </div>
+                   <h4 className="font-bold text-sm text-slate-800 mb-3">Play up to 3 cards</h4>
+                   <div className="grid gap-2">
+                      {[
+                        { text: "Bank", desc: "Money & Action cards", icon: "💰" },
+                        { text: "Build", desc: "Properties & Wilds", icon: "🏠" },
+                        { text: "Action", desc: "Play cards for effects", icon: "⚡" }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-50/50 shadow-sm">
+                          <span className="text-lg">{item.icon}</span>
+                          <div>
+                            <div className="text-[10px] font-black uppercase text-blue-600 tracking-wider mb-0.5">{item.text}</div>
+                            <div className="text-xs text-slate-600 font-medium">{item.desc}</div>
+                          </div>
+                        </div>
+                      ))}
                    </div>
                 </div>
               </div>
 
               {/* Step 3 */}
-              <div className="relative flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 z-10 ring-4 ring-blue-50">3</div>
+              <div className="relative flex gap-4">
+                <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 font-black text-xs flex items-center justify-center shrink-0 z-10 ring-4 ring-white">3</div>
                 <div>
                    <h4 className="font-bold text-sm text-slate-800">End your turn</h4>
-                   <p className="text-xs text-slate-600 mt-1 leading-snug">
-                     Limit hand to 7 cards. Discard extras if you have more than 7.
+                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                     Hand limit is <span className="font-black text-slate-900">7 cards</span>. Discard extras to the pile.
                    </p>
                 </div>
               </div>
-
             </div>
-          </div>
+          </section>
+
+          {/* Section 3: Fine Print */}
+          <section className="animate-in slide-in-from-bottom-6 duration-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-red-100 p-2 rounded-lg text-red-600">
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-red-600 leading-none mb-1">Nuances</h3>
+                <h4 className="font-bold text-base text-slate-900 leading-none">Critical Rules</h4>
+              </div>
+            </div>
+            <div className="bg-white border border-red-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="divide-y divide-red-50">
+                 {[
+                   "You may not pay a debt with cards from your hand.",
+                   "Properties never go in your Bank.",
+                   "Change is never given when paying a debt.",
+                   "If you run out of money, you must pay with property.",
+                   "Flip wild property colors anytime during your turn."
+                 ].map((rule, i) => (
+                   <div key={i} className="p-3 text-[11px] text-slate-700 leading-snug flex items-center gap-3 hover:bg-red-50/30 transition-colors">
+                     <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0"></div>
+                     {rule}
+                   </div>
+                 ))}
+              </div>
+            </div>
+          </section>
 
         </div>
         
         {/* Footer */}
-        <div className="p-3 bg-slate-50 border-t border-slate-200 text-center">
+        <div className="p-4 bg-white border-t border-slate-100">
              <button 
                onClick={onClose}
-               className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-slate-800 transition-colors"
+               className="group w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
              >
                Got it, let's play!
+               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
              </button>
         </div>
       </div>

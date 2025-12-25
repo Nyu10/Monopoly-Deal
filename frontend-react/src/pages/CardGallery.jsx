@@ -139,7 +139,7 @@ export default function CardGallery() {
                     <div className="h-1 w-12 bg-blue-600 rounded"></div>
                     {type} Cards ({cards.length})
                   </h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 gap-y-16">
                     {cards.map(card => (
                       <div key={card.uid} className="flex flex-col items-center gap-2">
                         <ErrorBoundary>
@@ -149,6 +149,7 @@ export default function CardGallery() {
                            >
                              <Card 
                                card={card} 
+                               size="md"
                                className={`transition-transform duration-500 ${rotatedCards.has(card.uid) ? 'rotate-180' : ''}`}
                              />
                            </div>
@@ -171,7 +172,7 @@ export default function CardGallery() {
               )
             ))
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 gap-y-16">
               {filteredCards.map(card => (
                       <div key={card.uid} className="flex flex-col items-center gap-2">
                         <ErrorBoundary>
@@ -181,6 +182,7 @@ export default function CardGallery() {
                            >
                              <Card 
                                card={card} 
+                               size="md"
                                className={`transition-transform duration-500 ${rotatedCards.has(card.uid) ? 'rotate-180' : ''}`}
                              />
                            </div>

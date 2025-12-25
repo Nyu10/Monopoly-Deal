@@ -1,49 +1,51 @@
 import MiniCard from './MiniCard';
 
-const BankDisplay = ({ cards, compact = false, onCardClick }) => {
+const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = true }) => {
   if (!cards || cards.length === 0) {
     return null;
   }
 
   const totalValue = cards.reduce((sum, card) => sum + (card.value || 0), 0);
   const cardCount = cards.length;
+  const topCard = cards[cards.length - 1];
 
   // Visual card stack - show cards stacked with slight offset
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="text-xs font-bold text-slate-600">Bank: ${totalValue}M</div>
+      {/* Total value hidden for opponents by default */}
+      {!hideValue && <div className="text-xs font-bold text-slate-600">Bank: ${totalValue}M</div>}
       
-      {/* Card stack visualization using actual cards */}
       <div 
-        className="relative cursor-pointer transition-transform hover:scale-110" 
-        onClick={() => onCardClick && onCardClick(cards[0])}
-        style={{ width: '48px', height: `${Math.min(cardCount * 3 + 72, 100)}px` }}
+        className="relative cursor-pointer" 
+        onClick={() => onCardClick && onCardClick(topCard)}
+        style={{ 
+          width: `${192 * 0.5}px`, 
+          height: `${272 * 0.5 + (Math.min(cardCount, 5) - 1) * 8}px` 
+        }}
       >
-        {Array.from({ length: Math.min(cardCount, 10) }).map((_, i) => (
+        {/* Visual card stack: show top cards as a vertical stack */}
+        {[...cards].slice(-5).map((card, i, arr) => (
           <div
-            key={i}
-            className="absolute"
+            key={card.id || i}
+            className="absolute shadow-lg rounded-lg overflow-hidden transition-all duration-300"
             style={{
-              bottom: `${i * 3}px`,
-              left: '50%',
-              transform: 'translateX(-50%)',
+              bottom: `${i * 8}px`,
+              left: '0',
               zIndex: i
             }}
           >
             <MiniCard 
-              card={cards[i] || cards[0]} 
-              scale={0.3} 
-              onClick={() => onCardClick && onCardClick(cards[i] || cards[0])}
+              card={card} 
+              scale={0.5} 
+              onClick={() => onCardClick && onCardClick(card)}
             />
           </div>
         ))}
         
-        {/* Card count badge if more than 10 */}
-        {cardCount > 10 && (
-          <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-20">
-            {cardCount}
-          </div>
-        )}
+        {/* Card count badge */}
+        <div className="absolute -top-3 -right-3 bg-emerald-600 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[60] shadow-md animate-in zoom-in duration-300">
+           {cardCount}
+        </div>
       </div>
     </div>
   );

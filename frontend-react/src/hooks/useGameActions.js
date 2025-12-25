@@ -96,26 +96,12 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
 
     // Rent cards
     if (card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD) {
-      if (card.type === CARD_TYPES.RENT_WILD) {
-        // Wild rent needs target selection
-        setPendingAction(card);
-        setTargetSelectionMode({
-          card,
-          type: 'PLAYER',
-        });
-      } else {
-        // Regular rent card
-        if (isDemo) {
-          console.log('Playing rent:', card.name);
-          setPendingAction(null);
-        } else {
-          sendMove({
-            type: 'PLAY_CARD',
-            cardId: card.id,
-            actionType: 'RENT',
-          });
-        }
-      }
+      // Both types need selection - color for regular, player for wild
+      setPendingAction(card);
+      setTargetSelectionMode({
+        card,
+        type: card.type === CARD_TYPES.RENT_WILD ? 'PLAYER' : 'RENT_COLOR',
+      });
       return;
     }
 
@@ -154,7 +140,7 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
   };
 
   /**
-   * Handle target selection (for Sly Deal, Deal Breaker, etc.)
+   * Handle target selection (for Sly Deal, Deal Breaker, Rent, etc.)
    */
   const selectTarget = useCallback((target) => {
     if (!pendingAction || !targetSelectionMode) return;
@@ -166,14 +152,24 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
       setPendingAction(null);
       setTargetSelectionMode(null);
     } else {
-      sendMove({
-        type: 'PLAY_CARD',
-        cardId: card.id,
-        actionType: card.actionType,
-        targetPlayerId: target.playerId,
-        targetCardId: target.cardId,
-        targetSetColor: target.setColor,
-      });
+      // For rent color selection, target is just the color string
+      if (type === 'RENT_COLOR') {
+        sendMove({
+          type: 'PLAY_CARD',
+          cardId: card.id,
+          actionType: 'RENT',
+          targetCardId: target, // target is the color string
+        });
+      } else {
+        sendMove({
+          type: 'PLAY_CARD',
+          cardId: card.id,
+          actionType: card.actionType,
+          targetPlayerId: target.playerId,
+          targetCardId: target.cardId,
+          targetSetColor: target.setColor,
+        });
+      }
       setPendingAction(null);
       setTargetSelectionMode(null);
     }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { COLORS } from '../utils/gameHelpers';
+import { COLORS, ACTION_TYPES } from '../utils/gameHelpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import MiniCard from './MiniCard';
 import Card from './Card';
@@ -83,47 +83,51 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
 
             {/* Property card stack using actual cards */}
             <div 
-              className="relative cursor-pointer transition-transform hover:scale-110 active:scale-95"
+              className="relative cursor-pointer transition-all duration-300 hover:z-50"
               onClick={() => {
                 if (onCardClick && cards.length > 0) {
                   onCardClick(cards[0]);
                 }
                 setExpandedSet(expandedSet === color ? null : color);
               }}
-                style={{ width: '68px', height: '96px' }}
+              style={{ 
+                width: `${192 * 0.35}px`, 
+                height: `${288 * 0.35 + (cards.length - 1) * 24}px`,
+                minHeight: `${288 * 0.35}px`
+              }}
             >
-              {/* Show stacked cards */}
-              {cards.slice(0, 3).map((card, i) => (
-                <div
-                  key={i}
-                  className="absolute"
-                  style={{
-                    left: `${i * 2}px`,
-                    top: `${i * 2}px`,
-                    zIndex: i
-                  }}
-                >
-                  <MiniCard 
-                    card={card} 
-                    scale={0.4} 
-                    onClick={() => {
-                      if (onCardClick) onCardClick(card);
+              {/* Show stacked cards - Front to Back fanning */}
+              {[...cards].reverse().map((card, i, arr) => {
+                const actualIndex = arr.length - 1 - i;
+                const offset = actualIndex * 24;
+                
+                return (
+                  <div
+                    key={card.id || i}
+                    className="absolute transition-all duration-300 group"
+                    style={{
+                      left: '0px',
+                      top: `${offset}px`,
+                      zIndex: actualIndex
                     }}
-                    className="shadow-lg border border-black/5 rounded-lg overflow-hidden"
-                  />
-                  {i === Math.min(cards.length, 3) - 1 && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="text-white text-[12px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                        {current}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  >
+                    <MiniCard 
+                      card={card} 
+                      scale={0.35} 
+                      onClick={() => {
+                        if (onCardClick) onCardClick(card);
+                      }}
+                      className={`shadow-md border border-black/5 rounded-lg overflow-hidden transition-all duration-300 ${
+                        actualIndex === 0 ? 'ring-2 ring-white/50' : 'brightness-[0.9]'
+                      } group-hover:brightness-100 group-hover:shadow-xl group-hover:-translate-y-1`}
+                    />
+                  </div>
+                );
+              })}
               
               {/* Completion indicator */}
               {isComplete && (
-                <div className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white z-[60] shadow-md">
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[100] shadow-lg animate-bounce">
                   ✓
                 </div>
               )}

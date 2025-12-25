@@ -9,10 +9,10 @@ import Card from './Card';
 export const MiniCard = ({ card, onClick, scale = 0.4, className = "" }) => {
   if (!card) return null;
   
-  // Base dimensions of the "lg" card in Card.jsx (w-40 h-60)
-  // Tailwind w-40 = 160px, h-60 = 240px
-  const baseWidth = 160; 
-  const baseHeight = 240;
+  // Base dimensions of the "lg" card in Card.jsx (w-48 h-72)
+  // Tailwind w-48 = 192px, h-72 = 288px
+  const baseWidth = 192; 
+  const baseHeight = 288;
   
   return (
     <div 

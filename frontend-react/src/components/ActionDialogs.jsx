@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import Card from './Card';
 import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import RentColorSelectionDialog from './RentColorSelectionDialog';
 
 // ============================================================================
 // CARD ACTION DIALOG
@@ -11,7 +12,7 @@ import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
 // CARD ACTION DIALOG
 // ============================================================================
 
-export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip }) => {
+export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false }) => {
   if (!card) return null;
 
   const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD;
@@ -41,7 +42,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip }) => {
 
         <div className="space-y-3">
           {/* PLAY ACTION / PROPERTY BUTTON */}
-          {(isAction || isProperty) && (
+          {(isAction || isProperty) && isInHand && (
             <button
               onClick={() => onConfirm(isProperty ? 'PROPERTY' : 'ACTION')}
               className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-blue-500/30"
@@ -63,7 +64,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip }) => {
           )}
 
           {/* FLIP BUTTON (For Wild Properties) */}
-          {card.type === CARD_TYPES.PROPERTY_WILD && card.colors?.length === 2 && onFlip && (
+          {card.type === CARD_TYPES.PROPERTY_WILD && card.colors?.length === 2 && onFlip && !isInHand && (
              <button
               onClick={onFlip}
               className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-orange-500/30"
@@ -82,8 +83,8 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip }) => {
             </button>
           )}
 
-          {/* BANK BUTTON - Only show for non-property cards */}
-          {!isProperty && (
+          {/* BANK BUTTON - Only show for non-property cards in hand */}
+          {!isProperty && isInHand && (
             <button
               onClick={() => onConfirm('BANK')}
               className="w-full group relative flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl transition-all hover:scale-[1.02] shadow-lg hover:shadow-emerald-500/30"
@@ -273,7 +274,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                                 }`}
                                 title={isProtected ? "Cannot steal from complete set" : undefined}
                               >
-                                <Card card={prop} size="xs" enableHover={false} />
+                                <Card card={prop} size="xs" enableHover={false} selected={isSelected} />
                                 {isProtected && (
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="bg-slate-900/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider backdrop-blur-sm">
@@ -314,13 +315,16 @@ export const PaymentSelectionDialog = ({ amount, player, onConfirm, onCancel }) 
   const [selectedCards, setSelectedCards] = React.useState([]);
 
   const availableCards = [
-    ...(player.hand || []),
     ...(player.bank || []),
     ...(player.properties || []),
   ];
 
-  const totalValue = selectedCards.reduce((sum, card) => sum + (card.value || 0), 0);
-  const canPay = totalValue >= amount || totalValue >= availableCards.reduce((sum, c) => sum + (c.value || 0), 0); // Allow paying all if can't afford
+  const totalPossibleValue = availableCards.reduce((sum, card) => sum + (card.value || 0), 0);
+  const totalSelectedValue = selectedCards.reduce((sum, card) => sum + (card.value || 0), 0);
+  
+  // Rule: You must pay the full amount OR if you can't afford it, you must pay EVERYTHING you have.
+  const canPay = totalSelectedValue >= amount || (totalSelectedValue === totalPossibleValue && totalPossibleValue > 0); 
+  const remainingValue = Math.max(0, amount - totalSelectedValue);
 
   const toggleCard = (card) => {
     setSelectedCards(prev =>
@@ -343,56 +347,78 @@ export const PaymentSelectionDialog = ({ amount, player, onConfirm, onCancel }) 
           </button>
         </div>
 
-        <div className="mb-4 p-4 bg-slate-100 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-slate-700">Amount Due:</span>
-            <span className="text-lg font-black text-slate-900">${amount}M</span>
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Debt</div>
+            <div className="text-2xl font-black text-slate-900">${amount}M</div>
           </div>
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-sm font-bold text-slate-700">Selected:</span>
-            <span className={`text-lg font-black ${totalValue >= amount ? 'text-green-600' : 'text-red-600'}`}>
-              ${totalValue}M
-            </span>
+          <div className={`p-4 rounded-xl border-2 transition-colors ${totalSelectedValue >= amount ? 'bg-green-50 border-green-100' : 'bg-blue-50 border-blue-100'}`}>
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Amount Selected</div>
+            <div className={`text-2xl font-black ${totalSelectedValue >= amount ? 'text-green-600' : 'text-blue-600'}`}>
+              ${totalSelectedValue}M
+            </div>
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 mb-4">
-          Select cards to pay. Click cards to select/deselect.
-        </p>
+        {totalPossibleValue < amount && (
+           <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-3">
+              <div className="text-2xl">⚠️</div>
+              <div className="text-xs text-amber-800 font-bold leading-relaxed">
+                You don't have enough assets to pay the full ${amount}M. 
+                <br/>
+                <span className="font-black">Game Rule:</span> You must give up all your Bank and Property cards to fulfill the debt.
+              </div>
+           </div>
+        )}
 
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          {availableCards.map(card => (
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider italic">Your Assets (Bank & Properties)</h3>
+          <span className="text-[10px] font-bold text-slate-400">Click cards to select</span>
+        </div>
+
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 mb-6 p-1">
+          {availableCards.map(card => {
+            const isSelected = selectedCards.find(c => c.id === card.id);
+            return (
+              <button
+                key={card.id}
+                onClick={() => toggleCard(card)}
+                className={`relative group transition-all duration-200 ${
+                  isSelected
+                    ? 'scale-95'
+                    : 'hover:scale-105 hover:-translate-y-1'
+                }`}
+              >
+                <Card card={card} size="xs" enableHover={false} selected={isSelected} />
+                {isSelected && (
+                  <div className="absolute -top-2 -right-2 bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white z-20">
+                    <span className="text-[10px] font-black">✓</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-4 pt-4 border-t border-slate-100">
+          {onCancel && (
             <button
-              key={card.id}
-              onClick={() => toggleCard(card)}
-              className={`transition-all ${
-                selectedCards.find(c => c.id === card.id)
-                  ? 'ring-4 ring-blue-500 scale-95'
-                  : 'hover:scale-105'
-              }`}
+              onClick={onCancel}
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-4 rounded-xl font-bold transition-colors uppercase tracking-wider text-xs"
             >
-              <Card card={card} size="xs" enableHover={false} />
+              Cancel
             </button>
-          ))}
-        </div>
-
-        <div className="flex gap-3">
+          )}
           <button
             onClick={() => onConfirm(selectedCards)}
             disabled={!canPay}
-            className={`flex-1 px-6 py-3 rounded-lg font-bold transition-colors ${
+            className={`flex-1 px-6 py-4 rounded-xl font-black transition-all uppercase tracking-wider text-xs shadow-xl ${
               canPay
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/30'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            Pay ${totalValue}M
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-lg font-bold transition-colors"
-          >
-            Cancel
+            {totalPossibleValue < amount ? 'Confirm Give All Assets' : `Confirm Payment ($${totalSelectedValue}M)`}
           </button>
         </div>
       </div>
@@ -475,7 +501,7 @@ export const DiscardDialog = ({ cards, movesLeft, onConfirm, onCancel }) => {
            </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6 p-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6 p-1">
           {cards.map(card => {
              const isSelected = selectedCards.find(c => c.id === card.id);
              return (
@@ -489,7 +515,7 @@ export const DiscardDialog = ({ cards, movesLeft, onConfirm, onCancel }) => {
                 }`}
               >
                 <div className={`transition-transform duration-200 ${isSelected ? 'translate-y-4' : ''}`}>
-                   <Card card={card} size="xs" enableHover={false} />
+                   <Card card={card} size="xs" enableHover={false} selected={isSelected} />
                 </div>
                 
                 {isSelected && (
@@ -530,4 +556,5 @@ export const DiscardDialog = ({ cards, movesLeft, onConfirm, onCancel }) => {
   );
 };
 
-export default { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog };
+export { RentColorSelectionDialog };
+export default { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog, RentColorSelectionDialog };

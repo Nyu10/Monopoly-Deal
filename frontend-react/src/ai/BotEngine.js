@@ -129,6 +129,7 @@ export class EasyBot {
   }
 
   decideMove(hand, gameState) {
+    const players = gameState.players || this.players;
     // 30% chance to just bank a random card
     if (Math.random() < 0.3 && hand.length > 0) {
       const randomCard = hand[Math.floor(Math.random() * hand.length)];
@@ -155,14 +156,15 @@ export class EasyBot {
     // Randomly use action cards (often suboptimal)
     const action = hand.find(c => c.type === CARD_TYPES.ACTION);
     if (action && Math.random() < 0.5) {
-      return { action: 'PLAY_ACTION', card: action, target: this.getRandomOpponent() };
+      return { action: 'PLAY_ACTION', card: action, target: this.getRandomOpponent(players) };
     }
 
     return { action: 'END_TURN' };
   }
 
-  getRandomOpponent() {
-    const opponents = this.players.filter((_, idx) => idx !== this.playerIndex);
+  getRandomOpponent(providedPlayers) {
+    const players = providedPlayers || this.players;
+    const opponents = players.filter((_, idx) => idx !== this.playerIndex);
     return opponents[Math.floor(Math.random() * opponents.length)];
   }
 }
@@ -177,7 +179,9 @@ export class MediumBot {
   }
 
   decideMove(hand, gameState) {
-    const myState = this.players[this.playerIndex];
+    const players = gameState.players || this.players;
+    const myState = players[this.playerIndex];
+    if (!myState) return { action: 'END_TURN' };
     const mySets = getSetsFromProperties(myState.properties);
 
     // Priority 1: Complete a set if possible
@@ -195,7 +199,7 @@ export class MediumBot {
     // Priority 2: Use Deal Breaker if opponent has 2+ complete sets
     const dealBreaker = hand.find(c => c.actionType === ACTION_TYPES.DEAL_BREAKER);
     if (dealBreaker) {
-      const targetWithManySets = this.players.find((p, idx) => {
+      const targetWithManySets = players.find((p, idx) => {
         if (idx === this.playerIndex) return false;
         const sets = getSetsFromProperties(p.properties);
         return sets.filter(s => s.isComplete).length >= 2;
@@ -214,7 +218,7 @@ export class MediumBot {
     // Priority 4: Use Debt Collector or Birthday if we need to drain opponents
     const debtCollector = hand.find(c => c.actionType === ACTION_TYPES.DEBT_COLLECTOR);
     if (debtCollector) {
-      const richest = this.getRichestOpponent();
+      const richest = this.getRichestOpponent(players);
       return { action: 'PLAY_ACTION', card: debtCollector, target: richest };
     }
 
@@ -228,7 +232,7 @@ export class MediumBot {
     if (hasCompleteSets) {
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
       if (rentCard) {
-        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent() };
+        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent(players) };
       }
     }
 
@@ -244,13 +248,14 @@ export class MediumBot {
     return { action: 'END_TURN' };
   }
 
-  getRichestOpponent() {
-    return this.players
+  getRichestOpponent(providedPlayers) {
+    const players = providedPlayers || this.players;
+    return players
       .map((p, idx) => ({ player: p, idx }))
       .filter(({ idx }) => idx !== this.playerIndex)
       .sort((a, b) => {
-        const aWealth = a.player.bank.reduce((s, c) => s + c.value, 0);
-        const bWealth = b.player.bank.reduce((s, c) => s + c.value, 0);
+        const aWealth = a.player.bank.reduce((s, c) => s + (c.value || 0), 0);
+        const bWealth = b.player.bank.reduce((s, c) => s + (c.value || 0), 0);
         return bWealth - aWealth;
       })[0]?.player;
   }
@@ -266,7 +271,9 @@ export class HardBot {
   }
 
   decideMove(hand, gameState) {
-    const myState = this.players[this.playerIndex];
+    const players = gameState.players || this.players;
+    const myState = players[this.playerIndex];
+    if (!myState) return { action: 'END_TURN' };
     const mySets = getSetsFromProperties(myState.properties);
     const completedSets = mySets.filter(s => s.isComplete).length;
 
@@ -290,7 +297,7 @@ export class HardBot {
     // Strategy 1: Steal complete sets from opponents about to win
     const dealBreaker = hand.find(c => c.actionType === ACTION_TYPES.DEAL_BREAKER);
     if (dealBreaker) {
-      const dangerousOpponent = this.players.find((p, idx) => {
+      const dangerousOpponent = players.find((p, idx) => {
         if (idx === this.playerIndex) return false;
         const oppSets = getSetsFromProperties(p.properties);
         return oppSets.filter(s => s.isComplete).length >= 2;
@@ -317,7 +324,7 @@ export class HardBot {
     // Strategy 3: Sly Deal valuable properties
     const slyDeal = hand.find(c => c.actionType === ACTION_TYPES.SLY_DEAL);
     if (slyDeal) {
-      const bestTarget = this.findBestSlyDealTarget();
+      const bestTarget = this.findBestSlyDealTarget(players);
       if (bestTarget) {
         return { action: 'PLAY_ACTION', card: slyDeal, target: bestTarget.opponent, targetCard: bestTarget.card };
       }
@@ -332,7 +339,7 @@ export class HardBot {
     // Strategy 5: Use Debt Collector/Birthday to gain liquidity
     const debtCollector = hand.find(c => c.actionType === ACTION_TYPES.DEBT_COLLECTOR);
     if (debtCollector) {
-      const richest = this.getRichestOpponent();
+      const richest = this.getRichestOpponent(players);
       return { action: 'PLAY_ACTION', card: debtCollector, target: richest };
     }
 
@@ -345,7 +352,7 @@ export class HardBot {
     if (completedSets > 0) {
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
       if (rentCard) {
-        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent() };
+        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent(players) };
       }
     }
 
@@ -365,14 +372,16 @@ export class HardBot {
     return { action: 'END_TURN' };
   }
 
-  findBestSlyDealTarget() {
-    const myState = this.players[this.playerIndex];
+  findBestSlyDealTarget(providedPlayers) {
+    const players = providedPlayers || this.players;
+    const myState = players[this.playerIndex];
+    if (!myState) return null;
     const mySets = getSetsFromProperties(myState.properties);
     
     let bestTarget = null;
     let bestValue = 0;
 
-    this.players.forEach((opponent, idx) => {
+    players.forEach((opponent, idx) => {
       if (idx === this.playerIndex) return;
       
       const oppSets = getSetsFromProperties(opponent.properties);
@@ -437,7 +446,7 @@ export class ExpertBot extends HardBot {
     const mySets = getSetsFromProperties(myState.properties);
     
     // Check if we're being threatened (opponent has 2 complete sets)
-    const threat = this.players.find((p, idx) => {
+    const threat = players.find((p, idx) => {
       if (idx === this.playerIndex) return false;
       const sets = getSetsFromProperties(p.properties);
       return sets.filter(s => s.isComplete).length >= 2;

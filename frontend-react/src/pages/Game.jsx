@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy } from 'lucide-react';
 import StadiumLayout from '../components/StadiumLayout';
-import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog } from '../components/ActionDialogs';
+import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog, RentColorSelectionDialog } from '../components/ActionDialogs';
 import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
 import { BOT_DIFFICULTY } from '../ai/BotEngine';
-import { ACTION_TYPES } from '../utils/gameHelpers';
+import { ACTION_TYPES, CARD_TYPES } from '../utils/gameHelpers';
 
 /**
  * Main Game Component
@@ -91,18 +91,34 @@ const Game = () => {
   };
 
   const handleCardClick = (card) => {
-    // Only allow human player to click cards
+    // Only allow human player to click cards during their turn
     if (currentTurnIndex !== 0) return;
     if (gameState !== 'PLAYING') return;
-    if (movesLeft <= 0) return;
+
+    const currentPlayer = players.find(p => p.id === 'player-0');
+    const isInHand = currentPlayer?.hand.some(c => c.id === card.id);
+    const isInProperties = currentPlayer?.properties.some(c => c.id === card.id);
+
+    // 1. If in hand, must have moves left
+    if (isInHand) {
+      if (movesLeft <= 0) return;
+    } 
+    // 2. If in properties, must be a flippable wild card
+    else if (isInProperties) {
+      if (card.type !== CARD_TYPES.PROPERTY_WILD || card.colors?.length !== 2) return;
+    } 
+    // 3. Otherwise (bank or opponent card), ignore click
+    else {
+      return;
+    }
 
     setSelectedCard(card);
     
-    // If card requires target, skip confirmation dialog
-    if (gameActions.requiresTarget(card)) {
+    // If card is in hand and requires target, skip confirmation dialog
+    if (isInHand && gameActions.requiresTarget(card)) {
       gameActions.playCard(card);
     } else {
-      // Show confirmation dialog for other cards
+      // Show confirmation dialog (will show Flip button if in property, or Play buttons if in hand)
       setShowCardActionDialog(true);
     }
   };
@@ -203,7 +219,8 @@ const Game = () => {
             {isBotGame && (
               <div className="flex items-center gap-2 justify-center mt-1">
                 <p className="text-xs text-blue-600">Bot Game</p>
-                {movesLeft > 0 && currentTurnIndex === 0 && (
+                {gameState === 'REQUEST_PAYMENT' && <span className="text-xs text-red-500 font-black animate-pulse">• PAYMENT REQUIRED</span>}
+                {movesLeft > 0 && currentTurnIndex === 0 && gameState === 'PLAYING' && (
                   <span className="text-xs text-slate-500">• {movesLeft} moves left</span>
                 )}
               </div>
@@ -284,6 +301,8 @@ const Game = () => {
           currentTurnIndex={currentTurnIndex}
           hasDrawnThisTurn={hasDrawnThisTurn}
           onDraw={handleDraw}
+          onEndTurn={handleEndTurn}
+          movesLeft={movesLeft}
           onOpponentSelect={(player) => {
             console.log('Selected opponent:', player.name);
           }}
@@ -298,6 +317,7 @@ const Game = () => {
                 onConfirm={handleCardActionConfirm}
                 onCancel={handleCardActionCancel}
                 onFlip={handleFlipConfirm}
+                isInHand={players.find(p => p.id === 'player-0')?.hand.some(c => c.id === selectedCard.id)}
               />
             ) : null
           }
@@ -342,7 +362,16 @@ const Game = () => {
         )}
       </div>
 
-      {gameActions.targetSelectionMode && (
+      {gameActions.targetSelectionMode && gameActions.targetSelectionMode.type === 'RENT_COLOR' && (
+        <RentColorSelectionDialog
+          card={gameActions.pendingAction}
+          player={players.find(p => p.id === 'player-0')}
+          onSelect={handleTargetSelect}
+          onCancel={gameActions.cancelAction}
+        />
+      )}
+
+      {gameActions.targetSelectionMode && gameActions.targetSelectionMode.type !== 'RENT_COLOR' && (
         <TargetSelectionDialog
           card={gameActions.pendingAction}
           targetType={gameActions.targetSelectionMode.type}
@@ -353,12 +382,18 @@ const Game = () => {
         />
       )}
 
-      {gameActions.paymentSelectionMode && (
+      {(gameActions.paymentSelectionMode || (isBotGame && gameState === 'REQUEST_PAYMENT')) && (
         <PaymentSelectionDialog
-          amount={gameActions.paymentSelectionMode.amount}
+          amount={isBotGame ? localGame.pendingRequest?.amount : gameActions.paymentSelectionMode.amount}
           player={players.find(p => p.id === 'player-0')}
-          onConfirm={handlePaymentConfirm}
-          onCancel={gameActions.cancelAction}
+          onConfirm={(cards) => {
+            if (isBotGame && gameState === 'REQUEST_PAYMENT') {
+              localGame.confirmPayment(cards);
+            } else {
+              handlePaymentConfirm(cards);
+            }
+          }}
+          onCancel={isBotGame ? undefined : gameActions.cancelAction} // Cannot cancel a forced payment/debt in bot game
         />
       )}
 

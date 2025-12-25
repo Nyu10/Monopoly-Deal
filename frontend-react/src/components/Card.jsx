@@ -10,11 +10,11 @@ import CARD_BACK_STYLES from '../utils/cardBackStyles';
 
 const ValueBadge = ({ value, size = 'lg' }) => {
   const badgeSizes = {
-    xs: 'top-0.5 left-0.5 px-0.5 py-0 rounded border text-[6px]',
-    sm: 'top-1 left-1 px-1 py-0.5 rounded-md border text-[8px]',
-    md: 'top-1.5 left-1.5 px-1.5 py-0.5 rounded-lg border-2 text-xs',
-    lg: 'top-2 left-2 px-2 py-1 rounded-lg border-2 text-sm',
-    xl: 'top-2.5 left-2.5 px-2.5 py-1.5 rounded-xl border-2 text-base'
+    xs: 'top-1 left-1 px-1 py-0.5 rounded border text-[8px]',
+    sm: 'top-1.5 left-1.5 px-1.5 py-0.5 rounded-lg border-2 text-[10px]',
+    md: 'top-2 left-2 px-2 py-1 rounded-lg border-2 text-xs',
+    lg: 'top-2.5 left-2.5 px-2.5 py-1.5 rounded-xl border-2 text-sm',
+    xl: 'top-3 left-3 px-3 py-2 rounded-2xl border-2 text-base'
   };
 
   return (
@@ -26,11 +26,11 @@ const ValueBadge = ({ value, size = 'lg' }) => {
 
 const CardWrapper = ({ children, onClick, size, selected, className, style, layoutId, enableHover = true, onHoverStart, onHoverEnd }) => {
   const orientations = {
-    xs: { w: 'w-12', h: 'h-18', rounded: 'rounded-md' },
-    sm: { w: 'w-20', h: 'h-30', rounded: 'rounded-lg' },
-    md: { w: 'w-32', h: 'h-48', rounded: 'rounded-xl' },
-    lg: { w: 'w-40', h: 'h-60', rounded: 'rounded-2xl' },
-    xl: { w: 'w-56', h: 'h-84', rounded: 'rounded-3xl' }
+    xs: { w: 'w-24', h: 'h-36', rounded: 'rounded-lg' },   // 96x144 (1.5 ratio)
+    sm: { w: 'w-32', h: 'h-48', rounded: 'rounded-xl' },   // 128x192 (1.5 ratio)
+    md: { w: 'w-40', h: 'h-60', rounded: 'rounded-2xl' },  // 160x240 (1.5 ratio)
+    lg: { w: 'w-48', h: 'h-72', rounded: 'rounded-3xl' },  // 192x288 (1.5 ratio)
+    xl: { w: 'w-64', h: 'h-96', rounded: 'rounded-[2.5rem]' } // 256x384 (1.5 ratio)
   };
 
   const o = orientations[size] || orientations.lg;
@@ -45,7 +45,7 @@ const CardWrapper = ({ children, onClick, size, selected, className, style, layo
   } : {};
 
   const commonProps = {
-    className: `${o.w} ${o.h} ${o.rounded} shadow-xl relative overflow-hidden flex flex-col ${
+    className: `${o.w} ${o.h} ${o.rounded} shadow-xl relative overflow-hidden flex flex-col flex-shrink-0 flex-grow-0 ${
       selected ? 'ring-4 ring-blue-500 shadow-blue-500/50' : ''
     } ${className}`,
     style: style,
@@ -94,27 +94,27 @@ const CardBack = ({ size = 'lg', onClick, className, style, layoutId }) => {
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
         {/* Modern Geometric Square with M */}
-        <div className="w-28 h-28 rounded-2xl bg-slate-900/50 backdrop-blur-md shadow-2xl flex items-center justify-center border border-slate-700/50 relative overflow-hidden group">
+        <div className="w-28 h-28 rounded-3xl bg-indigo-950/40 backdrop-blur-md shadow-2xl flex items-center justify-center border border-indigo-400/30 relative overflow-hidden group">
           {/* Inner glow */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-50"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-50"></div>
           
           <div className="text-center relative z-10">
-            <div className="text-6xl font-black tracking-tighter" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            <div className="text-6xl font-black tracking-tighter" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'serif' }}>
               M
             </div>
           </div>
           
           {/* Corner accents */}
-          <div className="absolute top-2 left-2 w-2 h-2 border-t border-l" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
-          <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
+          <div className="absolute top-3 left-3 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
+          <div className="absolute bottom-3 right-3 w-3 h-3 border-b-2 border-r-2" style={{ borderColor: CARD_BACK_STYLES.accent }}></div>
         </div>
         
         {/* Text Area */}
         <div className="mt-6 text-center">
-          <div className={`text-[10px] font-black uppercase tracking-[0.3em] ${CARD_BACK_STYLES.textPrimary}`}>
+          <div className={`text-[10px] font-black uppercase tracking-[0.4em] ${CARD_BACK_STYLES.textPrimary}`}>
             Monopoly Deal
           </div>
-          <div className="w-12 h-0.5 mx-auto mt-2 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+          <div className="w-16 h-0.5 mx-auto mt-2 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent"></div>
         </div>
       </div>
     </CardWrapper>
@@ -141,15 +141,15 @@ const MoneyCard = ({ card, size = 'lg', onClick, selected, className, style, lay
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 ${className}`} style={{ ...style, borderColor: colors.accent }} layoutId={layoutId}>
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+      <div className="flex-1 flex flex-col items-center justify-center p-2 relative">
         <div className="relative z-10 text-center">
-          <div className="text-6xl font-black leading-none italic" style={{ color: colors.accent }}>
+          <div className={`${size === 'xs' ? 'text-2xl' : size === 'sm' ? 'text-4xl' : 'text-6xl'} font-black leading-none italic`} style={{ color: colors.accent }}>
             {card.value}M
           </div>
         </div>
       </div>
       
-      <div className="h-2 w-full" style={{ backgroundColor: colors.accent }} />
+      <div className={`${size === 'xs' ? 'h-1' : 'h-2'} w-full`} style={{ backgroundColor: colors.accent }} />
     </CardWrapper>
   );
 };
@@ -165,15 +165,23 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
   const rentValues = colorData.rent || [];
 
   // Size adjustments for smaller cards
-  const isSmall = size === 'md' || size === 'sm';
-  const pt = isSmall ? 'pt-4' : 'pt-10';
-  const circleSize = isSmall ? 'w-20 h-20' : 'w-28 h-28';
-  const pb = isSmall ? 'pb-2' : 'pb-6';
-  const px = isSmall ? 'px-2' : 'px-5';
-  const rentTitleClass = isSmall 
+  const isTiny = size === 'xs';
+  const isSmall = size === 'sm';
+  const isMedium = size === 'md';
+  const pt = isTiny ? 'pt-5' : isSmall ? 'pt-7' : isMedium ? 'pt-10' : 'pt-14';
+  const circleSize = isTiny ? 'w-16 h-16' : isSmall ? 'w-20 h-20' : isMedium ? 'w-24 h-24' : 'w-28 h-28';
+  const pb = isTiny ? 'pb-1' : isSmall ? 'pb-2' : 'pb-6';
+  const px = isTiny ? 'px-1' : isSmall ? 'px-2' : 'px-5';
+  const rentTitleClass = isTiny
+    ? "hidden"
+    : (isSmall || isMedium)
     ? "text-[8px] font-black text-slate-900/40 uppercase tracking-[0.2em] mb-0.5" 
     : "text-[10px] font-black text-slate-900/40 uppercase tracking-[0.2em] mb-1";
-  const rentTextSize = isSmall ? 'text-[8px]' : 'text-[10px]';
+  const rentTextSize = isTiny ? 'text-[8px]' : isSmall ? 'text-[9px]' : 'text-[10px]';
+  const titleFontSize = isTiny ? 'text-[9px]' : isSmall ? 'text-[11px]' : 'text-sm';
+  const headerHeight = isTiny ? 'h-5' : isSmall ? 'h-7' : 'h-10';
+  const headerFontSize = isTiny ? 'text-[7px]' : isSmall ? 'text-[9px]' : 'text-[11px]';
+  const textContrast = colorData.text === 'black' ? 'text-slate-900' : 'text-white';
 
   return (
     <CardWrapper 
@@ -184,15 +192,19 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
       style={{ ...style, borderColor: bgColor }} 
       layoutId={layoutId}
     >
+      <div className={`absolute top-0 left-0 right-0 ${headerHeight} z-10 flex items-center justify-end pr-3`} style={{ backgroundColor: bgColor }}>
+        <span className={`${headerFontSize} font-black uppercase tracking-widest italic ${textContrast}`}>Property</span>
+      </div>
+
       <ValueBadge value={card.value} size={size} />
       
-      <div className={`flex-1 flex flex-col items-center ${pt}`}>
+      <div className={`flex-1 flex flex-col items-center ${pt} pt-12`}>
         <div className={`relative ${circleSize} flex items-center justify-center`}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full rotate-[-90deg]">
             <circle cx="50" cy="50" r="40" fill="none" stroke={bgColor} strokeWidth="2" strokeDasharray="188 251" strokeLinecap="round" />
           </svg>
           <div className="text-center z-10 px-3">
-            <h3 className="text-sm font-black uppercase leading-tight italic text-slate-900">
+            <h3 className={`${titleFontSize} font-black uppercase leading-tight italic text-slate-900`}>
               {card.name}
             </h3>
           </div>
@@ -240,61 +252,68 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
   const textColor1 = getTextColor(color1, card.colors[0]);
   const textColor2 = getTextColor(color2, card.colors[1]);
   
+  const isTiny = size === 'xs';
+  const isSmallSize = size === 'sm';
+  const headerHeight = isTiny ? 'h-4' : isSmallSize ? 'h-7' : 'h-10';
+  const headerFontSize = isTiny ? 'text-[5px]' : isSmallSize ? 'text-[7px]' : 'text-[10px]';
+  const contentTop = isTiny ? 'top-4' : isSmallSize ? 'top-7' : 'top-10';
+  const contentBottom = isTiny ? 'bottom-4' : isSmallSize ? 'bottom-7' : 'bottom-10';
+
   return (
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
       {/* Top Header Hook (Color 1) */}
-      <div className="absolute top-0 left-0 right-0 h-10 z-10" style={{ backgroundColor: color1 }}>
+      <div className={`absolute top-0 left-0 right-0 ${headerHeight} z-10`} style={{ backgroundColor: color1 }}>
         <div className="h-full w-full flex items-center justify-end pr-3">
-          <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${text1}`}>Wild Card</span>
+          <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text1}`}>Wild Card</span>
         </div>
       </div>
 
       {/* Bottom Header Hook (Color 2 - Rotated) */}
-      <div className="absolute bottom-0 left-0 right-0 h-10 z-10" style={{ backgroundColor: color2 }}>
+      <div className={`absolute bottom-0 left-0 right-0 ${headerHeight} z-10`} style={{ backgroundColor: color2 }}>
         <div className="h-full w-full flex items-center justify-end pr-3 transform rotate-180">
-          <span className={`text-[10px] font-black uppercase tracking-[0.2em] italic ${text2}`}>Wild Card</span>
+          <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text2}`}>Wild Card</span>
         </div>
       </div>
 
       <ValueBadge value={card.value} size={size} />
       
       {!showDescription && (
-      <div className="absolute inset-x-0 top-10 bottom-10 flex">
+      <div className={`absolute inset-x-0 ${contentTop} ${contentBottom} flex`}>
         {/* Color 1 Column (White Aesthetic) */}
-        <div className="w-1/2 h-full flex flex-col p-1.5 pt-2 items-center border-r border-slate-100 bg-white">
-          <div className="text-[8px] font-black uppercase tracking-wider mb-2 text-center" style={{ color: textColor1 }}>
+        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-r border-slate-100 bg-white overflow-hidden">
+          <div className={`${isTiny ? 'text-[5px] mb-1' : 'text-[8px] mb-2'} font-black uppercase tracking-wider text-center`} style={{ color: textColor1 }}>
             {color1Data.name}
           </div>
-          <div className="space-y-1 w-full">
+          <div className={`${isTiny ? 'space-y-0.5' : 'space-y-1'} w-full`}>
             {color1Data.rent?.map((rent, i) => (
-              <div key={i} className="flex items-center justify-between px-1 py-1 rounded border w-full gap-1" style={{ borderColor: color1 + '33' }}>
+              <div key={i} className={`flex items-center justify-between ${isTiny ? 'px-0.5 py-0.5' : 'px-1 py-1'} rounded border w-full gap-1`} style={{ borderColor: color1 + '33' }}>
                 <div className="flex gap-0.5">
-                  {Array.from({length: i+1}).map((_, j) => (
-                    <div key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color1 }} />
+                  {Array.from({length: isTiny ? 1 : i+1}).map((_, j) => (
+                    <div key={j} className={`${isTiny ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full`} style={{ backgroundColor: color1 }} />
                   ))}
                 </div>
-                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: textColor1 }}>${rent}M</div>
+                <div className={`${isTiny ? 'text-[5px]' : 'text-[8px]'} font-black italic whitespace-nowrap`} style={{ color: textColor1 }}>${rent}M</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Color 2 Column (White Aesthetic - Rotated) */}
-        <div className="w-1/2 h-full flex flex-col p-1.5 pt-2 items-center border-l border-slate-100 transform rotate-180 bg-white">
-          <div className="text-[8px] font-black uppercase tracking-wider mb-2 text-center" style={{ color: textColor2 }}>
-            {color2Data.name}
-          </div>
-          <div className="space-y-1 w-full">
-            {color2Data.rent?.map((rent, i) => (
-              <div key={i} className="flex items-center justify-between px-1 py-1 rounded border w-full gap-1" style={{ borderColor: color2 + '33' }}>
+        {/* Color 2 Column (White Aesthetic - Bottom half orientation) */}
+        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-l border-slate-100 bg-white overflow-hidden justify-end">
+          <div className={`${isTiny ? 'space-y-0.5' : 'space-y-1'} w-full mb-1`}>
+            {[...(color2Data.rent || [])].reverse().map((rent, i, arr) => (
+              <div key={i} className={`flex items-center justify-between ${isTiny ? 'px-0.5 py-0.5' : 'px-1 py-1'} rounded border w-full gap-1`} style={{ borderColor: color2 + '33' }}>
+                <div className={`${isTiny ? 'text-[5px]' : 'text-[8px]'} font-black italic whitespace-nowrap`} style={{ color: textColor2 }}>${rent}M</div>
                 <div className="flex gap-0.5">
-                  {Array.from({length: i+1}).map((_, j) => (
-                    <div key={j} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color2 }} />
+                  {Array.from({length: isTiny ? 1 : arr.length - i}).map((_, j) => (
+                    <div key={j} className={`${isTiny ? 'w-1 h-1' : 'w-1.5 h-1.5'} rounded-full`} style={{ backgroundColor: color2 }} />
                   ))}
                 </div>
-                <div className="text-[8px] font-black italic whitespace-nowrap" style={{ color: textColor2 }}>${rent}M</div>
               </div>
             ))}
+          </div>
+          <div className={`${isTiny ? 'text-[5px] mt-1' : 'text-[8px] mt-1'} font-black uppercase tracking-wider text-center`} style={{ color: textColor2 }}>
+            {color2Data.name}
           </div>
         </div>
       </div>
@@ -319,8 +338,10 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
 // ============================================================================
 
 const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
-  const isSmall = size === 'md' || size === 'sm';
-  const circleSize = isSmall ? 'w-24 h-24' : 'w-32 h-32';
+  const isTiny = size === 'xs';
+  const isSmall = size === 'sm' || size === 'md';
+  const circleSize = isTiny ? 'w-8 h-8' : isSmall ? 'w-24 h-24' : 'w-32 h-32';
+  const padding = isTiny ? 'p-1' : 'p-4';
   
   const rainbowColors = [
     '#EF5350', '#FFA726', '#FFEB3B', '#66BB6A', '#42A5F5', '#AB47BC'
@@ -330,7 +351,7 @@ const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, styl
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <div className={`flex-1 flex flex-col items-center justify-center ${padding}`}>
         <div className={`relative ${circleSize} flex items-center justify-center`}>
           <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full rotate-[-90deg]">
             {rainbowColors.map((color, i) => {
@@ -348,16 +369,18 @@ const RainbowWildCard = ({ card, size = 'lg', onClick, selected, className, styl
           </svg>
           
           <div className="text-center z-10">
-            <div className="text-xl font-black text-slate-900 italic leading-none">WILD</div>
+            <div className={`${isTiny ? 'text-[6px]' : 'text-xl'} font-black text-slate-900 italic leading-none`}>WILD</div>
           </div>
         </div>
       </div>
       
-      <div className="px-4 pb-4 text-center">
-        <p className="text-[10px] text-slate-700 font-medium leading-snug">
-          Use as any color property
-        </p>
-      </div>
+      {!isTiny && (
+        <div className="px-4 pb-4 text-center">
+          <p className="text-[10px] text-slate-700 font-medium leading-snug">
+            Use as any color property
+          </p>
+        </div>
+      )}
       {showDescription && (
         <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
           <p className="text-[10px] font-bold text-slate-800">
@@ -380,7 +403,7 @@ const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, la
     switch(actionType) {
       case ACTION_TYPES.PASS_GO: return { borderColor: '#F59E0B', iconColor: '#D97706' };
       case ACTION_TYPES.DEAL_BREAKER: return { borderColor: '#C084FC', iconColor: '#9333EA' };
-      case ACTION_TYPES.JUST_SAY_NO: return { borderColor: '#93C5FD', iconColor: '#3B82F6' };
+      case ACTION_TYPES.JUST_SAY_NO: return { borderColor: '#FCA5A5', iconColor: '#EF4444' };
       case ACTION_TYPES.SLY_DEAL: return { borderColor: '#86EFAC', iconColor: '#10B981' };
       case ACTION_TYPES.FORCED_DEAL: return { borderColor: '#5EEAD4', iconColor: '#14B8A6' };
       case ACTION_TYPES.DEBT_COLLECTOR: return { borderColor: '#CBD5E1', iconColor: '#64748B' };
@@ -397,111 +420,112 @@ const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, la
   const isTiny = size === 'xs';
 
   const ActionIcon = () => {
-    const iconSize = isTiny ? 24 : isSmall ? 32 : 48;
+    const iconSize = isTiny ? 24 : isSmall ? 36 : 48;
     const strokeWidth = 2.5;
     
     switch(card.actionType) {
       case ACTION_TYPES.PASS_GO:
         return (
-          <div className="flex flex-col items-center justify-center text-center py-2 px-1">
-            <div className="text-4xl font-black italic tracking-tighter leading-none" style={{ color: actionStyle.iconColor }}>PASS</div>
-            <div className="text-6xl font-black italic tracking-tighter leading-none -mt-1" style={{ color: actionStyle.iconColor }}>GO</div>
+          <div className="flex flex-col items-center justify-center w-full h-full text-center relative">
+            <div className="flex flex-col items-center" style={{ transform: 'translate(-4px, -3px)' }}>
+              <div className={`text-[30px] font-black italic tracking-tighter leading-none ${isSmall ? 'text-2xl' : isTiny ? 'text-[9px]' : ''}`} style={{ color: actionStyle.iconColor }}>PASS</div>
+              <div className={`text-[46px] font-black italic tracking-tighter leading-[0.75] ${isSmall ? 'text-4xl' : isTiny ? 'text-[13px]' : ''}`} style={{ color: actionStyle.iconColor }}>GO</div>
+            </div>
             {!isTiny && (
-              <div className="text-[7.5px] font-black uppercase tracking-[0.25em] mt-3 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-xl">
-                Draw 2 Cards
+              <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 whitespace-nowrap text-[7px] font-black uppercase tracking-[2px] bg-slate-900 text-white px-3 py-1 rounded-full shadow-lg z-20">
+                Draw 2
               </div>
             )}
           </div>
         );
       case ACTION_TYPES.DEAL_BREAKER:
         return (
-          <div className="relative flex items-center justify-center scale-110">
-             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
-                <path d="M12 2v20M2 12h20" strokeLinecap="round" opacity="0.1"/>
-                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 5l2 2M17 17l2 2M17 5l-2 2M5 17l2-2" strokeLinecap="round" opacity="0.5"/>
-             </svg>
-             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-1.5 h-16 bg-white/30 rotate-45 blur-md" />
-             </div>
+          <div className="flex items-center justify-center">
+            <svg width={iconSize + 8} height={iconSize + 8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor" fillOpacity="0.1" />
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
           </div>
         );
       case ACTION_TYPES.JUST_SAY_NO:
         return (
-          <div className="p-2 bg-red-50 rounded-2xl border-4 border-red-500 shadow-lg scale-110">
-            <svg width={iconSize - 12} height={iconSize - 12} viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth={4}>
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
-              <path d="M15 9l-6 6M9 9l6 6" strokeLinecap="round" />
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
             </svg>
           </div>
         );
       case ACTION_TYPES.SLY_DEAL:
         return (
-          <div className="relative scale-110">
-             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" strokeLinecap="round" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" strokeLinecap="round" />
-                <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+          <div className="flex items-center justify-center">
+             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14z" opacity="0.5" />
+                <path d="M2.5 12h5" />
+                <path d="M5.5 15l-3-3 3-3" />
              </svg>
-             <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-slate-900" />
           </div>
         );
       case ACTION_TYPES.FORCED_DEAL:
         return (
-          <div className="bg-slate-50 p-3 rounded-2xl border-2 border-slate-200">
-            <svg width={iconSize - 10} height={iconSize - 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }}>
-              <path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round"/>
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 2.1l4 4-4 4" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <path d="M7 21.9l-4-4 4-4" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
             </svg>
           </div>
         );
       case ACTION_TYPES.DEBT_COLLECTOR:
         return (
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-5xl drop-shadow-2xl">💰</div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">$5M Due</div>
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+               <rect x="2" y="6" width="20" height="12" rx="2" />
+               <circle cx="12" cy="12" r="2" />
+               <path d="M12 10v4" />
+               <path d="M12 8v0" /> {/* Dot? No, just the line implies $ */}
+            </svg>
           </div>
         );
       case ACTION_TYPES.BIRTHDAY:
         return (
-          <div className="flex flex-col items-center">
-            <div className="text-6xl drop-shadow-2xl animate-bounce">🎂</div>
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 12v10H4V12" />
+              <path d="M2 7h20v5H2z" />
+              <path d="M12 22V7" />
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+            </svg>
           </div>
         );
       case ACTION_TYPES.HOUSE:
-        const houseColor = '#10B981'; // Emerald
         return (
-          <div className="relative group p-4 bg-emerald-50 rounded-3xl border-2 border-emerald-200 shadow-xl">
-            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-              <path d="M3 10L12 3L21 10V21H3V10Z" fill={houseColor} />
-              <path d="M12 3L21 10H3L12 3Z" fill="#34D399" />
-              <rect x="7" y="13" width="3" height="3" fill="#065F46" opacity="0.3" />
-              <rect x="14" y="13" width="3" height="3" fill="#065F46" opacity="0.3" />
-              <path d="M10 21V16H14V21H10Z" fill="#064E3B" />
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+               <path d="M3 10l9-7 9 7" />
+               <path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10" />
+               <path d="M10 21v-6h4v6" />
             </svg>
           </div>
         );
       case ACTION_TYPES.HOTEL:
-        const hotelColor = '#3B82F6'; // Blue
         return (
-          <div className="relative group p-4 bg-blue-50 rounded-3xl border-2 border-blue-200 shadow-xl">
-            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-              <path d="M6 21V3H18V21H6Z" fill={hotelColor} />
-              <path d="M6 3H18L6 5V3Z" fill="#60A5FA" />
-              {[6, 10, 14].map(y => (
-                <React.Fragment key={y}>
-                  <rect x="8" y={y} width="2.5" height="2.5" fill="white" opacity="0.5" />
-                  <rect x="13.5" y={y} width="2.5" height="2.5" fill="white" opacity="0.5" />
-                </React.Fragment>
-              ))}
-              <path d="M10 21V18H14V21H10Z" fill="#1E3A8A" />
-              <path d="M4 21H20" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" />
+          <div className="flex items-center justify-center">
+            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+               <path d="M6 21V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15" />
+               <path d="M10 8h4" />
+               <path d="M10 12h4" />
+               <path d="M10 16h4" />
+               <path d="M3 21h18" />
             </svg>
           </div>
         );
       case ACTION_TYPES.DOUBLE_RENT:
         return (
-          <div className="flex flex-col items-center justify-center p-4 bg-orange-50 rounded-3xl border-2 border-orange-200 shadow-inner">
-            <div className="text-6xl font-black italic tracking-tighter text-orange-600 drop-shadow-xl">x2</div>
+          <div className="flex flex-col items-center justify-center">
+             <div className="text-[40px] font-black italic tracking-tighter leading-none" style={{ color: actionStyle.iconColor }}>x2</div>
           </div>
         );
       default:
@@ -530,23 +554,23 @@ const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, la
              />
           </svg>
 
-          {/* Card Title inside the circle at the top */}
-          {!isTiny && (
-            <div className="z-10 text-center mb-1 px-4">
-              <h3 className={`font-black text-slate-800 uppercase tracking-tight leading-none ${isSmall ? 'text-[9px]' : 'text-[13px]'}`}>
+          {/* Card Title inside the circle at the top - ABSOLUTE to stay out of center flow */}
+          {!isTiny && card.actionType !== ACTION_TYPES.PASS_GO && (
+            <div className="absolute top-[12%] left-0 right-0 z-20 text-center px-4">
+              <h3 className={`font-black text-slate-800 uppercase tracking-tight leading-none ${isSmall ? 'text-[8.5px]' : 'text-[11px]'}`}>
                 {card.name}
               </h3>
             </div>
           )}
 
-          {/* Illustration below title */}
-          <div className="z-10 flex items-center justify-center flex-1 w-full">
+          {/* Illustration perfectly centered */}
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
             <ActionIcon />
           </div>
         </div>
       </div>
 
-      {isTiny && (
+      {isTiny && card.actionType !== ACTION_TYPES.PASS_GO && (
          <div className="border-t py-0.5 flex items-center justify-center bg-slate-50">
            <span className="text-[6px] font-black text-slate-600 uppercase tracking-tighter truncate px-1">{card.name}</span>
          </div>
@@ -571,12 +595,16 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
   const isWild = card.type === CARD_TYPES.RENT_WILD;
   const colors = isWild ? Object.keys(COLORS).filter(c => c !== 'multi') : (card.colors || []);
   
+  const isTiny = size === 'xs';
+  const containerSize = isTiny ? 'w-10 h-10' : 'w-28 h-28';
+  const innerCircleSize = isTiny ? 'w-6 h-6' : 'w-14 h-14';
+
   return (
     <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
       <ValueBadge value={card.value} size={size} />
       
-      <div className="flex-1 flex items-center justify-center p-2">
-        <div className="relative w-28 h-28">
+      <div className={`flex-1 flex items-center justify-center ${isTiny ? 'p-1' : 'p-2'}`}>
+        <div className={`relative ${containerSize}`}>
           <svg viewBox="0 0 100 100" className="w-full h-full">
             {isWild ? (
               ['brown', 'light_blue', 'pink', 'orange', 'red', 'yellow', 'green', 'dark_blue', 'railroad', 'utility'].map((color, i) => {
@@ -626,8 +654,8 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
           </svg>
           
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg border-2 border-slate-50">
-              <span className="text-base font-black text-slate-900 leading-none">Rent</span>
+            <div className={`bg-white rounded-full ${innerCircleSize} flex items-center justify-center shadow-lg border-2 border-slate-50`}>
+              <span className={`${isTiny ? 'text-[6px]' : 'text-base'} font-black text-slate-900 leading-none`}>Rent</span>
             </div>
           </div>
         </div>

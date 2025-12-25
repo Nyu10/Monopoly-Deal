@@ -20,6 +20,8 @@ const StadiumLayout = ({
   deck = [],
   discardPile = [],
   onDraw,
+  onEndTurn,
+  movesLeft = 3,
   actionConfirmation = null,
   matchLog = []
 }) => {
@@ -205,22 +207,9 @@ const StadiumLayout = ({
         </div>
       </div>
 
-      {/* RIGHT SIDE: Game Board + Player Area */}
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+      {/* CENTER: Game Board + Hand */}
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden border-r border-slate-200">
         
-        {/* Quick Rules Button */}
-        <div className="absolute top-4 right-4 z-[60]">
-          <button 
-            onClick={() => setShowRules(true)}
-            className="group flex items-center gap-2 bg-white/80 backdrop-blur-md px-3 py-2 rounded-full shadow-lg border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all hover:scale-105 active:scale-95"
-          >
-            <div className="bg-blue-100 text-blue-600 rounded-full p-1 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <HelpCircle size={16} strokeWidth={2.5} />
-            </div>
-            <span className="text-xs font-bold pr-1">Rules</span>
-          </button>
-        </div>
-
         {/* Quick Rules Modal */}
         <QuickRules isOpen={showRules} onClose={() => setShowRules(false)} />
 
@@ -280,7 +269,7 @@ const StadiumLayout = ({
                     }`}
                     style={
                       shouldShowDrawPrompt
-                        ? { boxShadow: `0 0 30px rgba(6, 182, 212, 0.6), 0 0 60px rgba(6, 182, 212, 0.3)` } // Cyan glow
+                        ? { boxShadow: `0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.3)` } // Amber glow
                         : {}
                     }
                   >
@@ -301,15 +290,19 @@ const StadiumLayout = ({
 
                 {/* Discard */}
                 <div className="flex flex-col items-center gap-2 mt-32">
-                  <div className="w-20 h-28 bg-gradient-to-br from-slate-400 to-slate-500 rounded-lg border-4 border-white shadow-xl flex items-center justify-center">
-                    {discardPile.length > 0 ? (
-                      <div className="w-full h-full p-2 text-center flex items-center justify-center">
-                         <span className="text-white text-[10px] font-bold uppercase">{discardPile[discardPile.length - 1].name}</span>
-                      </div>
-                    ) : (
+                  {discardPile.length > 0 ? (
+                    <div className="relative">
+                      <Card 
+                        card={discardPile[discardPile.length - 1]} 
+                        size="sm"
+                        className="shadow-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-20 h-28 bg-gradient-to-br from-slate-400 to-slate-500 rounded-lg border-4 border-white shadow-xl flex items-center justify-center">
                       <span className="text-white text-xs font-bold">DISCARD</span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <span className="text-slate-700 text-xs font-bold bg-white px-3 py-1.5 rounded-lg shadow-md border border-slate-200">DISCARD ({discardPile.length})</span>
                 </div>
               </div>
@@ -399,99 +392,64 @@ const StadiumLayout = ({
           )}
         </div>
 
-        {/* Current Player Area at bottom */}
+        {/* Current Player Area at bottom - HAND ONLY */}
         {currentPlayer && (
-          <div className="bg-white p-2 border-t-4 border-blue-600 shadow-lg relative z-30">
+          <div className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-blue-600 shadow-2xl relative z-30">
             <div className="max-w-7xl mx-auto relative px-4">
-            {/* Inline Action Confirmation */}
-            {actionConfirmation && (
-              <div className="absolute -top-32 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4 pointer-events-auto">
-                {actionConfirmation}
-              </div>
-            )}
+              {/* Inline Action Confirmation - Floating above hand */}
+              {actionConfirmation && (
+                <div className="absolute -top-36 left-1/2 -translate-x-1/2 z-[100] w-full max-w-md px-4 pointer-events-auto">
+                  {actionConfirmation}
+                </div>
+              )}
 
-            {/* Top Section: Bank and Properties */}
-              <div className="grid grid-cols-2 gap-4 mb-2">
-                {/* Bank */}
-                <div 
-                  id="tutorial-bank"
-                  className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border-2 border-green-200 shadow-sm transition-all hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-black text-green-800 uppercase tracking-wider flex items-center gap-2">
-                      <span>💰 Bank</span>
-                    </h3>
-                    <div className="text-xl font-black text-green-600">
-                      ${currentPlayer.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 min-h-[60px]">
-                    {currentPlayer.bank?.length > 0 ? (
-                      currentPlayer.bank.map((card, idx) => (
-                        <BankCardMini
-                          key={idx}
-                          card={card}
-                          onClick={onCardClick}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-green-600/50 text-sm italic w-full text-center py-6">No money in bank</div>
-                    )}
+              <div id="tutorial-hand" className="bg-white/50 rounded-xl p-3 border border-slate-100 relative">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Your Hand</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-black text-base">{currentPlayer.hand?.length || 0}</span>
+                    <span className="text-[9px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-200">
+                      Cards
+                    </span>
                   </div>
                 </div>
-                
-                {/* Properties */}
-                <div 
-                  id="tutorial-properties"
-                  className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl p-3 border-2 border-blue-200 shadow-sm transition-all hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-black text-blue-800 uppercase tracking-wider flex items-center gap-2">
-                      <span>🏠 Properties</span>
-                    </h3>
-                    <div className="text-xl font-black text-blue-600">
-                      {currentPlayer.properties?.length || 0}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2 min-h-[60px]">
-                    <div className="w-full flex justify-center">
-                      <PropertySetDisplay 
-                        properties={currentPlayer.properties}
-                        tooltipDirection="top"
-                        onCardClick={null}
-                      />
-                    </div>
-                    {(!currentPlayer.properties || currentPlayer.properties.length === 0) && (
-                      <div className="text-blue-600/50 text-sm italic w-full text-center py-6">No properties</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Hand Cards */}
-              <div 
-                id="tutorial-hand"
-                className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-3 border-2 border-slate-200 shadow-sm"
-              >
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">🃏 Hand ({currentPlayer.hand?.length || 0} cards)</h3>
-                <div className="flex justify-center -space-x-12 h-52 py-1 overflow-x-visible">
-                  {currentPlayer.hand?.map((card, idx) => (
-                    <div 
-                      key={card.uid || card.id || idx}
-                      className="flex-shrink-0 transition-all hover:-translate-y-16 hover:z-[100] hover:px-8"
-                      style={{ zIndex: 50 + idx }}
-                    >
-                      <Card 
-                        card={card} 
-                        size="md"
-                        onClick={() => {
-                          console.log('Card clicked in Stadium:', card.name);
-                          if (onCardClick) onCardClick(card);
+                <div className="flex justify-center h-60 py-1 overflow-x-visible">
+                  {currentPlayer.hand?.map((card, idx) => {
+                    const handSize = currentPlayer.hand.length;
+                    // Calculate overlap based on hand size
+                    // 7 cards or less: -40px overlap
+                    // 8 cards: -50px
+                    // 9 cards: -60px  
+                    // 10 cards: -70px
+                    let marginLeft = '0px';
+                    if (idx > 0) {
+                      if (handSize <= 7) marginLeft = '-40px';
+                      else if (handSize === 8) marginLeft = '-50px';
+                      else if (handSize === 9) marginLeft = '-60px';
+                      else marginLeft = '-70px';
+                    }
+                    
+                    return (
+                      <div 
+                        key={card.uid || card.id || idx}
+                        className="transition-all duration-300 hover:-translate-y-20 hover:z-[100]"
+                        style={{ 
+                          zIndex: 50 + idx,
+                          flexShrink: 0,
+                          marginLeft: marginLeft
                         }}
-                        className="cursor-pointer shadow-2xl border-4 border-white hover:border-blue-500"
-                      />
-                    </div>
-                  ))}
+                      >
+                        <Card 
+                          card={card} 
+                          size="md"
+                          onClick={() => {
+                            if (onCardClick) onCardClick(card);
+                          }}
+                          className="cursor-pointer shadow-2xl border-4 border-white hover:border-blue-500"
+                        />
+                      </div>
+                    );
+                  })}
                   {currentPlayer.hand?.length === 0 && (
                     <div className="text-slate-400 font-bold italic py-8 text-center w-full">Hand is empty - Draw cards to begin!</div>
                   )}
@@ -500,6 +458,134 @@ const StadiumLayout = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* RIGHT SIDEBAR: Your Assets (Bank & Properties) */}
+      <div className="w-80 h-full flex-shrink-0 bg-white border-l border-slate-200 z-50 flex flex-col shadow-xl relative">
+        {/* Floating Rules Tab (Sticks out from sidebar) */}
+        <button 
+          onClick={() => setShowRules(true)}
+          className="absolute -left-10 top-1/2 -translate-y-1/2 bg-white border border-slate-200 border-r-0 rounded-l-xl p-2.5 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] text-slate-400 hover:text-blue-600 hover:shadow-[-4px_0_15px_rgba(0,0,0,0.1)] transition-all flex flex-col items-center gap-2 group z-0"
+          title="See Rules"
+        >
+          <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
+          <span className="[writing-mode:vertical-lr] rotate-180 text-[10px] font-black uppercase tracking-widest">Rules</span>
+        </button>
+
+        {/* Header */}
+        <div className="p-5 border-b border-slate-100 bg-white/80 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30"></div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Your Assets</h3>
+          </div>
+          <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200">
+            {currentPlayer?.properties?.length || 0} Properties
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+          {currentPlayer && (
+            <>
+              {/* Bank Section */}
+              <div id="tutorial-bank" className="group">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bank</h4>
+                  <div className="text-lg font-black text-green-600 drop-shadow-sm">
+                    ${currentPlayer.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-2xl p-4 border border-green-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-green-200">
+                  <div className="flex items-center min-h-[210px] justify-center pt-8">
+                    {currentPlayer.bank?.length > 0 ? (
+                      <div className="flex -space-x-24 hover:-space-x-8 transition-all duration-500">
+                        {currentPlayer.bank.map((card, idx) => (
+                          <div 
+                            key={card.id || idx} 
+                            className="transition-transform duration-300 hover:-translate-y-8 hover:z-50"
+                            style={{ zIndex: idx }}
+                          >
+                           <Card 
+                             card={card} 
+                             size="sm" 
+                             onClick={() => onCardClick && onCardClick(card)}
+                             className="shadow-xl ring-2 ring-white"
+                           />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-green-600/50 text-[10px] font-bold uppercase tracking-widest w-full text-center py-6">Empty Bank</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Properties Section */}
+              <div id="tutorial-properties" className="group">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Properties</h4>
+                  <div className="text-lg font-black text-blue-600 drop-shadow-sm">
+                    {currentPlayer.properties?.length || 0}
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-br from-blue-50/50 to-sky-50/50 rounded-2xl p-4 border border-blue-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-blue-200">
+                  <div className="flex flex-col gap-4 min-h-[200px]">
+                    <PropertySetDisplay 
+                      properties={currentPlayer.properties}
+                      tooltipDirection="left"
+                      onCardClick={onCardClick}
+                    />
+                    {(!currentPlayer.properties || currentPlayer.properties.length === 0) && (
+                      <div className="text-blue-600/30 text-[10px] font-bold uppercase tracking-wider w-full text-center py-12">
+                        No properties owned
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* End Turn Button - Bottom of Sidebar */}
+              {isHumanTurn && hasDrawnThisTurn && (
+                <div className="p-4 border-t border-slate-100">
+                  <button
+                    onClick={onEndTurn}
+                    className="w-full group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95"
+                  >
+                    <div className="flex items-center justify-center gap-4 px-4 py-3 relative">
+                      {/* Move dots - Left side */}
+                      <div className="absolute left-4 flex flex-col gap-1">
+                        <span className="text-white/60 text-[8px] font-bold uppercase tracking-wider">Moves</span>
+                        <div className="flex gap-1">
+                          {[...Array(3)].map((_, i) => (
+                            <div 
+                              key={i}
+                              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                i < (3 - movesLeft) 
+                                  ? 'bg-white/20 scale-90' 
+                                  : 'bg-white shadow-lg shadow-white/30'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Centered "END TURN" */}
+                      <span className="text-white font-black text-lg uppercase tracking-wider">End Turn</span>
+                      
+                      {/* Arrow - Right side */}
+                      <svg className="absolute right-4 w-5 h-5 text-white group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

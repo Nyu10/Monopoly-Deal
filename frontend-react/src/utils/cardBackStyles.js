@@ -4,27 +4,27 @@
  */
 
 export const CARD_BACK_STYLES = {
-  // Main gradient colors (Deepest Obsidian)
-  gradient: 'from-slate-950 via-slate-900 to-slate-950',
+  // Main gradient colors (Sophisticated Indigo/Blue)
+  gradient: 'from-indigo-600 via-blue-700 to-indigo-800',
   
-  // Border color (Sleek and thin)
-  border: 'border-slate-800',
+  // Border color (Clean indigo)
+  border: 'border-indigo-400',
   
-  // Accent color (Electric Cyan)
-  accent: '#06b6d4', // Cyan 500
-  accentLight: '#22d3ee', // Cyan 400
+  // Accent color (Premium Gold)
+  accent: '#fbbf24', // Amber 400
+  accentLight: '#fde68a', // Amber 200
   
-  // Pattern overlay (Subtle technical grid)
-  patternColor: 'rgba(6, 182, 212, 0.05)',
-  patternDots: 'linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px)',
-  patternSize: '20px 20px',
+  // Pattern overlay (Subtle geometric pattern)
+  patternColor: 'rgba(251, 191, 36, 0.08)',
+  patternDots: 'radial-gradient(rgba(251, 191, 36, 0.15) 1px, transparent 1px)',
+  patternSize: '12px 12px',
   
   // Text colors
-  textPrimary: 'text-cyan-400',
-  textSecondary: 'text-slate-500',
+  textPrimary: 'text-amber-300',
+  textSecondary: 'text-indigo-200',
   
   // Shadow
-  shadow: 'shadow-2xl shadow-cyan-950/20',
+  shadow: 'shadow-2xl shadow-indigo-900/40',
 };
 
 export default CARD_BACK_STYLES;
