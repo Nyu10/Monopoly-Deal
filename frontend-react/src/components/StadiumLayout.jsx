@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import OpponentCard from './OpponentCard';
 import HandCountDisplay from './HandCountDisplay';
 import Card from './Card';
-import { CARD_TYPES, ACTION_TYPES, COLORS } from '../constants';
+import { CARD_TYPES, ACTION_TYPES, COLORS, calculateBankTotal } from '../utils/gameHelpers';
 import { X, DollarSign, Home, Zap } from 'lucide-react';
 import PropertySetDisplay from './PropertySetDisplay';
 import { BankCardMini } from './MiniCard';
@@ -44,9 +44,9 @@ const StadiumLayout = ({
   const getPlayerPosition = (index, totalOpponents) => {
     // Ellipse parameters (percentage of container)
     const centerX = 50; // Center X (%)
-    const centerY = 53; // Center Y (%) - moved further down to prevent cutting off top bot
-    const radiusX = 35; // Horizontal radius (%) - closer to center
-    const radiusY = 28; // Vertical radius (%)
+    const centerY = 58; // Center Y (%) - moved down to avoid header
+    const radiusX = 38; // Horizontal radius (%) - moved slightly further out
+    const radiusY = 30; // Vertical radius (%) - slightly more compact vertically
     
     // Start from bottom and go clockwise
     // Angle in radians (π/2 = bottom)
@@ -69,9 +69,9 @@ const StadiumLayout = ({
   // Calculate position for card fans (further out, around the table)
   const getCardFanPosition = (index, totalOpponents) => {
     const centerX = 50;
-    const centerY = 53; // Aligned with player info
-    const radiusX = 45; // Further out from center
-    const radiusY = 35; // Further out from center
+    const centerY = 58; // Aligned with player info
+    const radiusX = 46; // Further out from center
+    const radiusY = 36; // Slightly more compact vertically
     
     const startAngle = Math.PI / 2;
     const angleStep = (2 * Math.PI) / totalOpponents;
@@ -213,7 +213,7 @@ const StadiumLayout = ({
         {/* Main Game Board (Circular Layout) */}
         <div className="flex-1 relative bg-slate-50">
           {/* Table background */}
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center translate-y-12">
             <div 
               className="w-[80%] h-[70%] rounded-[50%] bg-white shadow-2xl border-8 border-blue-600 scale-90 sm:scale-100" // Added scale for responsiveness
               style={{
@@ -227,7 +227,7 @@ const StadiumLayout = ({
               }}></div>
               
               {/* Center logo/text */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none -translate-y-4">
                 <div className="text-center">
                   <div className="text-5xl sm:text-6xl font-black text-slate-100 mb-2">MONOPOLY</div>
                   <div className="text-2xl sm:text-3xl font-black text-slate-100">DEAL</div>
@@ -235,12 +235,12 @@ const StadiumLayout = ({
               </div>
               
               {/* Deck and Discard in center */}
-              {/* Deck and Discard in center - Shifted down to avoid overlapping top player */}
-              <div className="absolute inset-0 flex items-center justify-center gap-8 translate-y-24">
+              {/* Deck and Discard in center - Shifted down significantly to avoid overlapping top player */}
+              <div className="absolute inset-0 flex items-center justify-center gap-8 translate-y-20 sm:translate-y-24 pointer-events-none">
                 {/* Deck */}
                 <div 
                   id="tutorial-deck"
-                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative"
+                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto"
                   onClick={onDraw}
                 >
                   {/* "Your Turn - Draw Cards" Prompt */}
@@ -287,7 +287,7 @@ const StadiumLayout = ({
                 </div>
 
                 {/* Discard */}
-                <div className="flex flex-col items-center gap-2 mt-0">
+                <div className="flex flex-col items-center gap-2 mt-0 pointer-events-auto">
                   {discardPile.length > 0 ? (
                     <div className="relative grayscale opacity-60">
                       <Card 
@@ -478,7 +478,7 @@ const StadiumLayout = ({
                 <div className="flex items-center justify-between mb-3 px-1">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bank</h4>
                   <div className="text-lg font-black text-green-600 drop-shadow-sm">
-                    ${currentPlayer.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
+                    ${calculateBankTotal(currentPlayer.bank)}M
                   </div>
                 </div>
                 

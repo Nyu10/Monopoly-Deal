@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   soundEnabled: true,
   animationsEnabled: true,
   autoEndTurn: false,
+  confirmAllMoves: true, // Require confirmation for every card play
 };
 
 /**

@@ -7,8 +7,9 @@ import SettingsModal from '../components/SettingsModal';
 import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
+import { useSettings } from '../hooks/useSettings';
 import { BOT_DIFFICULTY } from '../ai/BotEngine';
-import { ACTION_TYPES, CARD_TYPES } from '../utils/gameHelpers';
+import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination } from '../utils/gameHelpers';
 
 /**
  * Main Game Component
@@ -24,6 +25,7 @@ const Game = () => {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
+  const { settings } = useSettings();
 
   // Determine game mode
   const isMultiplayer = !!roomId;
@@ -116,13 +118,25 @@ const Game = () => {
 
     setSelectedCard(card);
     
-    // If card is in hand and requires target, skip confirmation dialog
-    if (isInHand && gameActions.requiresTarget(card)) {
-      gameActions.playCard(card);
-    } else {
-      // Show confirmation dialog (will show Flip button if in property, or Play buttons if in hand)
-      setShowCardActionDialog(true);
+    // For local games, we want to allow banking action/rent/building cards
+    const isMoney = card.type === CARD_TYPES.MONEY;
+    const isSimpleProperty = card.type === CARD_TYPES.PROPERTY && !card.actionType;
+    
+    // 1. If it's a pure money card, bank it immediately UNLESS confirmation is forced
+    if (isInHand && isMoney && !settings.confirmAllMoves) {
+      handleCardActionConfirm('BANK');
+      return;
     }
+    
+    // 2. If it's a simple property card, play it immediately UNLESS confirmation is forced
+    if (isInHand && isSimpleProperty && !settings.confirmAllMoves) {
+      handleCardActionConfirm('PROPERTY');
+      return;
+    }
+
+    // 3. For everything else (Actions, Rent, Buildings, Wild Properties), show the confirmation dialog
+    // This allows the player to choose between banking or using the card's special effect
+    setShowCardActionDialog(true);
   };
 
   const handleCardActionConfirm = (actionType) => {
@@ -131,15 +145,21 @@ const Game = () => {
     if (isMultiplayer) {
       gameActions.playCard(selectedCard, actionType);
     } else {
-      // Local game: determine destination
-      let destination = 'PROPERTIES';
-      if (actionType === 'BANK') {
-        destination = 'BANK';
-      } else if (actionType === 'ACTION' || actionType === 'RENT') {
-        destination = 'DISCARD';
-      }
+      // Local game logic
+      const destination = getPreferredDestination(selectedCard, actionType);
       
-      localGame.playCard(selectedCard.id, destination);
+      if (destination === 'BANK') {
+        localGame.playCard(selectedCard.id, 'BANK');
+      } else {
+        // Not banking, so we're playing it for its effect
+        if (gameActions.requiresTarget(selectedCard)) {
+          // Card requires target selection (e.g., SLY_DEAL, HOUSE, etc.)
+          gameActions.playCard(selectedCard, 'AUTO');
+        } else {
+          // Simple action card (e.g., PASS_GO)
+          localGame.playCard(selectedCard.id, destination);
+        }
+      }
     }
     
     setShowCardActionDialog(false);
@@ -158,13 +178,16 @@ const Game = () => {
       // Local game: handle target selection
       if (gameActions.pendingAction) {
         const card = gameActions.pendingAction;
+        const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
+        const destination = isBuilding ? 'PROPERTIES' : 'DISCARD';
         
         // For Debt Collector and Birthday, pass the targetPlayerId
         if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR || card.actionType === ACTION_TYPES.BIRTHDAY) {
-          localGame.playCard(card.id, 'DISCARD', target.playerId);
+          localGame.playCard(card.id, destination, target.playerId);
         } else {
-          // Other actions would be handled here
-          localGame.playCard(card.id, 'DISCARD', target.playerId, target.cardId);
+          // Other actions (Sly Deal, Forced Deal, Deal Breaker, Rent, Buildings)
+          // For buildings/rent, target.cardId will be the UID of a property or a color string
+          localGame.playCard(card.id, destination, target.playerId, target.cardId);
         }
         
         gameActions.cancelAction();

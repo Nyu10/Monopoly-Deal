@@ -44,7 +44,7 @@ const ACTION_TYPES = {
  * Evaluates the strategic value of a card
  */
 function evaluateCardValue(card, playerState, gameState) {
-  let value = card.value; // Base monetary value
+  let value = card.value || 0; // Base monetary value
 
   // Property cards are worth more if they help complete sets
   if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD) {
@@ -61,26 +61,47 @@ function evaluateCardValue(card, playerState, gameState) {
       } else {
         value += 5 * relevantSet.cards.length; // Partial set bonus
       }
+    } else {
+      value += 2; // Even a new property is better than money usually
     }
   }
 
   // Action cards have situational value
   if (card.actionType === ACTION_TYPES.DEAL_BREAKER) {
     // Very valuable if opponents have complete sets
-    const opponentCompleteSets = gameState.opponents.filter(opp => 
-      getSetsFromProperties(opp.properties).some(s => s.isComplete)
+    const opponentCompleteSets = (gameState.players || []).filter((p, idx) => 
+      idx !== gameState.currentPlayerIndex &&
+      getSetsFromProperties(p.properties).some(s => s.isComplete)
     ).length;
-    value += opponentCompleteSets * 10;
+    value += opponentCompleteSets * 15;
   }
 
   if (card.actionType === ACTION_TYPES.JUST_SAY_NO) {
-    // Always valuable for defense
-    value += 8;
+    value += 12; // Extremely valuable defense
   }
 
   if (card.actionType === ACTION_TYPES.SLY_DEAL) {
-    // Valuable if opponents have good properties
-    value += 6;
+    value += 8;
+  }
+
+  if (card.actionType === ACTION_TYPES.FORCED_DEAL) {
+    value += 7;
+  }
+
+  if (card.actionType === ACTION_TYPES.PASS_GO) {
+    value += 10; // Drawing is always good
+  }
+
+  if (card.actionType === ACTION_TYPES.DOUBLE_RENT) {
+    const sets = getSetsFromProperties(playerState.properties);
+    const hasCompleteSet = sets.some(s => s.isComplete);
+    value += hasCompleteSet ? 10 : 2;
+  }
+
+  if (card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) {
+    const sets = getSetsFromProperties(playerState.properties);
+    const canUse = sets.some(s => s.isComplete);
+    value += canUse ? 15 : 5;
   }
 
   return value;
@@ -297,13 +318,9 @@ export class HardBot {
     // Strategy 1: Steal complete sets from opponents about to win
     const dealBreaker = hand.find(c => c.actionType === ACTION_TYPES.DEAL_BREAKER);
     if (dealBreaker) {
-      const dangerousOpponent = players.find((p, idx) => {
-        if (idx === this.playerIndex) return false;
-        const oppSets = getSetsFromProperties(p.properties);
-        return oppSets.filter(s => s.isComplete).length >= 2;
-      });
-      if (dangerousOpponent) {
-        return { action: 'PLAY_ACTION', card: dealBreaker, target: dangerousOpponent };
+      const bestDeal = this.findBestDealBreakerTarget(players);
+      if (bestDeal) {
+        return { action: 'PLAY_ACTION', card: dealBreaker, target: bestDeal.opponent, targetCard: bestDeal.card };
       }
     }
 
@@ -330,6 +347,21 @@ export class HardBot {
       }
     }
 
+    // Strategy 3.5: Forced Deal (Swap a property)
+    const forcedDeal = hand.find(c => c.actionType === ACTION_TYPES.FORCED_DEAL);
+    if (forcedDeal && myState.properties.length > 0) {
+      const bestSwap = this.findBestForcedDealTarget(players);
+      if (bestSwap) {
+        return { 
+          action: 'PLAY_ACTION', 
+          card: forcedDeal, 
+          target: bestSwap.opponent, 
+          targetCard: bestSwap.theirCard,
+          destination: bestSwap.myCard.id // destination is used for our card ID in current FE logic
+        };
+      }
+    }
+
     // Strategy 4: Build any set
     const property = hand.find(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
     if (property) {
@@ -348,11 +380,46 @@ export class HardBot {
       return { action: 'PLAY_ACTION', card: birthday };
     }
 
+    // Strategy 5.5: Pass Go (Draw 2)
+    const passGo = hand.find(c => c.actionType === ACTION_TYPES.PASS_GO);
+    if (passGo && (hand.length < 7)) {
+      return { action: 'PLAY_ACTION', card: passGo };
+    }
+
     // Strategy 6: Charge rent with complete sets
     if (completedSets > 0) {
+      const doubleRent = hand.find(c => c.actionType === ACTION_TYPES.DOUBLE_RENT);
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
+      
+      // Use Double Rent if we have a rent card to follow up
+      if (doubleRent && rentCard && !gameState.doubleRentActive) {
+        return { action: 'PLAY_ACTION', card: doubleRent };
+      }
+
       if (rentCard) {
-        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent(players) };
+        // Find set with highest rent
+        const bestSet = [...mySets].filter(s => s.rent > 0).sort((a, b) => b.rent - a.rent)[0];
+        if (bestSet) {
+          return { 
+            action: 'PLAY_ACTION', 
+            card: rentCard, 
+            target: this.getRichestOpponent(players),
+            targetCard: { id: bestSet.color } // TargetCardId is used as color for rent
+          };
+        }
+      }
+    }
+
+    // Strategy 6.5: Play Buildings (House/Hotel)
+    const building = hand.find(c => c.actionType === ACTION_TYPES.HOUSE || c.actionType === ACTION_TYPES.HOTEL);
+    if (building && completedSets > 0) {
+      const bestSet = this.findBestBuildingTarget(mySets);
+      if (bestSet) {
+        return { 
+          action: 'PLAY_PROPERTY', // FE playCard handles destination based on card type
+          card: building,
+          targetCard: { id: bestSet.color } // Set color to play on
+        };
       }
     }
 
@@ -409,15 +476,79 @@ export class HardBot {
     return bestTarget;
   }
 
-  getRichestOpponent() {
-    return this.players
+  findBestDealBreakerTarget(players) {
+    let bestTarget = null;
+    let maxSets = 0;
+
+    players.forEach((opp, idx) => {
+      if (idx === this.playerIndex) return;
+      const sets = getSetsFromProperties(opp.properties).filter(s => s.isComplete);
+      if (sets.length > 0) {
+        // High priority to those about to win
+        const priority = sets.length >= 2 ? 100 : 0;
+        // Targeted card should be one in the completed set
+        const targetSet = sets.sort((a, b) => b.totalValue - a.totalValue)[0];
+        if (priority + targetSet.totalValue > maxSets) {
+          maxSets = priority + targetSet.totalValue;
+          bestTarget = { opponent: opp, card: targetSet.cards[0] };
+        }
+      }
+    });
+    return bestTarget;
+  }
+
+  findBestForcedDealTarget(players) {
+    const myState = players[this.playerIndex];
+    if (!myState || myState.properties.length === 0) return null;
+    
+    const mySets = getSetsFromProperties(myState.properties);
+    const myJunkProp = myState.properties.find(p => {
+      const set = mySets.find(s => s.color === (p.currentColor || p.color));
+      return !set.isComplete && set.count === 1;
+    }) || myState.properties[0];
+
+    let bestTarget = null;
+    let bestValue = 0;
+
+    players.forEach((opponent, idx) => {
+      if (idx === this.playerIndex) return;
+      const oppSets = getSetsFromProperties(opponent.properties);
+      oppSets.forEach(set => {
+        if (set.isComplete) return; // Can't steal from complete sets
+        
+        set.cards.forEach(card => {
+          let value = card.value;
+          const helpsUs = mySets.find(s => s.color === (card.currentColor || card.color) && !s.isComplete);
+          if (helpsUs) value += 10;
+          
+          if (value > bestValue) {
+            bestValue = value;
+            bestTarget = { opponent, theirCard: card, myCard: myJunkProp };
+          }
+        });
+      });
+    });
+
+    return bestTarget;
+  }
+
+  findBestBuildingTarget(sets) {
+    // Houses must be played first, but we just need a complete set
+    return sets
+      .filter(s => s.isComplete)
+      .sort((a, b) => b.totalValue - a.totalValue)[0];
+  }
+
+  getRichestOpponent(providedPlayers) {
+    const players = providedPlayers || this.players;
+    return players
       .map((p, idx) => ({ player: p, idx }))
       .filter(({ idx }) => idx !== this.playerIndex)
       .sort((a, b) => {
-        const aWealth = a.player.bank.reduce((s, c) => s + c.value, 0) + 
-                       a.player.properties.reduce((s, c) => s + c.value, 0);
-        const bWealth = b.player.bank.reduce((s, c) => s + c.value, 0) +
-                       b.player.properties.reduce((s, c) => s + c.value, 0);
+        const aWealth = (a.player.bank || []).reduce((s, c) => s + (c.value || 0), 0) + 
+                       (a.player.properties || []).reduce((s, c) => s + (c.value || 0), 0);
+        const bWealth = (b.player.bank || []).reduce((s, c) => s + (c.value || 0), 0) +
+                       (b.player.properties || []).reduce((s, c) => s + (c.value || 0), 0);
         return bWealth - aWealth;
       })[0]?.player;
   }
@@ -436,27 +567,44 @@ export class ExpertBot extends HardBot {
   }
 
   decideMove(hand, gameState) {
-    // Expert bots also consider:
-    // - Saving Just Say No for critical moments
-    // - Baiting out opponent's Just Say No cards
-    // - Optimal wildcard placement
-    // - Defensive banking when threatened
+    const players = gameState.players || this.players;
+    const myState = players[this.playerIndex];
+    if (!myState) return { action: 'END_TURN' };
     
-    const myState = this.players[this.playerIndex];
-    const mySets = getSetsFromProperties(myState.properties);
-    
-    // Check if we're being threatened (opponent has 2 complete sets)
+    // Check if we're being threatened (opponent has 2+ complete sets)
     const threat = players.find((p, idx) => {
       if (idx === this.playerIndex) return false;
       const sets = getSetsFromProperties(p.properties);
       return sets.filter(s => s.isComplete).length >= 2;
     });
 
-    // If threatened and we have Deal Breaker, use it immediately
+    // Strategy 1: Defensive Deal Breaker
     if (threat) {
       const dealBreaker = hand.find(c => c.actionType === ACTION_TYPES.DEAL_BREAKER);
       if (dealBreaker) {
-        return { action: 'PLAY_ACTION', card: dealBreaker, target: threat };
+        const bestDeal = this.findBestDealBreakerTarget(players);
+        if (bestDeal && bestDeal.opponent.id === threat.id) {
+          return { action: 'PLAY_ACTION', card: dealBreaker, target: bestDeal.opponent, targetCard: bestDeal.card };
+        }
+      }
+    }
+
+    // Strategy 2: Optimize Wildcards (Flipping)
+    // This bot is smart enough to flip wildcards to complete sets
+    const myProperties = myState.properties;
+    for (const card of myProperties) {
+      if (card.colors && card.colors.length === 2) {
+        const currentSets = getSetsFromProperties(myProperties);
+        const currentColor = card.currentColor || card.color;
+        const otherColor = card.colors.find(c => c !== currentColor);
+        
+        const currentSetInfo = currentSets.find(s => s.color === currentColor);
+        const otherSetInfo = currentSets.find(s => s.color === otherColor) || { count: 0, needed: getSetSize(otherColor) };
+
+        // Flip if it completes the other set and doesn't break a complete current set
+        if (otherSetInfo.count === otherSetInfo.needed - 1 && (!currentSetInfo.isComplete || currentSetInfo.count > currentSetInfo.needed)) {
+           return { action: 'FLIP_WILD', card: card };
+        }
       }
     }
 

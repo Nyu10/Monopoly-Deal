@@ -168,6 +168,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
               iconColor="text-orange-600"
               accentColor="bg-orange-600"
             />
+            
+            <SettingToggle
+              icon={CreditCard}
+              title="Confirm Card Plays"
+              description="Show confirmation dialog even for money and property cards."
+              settingKey="confirmAllMoves"
+              value={settings.confirmAllMoves}
+              iconColor="text-blue-600"
+              accentColor="bg-blue-600"
+            />
           </div>
 
           {/* Info Card */}

@@ -1,5 +1,6 @@
 import MiniCard from './MiniCard';
 import { useSettings } from '../hooks/useSettings.jsx';
+import { calculateBankTotal } from '../utils/gameHelpers';
 
 const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, horizontal = false, isOpponent = false }) => {
   // Get settings with fallback for when provider isn't available
@@ -11,7 +12,7 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
     // Settings provider not available, use defaults
   }
 
-  const totalValue = cards?.reduce((sum, card) => sum + (card.value || 0), 0) || 0;
+  const totalValue = calculateBankTotal(cards);
   const cardCount = cards?.length || 0;
   const topCard = cards?.[cards.length - 1];
 

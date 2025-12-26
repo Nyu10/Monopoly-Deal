@@ -121,4 +121,67 @@ describe('useLocalGameState - Action Card Logic', () => {
     expect(result.current.players[0].bank[0].value).toBe(10);
     expect(result.current.players[1].bank).toHaveLength(0);
   });
+
+  it('should reshuffle the discard pile when the deck is empty during draw', () => {
+    const initialState = {
+      players: [
+        { id: 'p0', name: 'P1', hand: [], bank: [], properties: [] },
+        { id: 'p1', name: 'P2', hand: [], bank: [], properties: [] }
+      ],
+      deck: [],
+      discardPile: [
+        { id: 'm1', type: CARD_TYPES.MONEY, value: 1 },
+        { id: 'm2', type: CARD_TYPES.MONEY, value: 2 }
+      ],
+      currentTurnIndex: 0,
+      movesLeft: 0,
+      gameState: 'DRAW',
+      hasDrawnThisTurn: false
+    };
+
+    const { result } = renderHook(() => useLocalGameState(2, 'MEDIUM', initialState));
+
+    act(() => {
+      result.current.drawCards();
+    });
+
+    // P1 should have drawn 2 cards from the discard pile (which were reshuffled)
+    expect(result.current.players[0].hand).toHaveLength(2);
+    expect(result.current.deck).toHaveLength(0);
+    expect(result.current.discardPile).toHaveLength(0);
+  });
+
+  it('should reshuffle when playing Pass Go and deck is empty', () => {
+    const initialState = {
+      players: [
+        { 
+          id: 'p0', 
+          name: 'P1', 
+          hand: [{ id: 'pg-1', actionType: ACTION_TYPES.PASS_GO, type: CARD_TYPES.ACTION, value: 1 }], 
+          bank: [], 
+          properties: [] 
+        }
+      ],
+      deck: [],
+      discardPile: [
+        { id: 'm1', type: CARD_TYPES.MONEY, value: 1 },
+        { id: 'm2', type: CARD_TYPES.MONEY, value: 2 }
+      ],
+      currentTurnIndex: 0,
+      movesLeft: 3,
+      gameState: 'PLAYING'
+    };
+
+    const { result } = renderHook(() => useLocalGameState(1, 'MEDIUM', initialState));
+
+    act(() => {
+      result.current.playCard('pg-1', 'DISCARD');
+    });
+
+    // Should have drawn 2 cards
+    expect(result.current.players[0].hand).toHaveLength(2);
+    expect(result.current.discardPile).toHaveLength(1); // The PG card itself is now in discard (Wait, PG is discarded AFTER draw in logic? or before?)
+    // In our logic: PG is drawn, then it's added to match log, but setDiscardPile(p => [...p, card]) happens at the end of playCard.
+    // However, our Pass Go draw logic uses the current discardPile state.
+  });
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { COLORS, ACTION_TYPES } from '../utils/gameHelpers';
+import { COLORS, ACTION_TYPES, getSets } from '../utils/gameHelpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import MiniCard from './MiniCard';
 import Card from './Card';
@@ -12,47 +12,12 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
     return null;
   }
 
-  // Group properties by color and separate buildings
-  const sets = {};
-  properties.forEach(card => {
-    const color = card.currentColor || card.color;
-    if (!color) return;
-    
-    if (!sets[color]) {
-      sets[color] = {
-        properties: [],
-        houses: 0,
-        hotels: 0
-      };
-    }
-    
-    if (card.actionType === ACTION_TYPES.HOUSE) {
-      sets[color].houses++;
-    } else if (card.actionType === ACTION_TYPES.HOTEL) {
-      sets[color].hotels++;
-    } else {
-      sets[color].properties.push(card);
-    }
-  });
-
-  // Calculate completion status
-  const setStatuses = Object.entries(sets).map(([color, setInfo]) => {
-    const colorData = COLORS[color];
-    const required = colorData?.count || 2;
-    const current = setInfo.properties.length;
-    const isComplete = current >= required;
-    
-    return {
-      color,
-      cards: setInfo.properties,
-      houses: setInfo.houses,
-      hotels: setInfo.hotels,
-      current,
-      required,
-      isComplete,
-      colorData
-    };
-  });
+  const setStatuses = getSets(properties).map(set => ({
+    ...set,
+    current: set.cards.length,
+    required: COLORS[set.color]?.count || 2,
+    colorData: COLORS[set.color]
+  }));
 
   const completedSets = setStatuses.filter(s => s.isComplete).length;
 
@@ -63,7 +28,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
       </div>
       
       {/* Visual property cards */}
-      <div className={`flex gap-2 w-full py-2 ${horizontal ? 'flex-row overflow-x-auto' : 'flex-wrap justify-center'}`}>
+      <div className={`flex gap-2 w-full py-2 ${horizontal ? 'flex-row' : 'flex-wrap justify-center'}`}>
         {setStatuses.map(({ color, cards, houses, hotels, current, required, isComplete, colorData }) => (
           <div 
             key={color} 

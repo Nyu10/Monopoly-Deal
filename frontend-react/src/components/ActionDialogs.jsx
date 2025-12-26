@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import Card from './Card';
-import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import { COLORS, CARD_TYPES, ACTION_TYPES, calculateBankTotal } from '../utils/gameHelpers';
 import RentColorSelectionDialog from './RentColorSelectionDialog';
 
 // ============================================================================
@@ -18,6 +18,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
   const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD;
   const isProperty = card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD;
   const isMoney = card.type === CARD_TYPES.MONEY;
+  const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -41,20 +42,20 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           {/* PLAY ACTION / PROPERTY BUTTON */}
           {(isAction || isProperty) && isInHand && (
             <button
-              onClick={() => onConfirm(isProperty ? 'PROPERTY' : 'ACTION')}
+              onClick={() => onConfirm(isProperty ? 'PROPERTY' : (isBuilding ? 'PROPERTY' : 'ACTION'))}
               className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-blue-500/30"
             >
               <div className="flex flex-col text-left">
                 <span className="font-black uppercase tracking-wider text-sm">
-                  {isProperty ? 'Play Property' : 'Play Action'}
+                  {isProperty ? 'Play Property' : (isBuilding ? 'Add to Set' : 'Play Action')}
                 </span>
                 <span className="text-blue-100 text-xs font-medium">
-                  {isProperty ? 'Add to your collection' : 'Use card effect'}
+                  {isProperty ? 'Add to your collection' : (isBuilding ? 'Bonus Rent on Full Set' : 'Use card effect')}
                 </span>
               </div>
               <div className="bg-white/20 p-2 rounded-lg">
                 <span className="text-xl">
-                  {isProperty ? '🏠' : '⚡'}
+                  {isProperty ? '🏠' : (isBuilding ? (card.actionType === ACTION_TYPES.HOUSE ? '🏠' : '🏨') : '⚡')}
                 </span>
               </div>
             </button>
@@ -210,7 +211,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                         <div className="flex items-center justify-between text-[10px] px-2">
                           <span className="text-slate-500 font-bold">Bank:</span>
                           <span className="text-green-600 font-black">
-                            ${player.bank?.reduce((sum, c) => sum + (c.value || 0), 0) || 0}M
+                            ${calculateBankTotal(player.bank)}M
                           </span>
                         </div>
                         

@@ -260,16 +260,23 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
   const contentBottom = isTiny ? 'bottom-4' : isSmallSize ? 'bottom-7' : 'bottom-10';
 
   return (
-    <CardWrapper size={size} onClick={onClick} selected={selected} className={`bg-white border-2 border-slate-200 ${className}`} style={style} layoutId={layoutId}>
+    <CardWrapper 
+      size={size} 
+      onClick={onClick} 
+      selected={selected} 
+      className={`bg-white ${className}`} 
+      style={style} 
+      layoutId={layoutId}
+    >
       {/* Top Header Hook (Color 1) */}
-      <div className={`absolute top-0 left-0 right-0 ${headerHeight} z-10`} style={{ backgroundColor: color1 }}>
+      <div className={`absolute top-0 left-0 right-0 ${headerHeight} z-10 border-t-2 border-x-2`} style={{ backgroundColor: color1, borderColor: color1 }}>
         <div className="h-full w-full flex items-center justify-end pr-3">
           <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text1}`}>Wild Card</span>
         </div>
       </div>
 
       {/* Bottom Header Hook (Color 2 - Rotated) */}
-      <div className={`absolute bottom-0 left-0 right-0 ${headerHeight} z-10`} style={{ backgroundColor: color2 }}>
+      <div className={`absolute bottom-0 left-0 right-0 ${headerHeight} z-10 border-b-2 border-x-2`} style={{ backgroundColor: color2, borderColor: color2 }}>
         <div className="h-full w-full flex items-center justify-end pr-3 transform rotate-180">
           <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text2}`}>Wild Card</span>
         </div>
@@ -280,7 +287,7 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
       {!showDescription && (
       <div className={`absolute inset-x-0 ${contentTop} ${contentBottom} flex`}>
         {/* Color 1 Column (White Aesthetic) */}
-        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-r border-slate-100 bg-white overflow-hidden">
+        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-r border-slate-100 bg-white overflow-hidden border-l-2" style={{ borderLeftColor: color1 }}>
           <div className={`${isTiny ? 'text-[5px] mb-1' : 'text-[8px] mb-2'} font-black uppercase tracking-wider text-center`} style={{ color: textColor1 }}>
             {color1Data.name}
           </div>
@@ -299,7 +306,7 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
         </div>
 
         {/* Color 2 Column (White Aesthetic - Bottom half orientation) */}
-        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-l border-slate-100 bg-white overflow-hidden justify-end">
+        <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-l border-slate-100 bg-white overflow-hidden justify-end border-r-2" style={{ borderRightColor: color2 }}>
           <div className={`${isTiny ? 'space-y-0.5' : 'space-y-1'} w-full mb-1`}>
             {[...(color2Data.rent || [])].reverse().map((rent, i, arr) => (
               <div key={i} className={`flex items-center justify-between ${isTiny ? 'px-0.5 py-0.5' : 'px-1 py-1'} rounded border w-full gap-1`} style={{ borderColor: color2 + '33' }}>
