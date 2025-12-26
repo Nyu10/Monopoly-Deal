@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateOptimalPayment } from '../utils/paymentCalculator';
-import { CARD_TYPES } from '../utils/gameHelpers';
+import { CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
 
 describe('Payment Calculator', () => {
   describe('calculateOptimalPayment', () => {
@@ -248,6 +248,7 @@ describe('Payment Calculator', () => {
       // Not: Baltic + Mediterranean + something else (3+ cards)
       expect(payment.length).toBeLessThanOrEqual(2);
     });
+
     it('should prefer one high value property over multiple low value properties', () => {
       const allProperties = [
         { id: 'p1', type: CARD_TYPES.PROPERTY, value: 5, name: 'BigProp', color: 'blue' },
@@ -267,6 +268,28 @@ describe('Payment Calculator', () => {
       // Should use the single 5M property instead of the five 1M properties
       expect(payment.length).toBe(1);
       expect(payment[0].value).toBe(5);
+    });
+
+    it('should prioritize loose properties over houses (Action Cards) on board', () => {
+      // This test ensures that Action cards played on the board (Houses) are treated as Properties
+      // and not Money, when "allProperties" is provided.
+      const startCards = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 2, name: 'Railroad' },
+        { id: 'h1', type: CARD_TYPES.ACTION, actionType: ACTION_TYPES.HOUSE, value: 3, name: 'House' }
+      ];
+
+      // Simulate both being on the board (allProperties)
+      const allProperties = [...startCards];
+      
+      // We owe 2M. 
+      // House (3M) would be overpayment but "Money" priority in old logic.
+      // Railroad (2M) is "Property" priority.
+      // New logic: Both are Board. Railroad (2M) is exact match. House (3M) is overpayment.
+      // Should choose Railroad.
+      const payment = calculateOptimalPayment(startCards, 2, allProperties);
+      
+      expect(payment.length).toBe(1);
+      expect(payment[0].id).toBe('p1');
     });
   });
 });

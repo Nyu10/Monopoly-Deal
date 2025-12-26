@@ -22,11 +22,10 @@ export const getSets = (properties) => {
       const def = COLORS[set.color];
       if (!def) return { ...set, isComplete: false, rent: 0 }; 
       
-      const hasRealProperty = set.cards.some(c => c.type === CARD_TYPES.PROPERTY);
-      const isComplete = hasRealProperty && set.cards.length >= def.count;
+      const isComplete = set.cards.length >= def.count;
       
       let rent = 0;
-      if (hasRealProperty) {
+      if (set.cards.length > 0) {
           let rentIndex = Math.min(set.cards.length - 1, def.rent.length - 1);
           rent = def.rent[rentIndex] || 0;
           if (isComplete) {
@@ -35,7 +34,7 @@ export const getSets = (properties) => {
           }
       }
       
-      return { ...set, isComplete, rent, hasRealProperty };
+      return { ...set, isComplete, rent };
   });
 };
 

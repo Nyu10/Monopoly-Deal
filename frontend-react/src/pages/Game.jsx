@@ -11,7 +11,7 @@ import { useLocalGameState } from '../hooks/useLocalGameState';
 import { useSettings } from '../hooks/useSettings';
 import { useLocalMultiplayerSync } from '../hooks/useLocalMultiplayerSync';
 import { BOT_DIFFICULTY } from '../ai/BotEngine';
-import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination } from '../utils/gameHelpers';
+import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination, getSets, COLORS } from '../utils/gameHelpers';
 
 /**
  * Main Game Component
@@ -175,8 +175,77 @@ const Game = () => {
     setShowCardActionDialog(true);
   };
 
-  const handleCardActionConfirm = (actionType) => {
+  const getRentOptions = (card) => {
+    if (card.type !== CARD_TYPES.RENT || !card.colors) return null;
+    
+    const currentPlayer = players.find(p => p.id === playerIdentity);
+    if (!currentPlayer) return null;
+
+    const sets = getSets(currentPlayer.properties);
+    
+    return card.colors.map(color => {
+      const set = sets.find(s => s.color === color);
+      const currentRent = set ? set.rent : 0;
+      
+      let displayRent = currentRent;
+      let requiresFlip = false;
+      
+      // If current rent is 0, check if we can flip potential cards
+      if (currentRent === 0) {
+        const potentialCards = currentPlayer.properties.filter(p => 
+          (p.colors && p.colors.includes(color)) || p.color === color
+        );
+        
+        if (potentialCards.length > 0) {
+           const colorDef = COLORS[color];
+           if (colorDef) {
+               const count = potentialCards.length;
+               const rentIndex = Math.min(count - 1, colorDef.rent.length - 1);
+               const potentialVal = colorDef.rent[rentIndex];
+               if (potentialVal > 0) {
+                   displayRent = potentialVal;
+                   requiresFlip = true;
+               }
+           }
+        }
+      }
+
+      const colorData = COLORS[color];
+      const colorName = colorData ? colorData.name : color;
+      return { 
+          color, 
+          colorName, 
+          rent: displayRent,
+          requiresFlip
+      };
+    });
+  };
+
+  const handleCardActionConfirm = (action) => {
     if (!selectedCard) return;
+    
+    // Handle Rent Color Selection from Dialog
+    if (typeof action === 'object' && action.type === 'RENT') {
+       // Note: We no longer auto-flip here manually because playCard (RENT) now handles 
+       // temporary effective property calculation and persists the flip if needed.
+       // This prevents duplicate log messages and race conditions.
+
+       if (isMultiplayer) {
+          sendMove({
+            type: 'PLAY_CARD', 
+            cardId: selectedCard.id,
+            actionType: 'RENT',
+            targetCardId: action.color
+          });
+       } else {
+          localGame.playCard(selectedCard.id, 'DISCARD', null, action.color);
+       }
+       setShowCardActionDialog(false);
+       setSelectedCard(null);
+       return;
+    }
+
+    const actionType = action;
     
     if (isMultiplayer) {
       gameActions.playCard(selectedCard, actionType);
@@ -257,27 +326,8 @@ const Game = () => {
       if (selection.asBank) {
         localGame.playCard(selectedCard.id, 'BANK');
       } else {
-        // First, update the card's currentColor in the player's hand
-        localGame.setPlayers(prev => {
-          const newPlayers = [...prev];
-          const playerIdx = newPlayers.findIndex(p => p.id === playerIdentity);
-          if (playerIdx !== -1) {
-            const player = { ...newPlayers[playerIdx] };
-            const cardIdx = player.hand.findIndex(c => c.id === selectedCard.id);
-            if (cardIdx !== -1) {
-              player.hand = [...player.hand];
-              player.hand[cardIdx] = { ...player.hand[cardIdx], currentColor: selection.color };
-              newPlayers[playerIdx] = player;
-            }
-          }
-          return newPlayers;
-        });
-        
-        // Then play the card to properties
-        // The playCard function will preserve the currentColor we just set
-        setTimeout(() => {
-          localGame.playCard(selectedCard.id, 'PROPERTIES');
-        }, 0);
+        // Play directly with the selected color as the targetCardId argument
+        localGame.playCard(selectedCard.id, 'PROPERTIES', null, selection.color);
       }
     }
     
@@ -414,7 +464,7 @@ const Game = () => {
           deck={isMultiplayer ? (backendGameState?.deck || []) : localGame.deck}
           discardPile={isMultiplayer ? (backendGameState?.discardPile || []) : localGame.discardPile}
           matchLog={matchLog}
-          actionConfirmation={
+            actionConfirmation={
             showCardActionDialog && selectedCard ? (
               <CardActionDialog
                 card={selectedCard}
@@ -422,6 +472,7 @@ const Game = () => {
                 onCancel={handleCardActionCancel}
                 onFlip={handleFlipConfirm}
                 isInHand={players.find(p => p.id === 'player-0')?.hand.some(c => c.id === selectedCard.id)}
+                rentOptions={getRentOptions(selectedCard)}
               />
             ) : null
           }

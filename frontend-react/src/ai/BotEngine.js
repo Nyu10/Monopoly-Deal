@@ -8,6 +8,8 @@
  * - EXPERT: Near-perfect play with psychological tactics
  */
 
+import { COLORS } from '../utils/gameHelpers';
+
 // Bot Difficulty Levels
 export const BOT_DIFFICULTY = {
   EASY: 'EASY',
@@ -121,14 +123,36 @@ function getSetsFromProperties(properties) {
     colorGroups[color].push(prop);
   });
 
-  return Object.entries(colorGroups).map(([color, cards]) => ({
-    color,
-    cards,
-    count: cards.length,
-    needed: getSetSize(color),
-    isComplete: cards.length >= getSetSize(color),
-    totalValue: cards.reduce((sum, c) => sum + c.value, 0)
-  }));
+   return Object.entries(colorGroups).map(([color, cards]) => {
+    const def = COLORS[color];
+    const isComplete = cards.length >= getSetSize(color);
+    
+    // Calculate basic rent
+    let rent = 0;
+    if (def && def.rent) {
+      const rentIndex = Math.min(cards.length - 1, def.rent.length - 1);
+      rent = def.rent[rentIndex] || 0;
+      
+      if (isComplete) {
+         // Add bonuses if applicable (simplistic check for houses/hotels)
+         // In this bot logic, we treat any House card in the set array as a house
+         const houses = cards.filter(c => c.actionType === ACTION_TYPES.HOUSE).length;
+         const hotels = cards.filter(c => c.actionType === ACTION_TYPES.HOTEL).length;
+         if (houses > 0) rent += 3; // Approx bonus
+         if (hotels > 0) rent += 4; // Approx bonus
+      }
+    }
+
+    return {
+      color,
+      cards,
+      count: cards.length,
+      needed: getSetSize(color),
+      isComplete,
+      totalValue: cards.reduce((sum, c) => sum + c.value, 0),
+      rent
+    };
+  });
 }
 
 function getSetSize(color) {
@@ -138,6 +162,65 @@ function getSetSize(color) {
     utility: 2, railroad: 4
   };
   return sizes[color] || 3;
+}
+
+/**
+ * Calculates the best color to charge rent on, considering potential wild card flips
+ */
+function calculateMaxPotentialRent(player, rentCard) {
+  const allProperties = player.properties || [];
+  let bestOption = { color: null, rent: 0 };
+
+  // Determine which colors to evaluate
+  let colorsToCheck = [];
+  if (rentCard.type === CARD_TYPES.RENT_WILD) {
+    // Check all colors present in player's properties
+    const uniqueColors = new Set();
+    allProperties.forEach(p => {
+       if (p.color && p.color !== 'multi') uniqueColors.add(p.color);
+       if (p.currentColor) uniqueColors.add(p.currentColor);
+       if (p.colors) p.colors.forEach(c => uniqueColors.add(c));
+    });
+    colorsToCheck = Array.from(uniqueColors);
+  } else if (rentCard.colors) {
+    colorsToCheck = rentCard.colors;
+  }
+
+  // Iterate colors and calculate MAX potential rent (assuming optimal flips)
+  colorsToCheck.forEach(color => {
+     const colorDef = COLORS[color];
+     if (!colorDef) return;
+
+     // count how many cards CAN be this color
+     const matchingCards = allProperties.filter(p => 
+        p.color === color || 
+        p.currentColor === color || 
+        (p.colors && p.colors.includes(color))
+     );
+
+     const count = matchingCards.length;
+     if (count === 0) return;
+
+     // Calculate rent for this count
+     let rentIndex = Math.min(count - 1, colorDef.rent.length - 1);
+     let rent = colorDef.rent[rentIndex] || 0;
+     
+     // Check for complete set bonus implications
+     const isComplete = count >= (colorDef.count || 3);
+     if (isComplete) {
+        // Add house/hotel bonuses if they exist in the potential set
+        const houses = matchingCards.filter(c => c.actionType === ACTION_TYPES.HOUSE).length;
+        const hotels = matchingCards.filter(c => c.actionType === ACTION_TYPES.HOTEL).length;
+        if (houses > 0) rent += 3;
+        if (hotels > 0) rent += 4;
+     }
+
+     if (rent > bestOption.rent) {
+        bestOption = { color, rent };
+     }
+  });
+
+  return bestOption;
 }
 
 /**
@@ -253,7 +336,15 @@ export class MediumBot {
     if (hasCompleteSets) {
       const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
       if (rentCard) {
-        return { action: 'PLAY_ACTION', card: rentCard, target: this.getRichestOpponent(players) };
+        const potential = calculateMaxPotentialRent(myState, rentCard);
+        if (potential.rent > 0) {
+           return { 
+             action: 'PLAY_ACTION', 
+             card: rentCard, 
+             target: this.getRichestOpponent(players),
+             targetCard: { id: potential.color } // Pass the color
+           };
+        }
       }
     }
 
@@ -399,23 +490,43 @@ export class HardBot {
 
     // Strategy 6: Charge rent with complete sets
     if (completedSets > 0) {
+      // Strategy 6: Charge rent with complete sets
       const doubleRent = hand.find(c => c.actionType === ACTION_TYPES.DOUBLE_RENT);
-      const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
       
-      // Use Double Rent if we have a rent card to follow up
-      if (doubleRent && rentCard && !gameState.doubleRentActive) {
-        return { action: 'PLAY_ACTION', card: doubleRent };
+      // Check for Double Rent Combo (Played AFTER Rent)
+      if (doubleRent && gameState.movesLeft > 0 && gameState.matchLog && gameState.matchLog.length > 0) {
+        const lastAction = gameState.matchLog[0];
+        if (lastAction.player === myState.name && lastAction.action === 'RENT') {
+          return { action: 'PLAY_ACTION', card: doubleRent };
+        }
       }
 
+      const rentCard = hand.find(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
+        
       if (rentCard) {
-        // Find set with highest rent
-        const bestSet = [...mySets].filter(s => s.rent > 0).sort((a, b) => b.rent - a.rent)[0];
-        if (bestSet) {
+        // Find best set that matches ANY rent card using potential rent calculation
+        let bestMove = null;
+        const allRentCards = hand.filter(c => c.type === CARD_TYPES.RENT || c.type === CARD_TYPES.RENT_WILD);
+        
+        for (const rc of allRentCards) {
+          const potential = calculateMaxPotentialRent(myState, rc);
+          if (potential.rent > 0) {
+              // Only play rent if we have moves left (and reserve one for Double Rent if we have it)
+              // If we have Double Rent, we essentially need 2 moves to do the full combo.
+              // If we only have 1 move, we just play rent (better than nothing).
+              // So no strict check needed here, but good to know.
+              if (!bestMove || potential.rent > bestMove.rent) {
+                bestMove = { card: rc, targetColor: potential.color, rent: potential.rent };
+              }
+          }
+        }
+
+        if (bestMove) {
           return { 
             action: 'PLAY_ACTION', 
-            card: rentCard, 
+            card: bestMove.card, 
             target: this.getRichestOpponent(players),
-            targetCard: { id: bestSet.color } // TargetCardId is used as color for rent
+            targetCard: { id: bestMove.targetColor } // Pass the best color as targetCardId
           };
         }
       }

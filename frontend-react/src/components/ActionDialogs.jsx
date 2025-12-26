@@ -12,7 +12,7 @@ import RentColorSelectionDialog from './RentColorSelectionDialog';
 // CARD ACTION DIALOG
 // ============================================================================
 
-export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false }) => {
+export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false, rentOptions = null }) => {
   if (!card) return null;
 
   const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD;
@@ -39,8 +39,36 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
         </div>
 
         <div className="space-y-2">
-          {/* PLAY ACTION / PROPERTY BUTTON */}
-          {(isAction || isProperty) && isInHand && (
+          {/* RENT BUTTONS - Show specific color options if provided */}
+          {card.type === CARD_TYPES.RENT && card.colors && rentOptions ? (
+            <div className="space-y-2">
+              {rentOptions.map((option) => (
+                <button
+                  key={option.color}
+                  onClick={() => onConfirm({ type: 'RENT', color: option.color, requiresFlip: option.requiresFlip })}
+                  style={{
+                    backgroundColor: COLORS[option.color]?.hex || '#2563eb',
+                    color: COLORS[option.color]?.text || 'white'
+                  }}
+                  className="w-full group relative flex items-center justify-between p-3 rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-xl hover:brightness-110"
+                >
+                  <div className="flex flex-col text-left">
+                    <span className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
+                       {option.requiresFlip ? `Flip & Rent: ${option.colorName}` : `Rent: ${option.colorName}`}
+                    </span>
+                    <span className="text-xs font-medium opacity-90">
+                      {option.requiresFlip ? 'Flip cards to this color & collect' : 'Collect on your properties'}
+                    </span>
+                  </div>
+                  <div className="bg-white/20 px-3 py-1 rounded-lg font-black font-mono">
+                    ${option.rent}M
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+             /* STANDARD PLAY ACTION / PROPERTY BUTTON */
+             (isAction || isProperty) && isInHand && (
             <button
               onClick={() => onConfirm(isProperty ? 'PROPERTY' : (isBuilding ? 'PROPERTY' : 'ACTION'))}
               className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-blue-500/30"
@@ -59,7 +87,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
                 </span>
               </div>
             </button>
-          )}
+          ))}
 
           {/* FLIP BUTTON (For Wild Properties) */}
           {card.type === CARD_TYPES.PROPERTY_WILD && card.colors?.length === 2 && onFlip && !isInHand && (
@@ -102,12 +130,14 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           )}
 
           {/* CANCEL BUTTON */}
-          <button
-            onClick={onCancel}
-            className="w-full p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold transition-colors"
-          >
-            Cancel
-          </button>
+          <div className="pt-2 mt-1 border-t border-slate-100">
+            <button
+              onClick={onCancel}
+              className="w-full p-3 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded-lg font-bold transition-colors text-xs uppercase tracking-wider"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

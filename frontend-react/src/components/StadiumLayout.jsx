@@ -489,73 +489,101 @@ const StadiumLayout = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-50/50">
           {currentPlayer && (
             <>
-              {/* Bank Section */}
-              <div id="tutorial-bank" className="group">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bank</h4>
-                  <div className="text-lg font-black text-green-600 drop-shadow-sm">
-                    ${calculateBankTotal(currentPlayer.bank)}M
+              {/* Bank Section - Fixed at top, shrinkable if needed but usually visible */}
+              <div className="flex-shrink-0 p-4 pb-2 border-b border-slate-100 bg-white z-20 shadow-sm relative">
+                <div id="tutorial-bank" className="group">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bank</h4>
+                    <div className="text-lg font-black text-green-600 drop-shadow-sm">
+                      ${calculateBankTotal(currentPlayer.bank)}M
+                    </div>
                   </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-2xl p-4 border border-green-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-green-200">
-                  <div className="flex items-center min-h-[210px] justify-center pt-8">
-                    {currentPlayer.bank?.length > 0 ? (
-                      <div className="flex -space-x-24 hover:-space-x-8 transition-all duration-500">
-                        {currentPlayer.bank.map((card, idx) => (
-                          <div 
-                            key={card.id || idx} 
-                            className="transition-transform duration-300 hover:-translate-y-8 hover:z-50"
-                            style={{ zIndex: idx }}
-                          >
-                           <Card 
-                             card={card} 
-                             size="sm" 
-                             onClick={() => onCardClick && onCardClick(card)}
-                             className="shadow-xl ring-2 ring-white"
-                           />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-green-600/50 text-[10px] font-bold uppercase tracking-widest w-full text-center py-6">Empty Bank</div>
-                    )}
+                  
+                  <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-2xl p-2 border border-green-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-green-200 max-h-[220px]">
+                    <div className="flex items-center h-[180px] justify-center items-end pb-4">
+                        {currentPlayer.bank?.length > 0 ? (
+                        <div className="flex justify-center items-end px-2" style={{ maxWidth: '100%' }}>
+                          {currentPlayer.bank.map((card, idx) => {
+                            // Dynamic overlap calculation to prevent overflow
+                            const totalCards = currentPlayer.bank.length;
+                            // Base width of sm card is w-32 (128px)
+                            // We have about 280px of space
+                            // For small counts, use standard overlap (-80px)
+                            // For large counts, squish them
+                            
+                            let overlap = 90; // Default overlap
+                            if (totalCards > 4) {
+                               // Calculate needed squish: 
+                               // Formula: Prevent width > 260px
+                               // (128) + (N-1)*(128 - overlap) = 260
+                               // (N-1)*(128 - overlap) = 132
+                               // 128 - overlap = 132 / (N-1)
+                               // overlap = 128 - (132 / (N-1))
+                               const requiredOverlap = 128 - (130 / Math.max(1, totalCards - 1));
+                               overlap = Math.max(60, Math.min(120, requiredOverlap));
+                            }
+
+                            return (
+                              <div 
+                                key={card.id || idx} 
+                                className="transition-all duration-300 hover:-translate-y-8 hover:z-[100] origin-bottom relative group-hover:!ml-[-20px]"
+                                style={{ 
+                                  zIndex: idx,
+                                  marginLeft: idx === 0 ? 0 : `-${overlap}px`
+                                }}
+                              >
+                               <Card 
+                                 card={card} 
+                                 size="sm" 
+                                 onClick={() => onCardClick && onCardClick(card)}
+                                 className="shadow-md shadow-black/20 ring-1 ring-black/5 scale-90 sm:scale-100"
+                               />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-green-600/50 text-[10px] font-bold uppercase tracking-widest w-full text-center py-6">Empty Bank</div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Properties Section */}
-              <div id="tutorial-properties" className="group">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Properties</h4>
-                  <div className="text-lg font-black text-blue-600 drop-shadow-sm">
-                    {currentPlayer.properties?.length || 0}
+              {/* Properties Section - Scrollable Area */}
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent min-h-0 relative">
+                <div id="tutorial-properties" className="group min-h-full">
+                  <div className="flex items-center justify-between mb-3 px-1 sticky top-0 bg-slate-50/95 backdrop-blur-sm py-2 z-10 w-full">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Properties</h4>
+                    <div className="text-lg font-black text-blue-600 drop-shadow-sm">
+                      {currentPlayer.properties?.length || 0}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-blue-50/50 to-sky-50/50 rounded-2xl p-4 border border-blue-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-blue-200">
-                  <div className="flex flex-col gap-4 min-h-[200px]">
-                    <PropertySetDisplay 
-                      properties={currentPlayer.properties}
-                      tooltipDirection="left"
-                      onCardClick={onCardClick}
-                      isCurrentPlayer={true}
-                    />
-                    {(!currentPlayer.properties || currentPlayer.properties.length === 0) && (
-                      <div className="text-blue-600/30 text-[10px] font-bold uppercase tracking-wider w-full text-center py-12">
-                        No properties owned
-                      </div>
-                    )}
+                  
+                  <div className="bg-gradient-to-br from-blue-50/50 to-sky-50/50 rounded-2xl p-4 border border-blue-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-blue-200">
+                    <div className="flex flex-col gap-4 min-h-[200px]">
+                      <PropertySetDisplay 
+                        properties={currentPlayer.properties}
+                        tooltipDirection="left"
+                        onCardClick={onCardClick}
+                        isCurrentPlayer={true}
+                      />
+                      {(!currentPlayer.properties || currentPlayer.properties.length === 0) && (
+                        <div className="text-blue-600/30 text-[10px] font-bold uppercase tracking-wider w-full text-center py-12">
+                          No properties owned
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* End Turn Button - Bottom of Sidebar */}
+              {/* End Turn Button - Fixed at Bottom */}
               {isMyTurn && hasDrawnThisTurn && (
-                <div className="p-4 border-t border-slate-100">
+                <div className="flex-shrink-0 p-4 border-t border-slate-100 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-30">
                   <button
                     onClick={onEndTurn}
                     className="w-full group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95"

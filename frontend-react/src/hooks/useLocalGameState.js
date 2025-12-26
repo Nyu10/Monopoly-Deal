@@ -19,7 +19,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   const [movesLeft, setMovesLeft] = useState(initialState?.movesLeft || 0);
   const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(initialState?.hasDrawnThisTurn || false);
   const [winner, setWinner] = useState(initialState?.winner || null);
-  const [doubleRentActive, setDoubleRentActive] = useState(false);
+  const [lastRentParams, setLastRentParams] = useState(null); // { amount, targets, card }
   const [pendingRequest, setPendingRequest] = useState(null); // { type, amount, requesterId, targetId, ... }
   const [matchLog, setMatchLog] = useState(initialState?.matchLog || []); 
   
@@ -262,20 +262,26 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     const card = currentPlayer.hand.find(c => c.id === cardId);
     if (!card) return;
 
+    // RESET COMBO: If a player does anything other than play Double Rent, the Rent combo window closes.
+    if (card.actionType !== ACTION_TYPES.DOUBLE_RENT) {
+      setLastRentParams(null);
+    }
+
     // VALIDATION: Property cards cannot be banked
     if (destination === 'BANK') {
-      if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD) {
-        console.error('Property cards cannot be banked! They must be played to your property area.');
+      // Standard Property cards cannot be banked.
+      // BUT Wild Properties, Houses, and Hotels CAN be banked as money cards.
+      if (card.type === CARD_TYPES.PROPERTY) {
+        console.error('Standard Property cards cannot be banked! They must be played to your property area.');
         setMatchLog(prev => [{
           id: Date.now(),
           player: 'System',
           action: 'ERROR',
           message: 'Property cards cannot be banked!'
         }, ...prev]);
-        setMovesLeft(m => m - 1); // Safety: Burn a move on invalid action to prevent bot loops
+        setMovesLeft(m => m - 1); // Safety: Burn a move
         return; 
       }
-      // Houses and Hotels CAN be banked as money cards
     }
 
     // Handle Pass Go Action: Draw 2 cards
@@ -303,6 +309,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Debt Collector: Collect $5M from target player
     if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR && targetPlayerId) {
       if (checkForJustSayNo(targetPlayerId, 'Debt Collector')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const player = { ...newPlayers[currentTurnIndex] };
+          player.hand = player.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = player;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -472,40 +485,53 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       const selectedColor = targetCardId; 
       
       let rentAmount = 0;
-      const sets = getSets(charger.properties);
+      
+      // Calculate effective properties (accounting for intended color usage)
+      let effectiveProperties = charger.properties;
+      
+      // If we provided a target color, we should treat any wild cards of that color 
+      // as currently being that color for the purpose of rent calculation.
+      // This solves the issue where a player flips a card and plays rent immediately.
+      if (selectedColor) {
+        effectiveProperties = charger.properties.map(p => {
+          if ((p.type === CARD_TYPES.PROPERTY_WILD || p.isRainbow) && 
+               p.colors && p.colors.includes(selectedColor)) {
+            return { ...p, currentColor: selectedColor };
+          }
+          return p;
+        });
+      }
+      
+      const sets = getSets(effectiveProperties);
       
       if (card.type === CARD_TYPES.RENT_WILD) {
-        const maxRentSet = sets.reduce((max, set) => (set.rent > (max?.rent || 0) ? set : max), null);
-        rentAmount = maxRentSet ? maxRentSet.rent : 0;
+        // For Rainbow Rent, we use the effective properties too, but we might want to be smarter? 
+        // Usually Rainbow rent is played on a specific color chosen by User. 
+        // If targetCardId is provided, we use that. If not (generic play), we find max.
+        if (selectedColor) {
+           const set = sets.find(s => s.color === selectedColor);
+           rentAmount = set ? set.rent : 0;
+           // If the user selected a color, we should respect it even for Rainbow Rent if valid.
+        } else {
+           const maxRentSet = sets.reduce((max, set) => (set.rent > (max?.rent || 0) ? set : max), null);
+           rentAmount = maxRentSet ? maxRentSet.rent : 0;
+        }
       } else {
         const set = sets.find(s => s.color === selectedColor);
         rentAmount = set ? set.rent : 0;
       }
 
-      if (doubleRentActive) {
-        rentAmount *= 2;
-        setDoubleRentActive(false);
-      }
-
       if (rentAmount > 0) {
-        const rentPayments = [];
-        const newPlayersState = [...players];
-        const receiverIdx = currentTurnIndex;
-        const receiver = { ...newPlayersState[receiverIdx] };
-        newPlayersState[receiverIdx] = receiver;
-
         const targetPlayers = targetPlayerId 
           ? [players.find(p => p.id === targetPlayerId)] 
           : players.filter((p, i) => i !== currentTurnIndex);
-
-        let hasPendingHuman = false;
 
         targetPlayers.forEach(target => {
           if (!target) return;
           
           if (checkForJustSayNo(target.id, 'Rent')) {
             rentPayments.push({ player: target.name, note: 'said NO!' });
-            // Ensure hand is updated in our local state too
+            // Ensure hand is updated in our local state too (to sync with JSN hook effect)
             const jsnCard = target.hand.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
             if (jsnCard) {
                const targetIdx = newPlayersState.findIndex(p => p.id === target.id);
@@ -527,14 +553,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
                card: card
              });
              setGameState('REQUEST_PAYMENT');
-             hasPendingHuman = true;
              rentPayments.push({ player: target.name, note: 'pending payment...' });
              return;
           }
 
           if (target.isHuman && availableCards.length === 0) {
              rentPayments.push({ player: target.name, note: 'had no assets' });
-             return; // Continue to next target player
+             return; 
           }
 
           const targetIdx = newPlayersState.findIndex(p => p.id === target.id);
@@ -549,49 +574,77 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
           const paysMoney = paymentCards.filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD);
           const paysProp = paymentCards.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
-          receiver.bank = [...(receiver.bank || []), ...paysMoney];
-          receiver.properties = [...(receiver.properties || []), ...paysProp];
+          const currentReceiver = newPlayersState[receiverIdx]; // Refresh current receiver state
+          currentReceiver.bank = [...(currentReceiver.bank || []), ...paysMoney];
+          currentReceiver.properties = [...(currentReceiver.properties || []), ...paysProp];
+          newPlayersState[receiverIdx] = currentReceiver;
           
           rentPayments.push({ 
             player: target.name, 
             cards: paymentCards.map(c => c.name || `$${c.value}M`) 
           });
         });
-
-        setPlayers(prev => {
-           const updatedPlayers = [...newPlayersState];
-           updatedPlayers[receiverIdx] = cleanupBuildings(updatedPlayers[receiverIdx]);
-           newPlayersState.forEach((p, idx) => {
-             if (idx !== receiverIdx) {
-               updatedPlayers[idx] = cleanupBuildings(updatedPlayers[idx]);
-             }
-           });
-           return updatedPlayers;
-        });
-
-        const paymentSummary = rentPayments
-          .map(p => `${p.player}: ${p.note || (p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`)
-          .join('; ');
-
-        setMatchLog(prev => [{
-          id: Date.now(), player: charger.name, action: 'RENT',
-          message: `charged $${rentAmount}M rent. Payments: ${paymentSummary}`, card: card
-        }, ...prev]);
       }
+
+      setPlayers(prev => {
+         const updatedPlayers = [...newPlayersState];
+         // Run cleanup on all players
+         updatedPlayers.forEach((p, idx) => {
+           updatedPlayers[idx] = cleanupBuildings(updatedPlayers[idx]);
+         });
+         return updatedPlayers;
+      });
+
+      const paymentSummary = rentPayments.length > 0 
+        ? rentPayments.map(p => `${p.player}: ${p.note || (p.cards && p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`).join('; ')
+        : 'No rent collected (0 value or no targets)';
+
+      setMatchLog(prev => [{
+        id: Date.now(), player: charger.name, action: 'RENT',
+        message: `charged $${rentAmount}M rent. Payments: ${paymentSummary}`, card: card
+      }, ...prev]);
 
       setDiscardPile(p => [...p, card]);
       setMovesLeft(m => m - 1);
+      
+      // Store rent params for potential Double Rent combo
+      setLastRentParams({ 
+        amount: rentAmount, 
+        targetPlayerId: targetPlayerId || null, 
+        cardId, 
+        turnIndex: currentTurnIndex 
+      });
       return;
     }
 
     // Handle Sly Deal: Steal 1 property (non-set)
-    if (card.actionType === ACTION_TYPES.SLY_DEAL && targetPlayerId && targetCardId) {
+    if (card.actionType === ACTION_TYPES.SLY_DEAL) {
+      // Validation: Ensure targets are provided
+      if (!targetPlayerId || !targetCardId) {
+        console.error('Sly Deal Error: Missing target information', { targetPlayerId, targetCardId });
+        setMatchLog(prev => [{
+            id: Date.now(), player: 'System', action: 'ERROR',
+            message: 'Sly Deal failed: No target selected.'
+        }, ...prev]);
+        return;
+      }
+
+      // Check for Just Say No
       if (checkForJustSayNo(targetPlayerId, 'Sly Deal')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const player = { ...newPlayers[currentTurnIndex] };
+          // Remove card from hand as it was played
+          player.hand = player.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = player;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
       }
 
+      // Execute Steal
       const victimIdx = players.findIndex(p => p.id === targetPlayerId);
       const victim = players[victimIdx];
       const stolenCard = victim?.properties.find(c => c.id === targetCardId);
@@ -618,6 +671,17 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
+      } else {
+        // Error handling if card/victim not found
+        console.error('Sly Deal Error: Card not found on victim', { 
+            victimName: victim?.name, 
+            targetCardId, 
+            victimProps: victim?.properties?.map(p => p.id) 
+        });
+        setMatchLog(prev => [{
+           id: Date.now(), player: 'System', action: 'ERROR',
+           message: `Sly Deal failed: Could not find card on ${victim?.name || 'unknown'}.`
+        }, ...prev]);
       }
       return;
     }
@@ -625,6 +689,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Deal Breaker: Steal a full set
     if (card.actionType === ACTION_TYPES.DEAL_BREAKER && targetPlayerId && targetCardId) {
       if (checkForJustSayNo(targetPlayerId, 'Deal Breaker')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const player = { ...newPlayers[currentTurnIndex] };
+          player.hand = player.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = player;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -666,6 +737,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Forced Deal: Swap properties
     if (card.actionType === ACTION_TYPES.FORCED_DEAL && targetPlayerId && targetCardId) {
       if (checkForJustSayNo(targetPlayerId, 'Forced Deal')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const player = { ...newPlayers[currentTurnIndex] };
+          player.hand = player.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = player;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -706,20 +784,119 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
     // Handle Double Rent
     if (card.actionType === ACTION_TYPES.DOUBLE_RENT) {
-      setDoubleRentActive(true);
+      if (!lastRentParams || lastRentParams.turnIndex !== currentTurnIndex) {
+        console.warn('Double Rent played without a preceding Rent card!');
+        setMatchLog(prev => [{
+          id: Date.now(), player: currentPlayer.name, action: 'ERROR',
+          message: 'Double Rent must be played immediately after a Rent card!'
+        }, ...prev]);
+        return; // Do not consume move? Or consume and fail? Let's consume to prevent loops. 
+        // Actually, better to just return and let user try again.
+        // But for Bots, this might hang if we don't consume? 
+        // Bots shouldn't play it unless allowed. 
+        // Let's consume move to be safe against bad plays.
+      }
+
+      const { amount, targetPlayerId: originalTargetId } = lastRentParams;
+      const rentAmount = amount; // Double it by charging again
+
+      // Execute Charge (Re-using Rent Logic simplified)
+      const rentPayments = [];
+      const newPlayersState = [...players];
+      const receiverIdx = currentTurnIndex;
+      let receiver = { ...newPlayersState[receiverIdx] };
+      
+      // Remove played Double Rent card
+      receiver.hand = receiver.hand.filter(c => c.id !== cardId);
+      newPlayersState[receiverIdx] = receiver;
+
+      if (rentAmount > 0) {
+        const targetPlayers = originalTargetId 
+          ? [players.find(p => p.id === originalTargetId)] 
+          : players.filter((p, i) => i !== currentTurnIndex);
+
+        targetPlayers.forEach(target => {
+          if (!target) return;
+          
+          if (checkForJustSayNo(target.id, 'Double Rent')) {
+            rentPayments.push({ player: target.name, note: 'said NO!' });
+            // JSN logic handles hand update
+             const jsnCard = target.hand.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
+             if (jsnCard) {
+                const targetIdx = newPlayersState.findIndex(p => p.id === target.id);
+                const victim = { ...newPlayersState[targetIdx] };
+                victim.hand = victim.hand.filter(c => c.id !== jsnCard.id);
+                newPlayersState[targetIdx] = victim;
+             }
+            return;
+          }
+
+          const availableCards = [...(target.bank || []), ...(target.properties || [])];
+          
+          // Human Interaction Check
+          if (target.isHuman && availableCards.length > 0) {
+             setPendingRequest({
+               type: 'RENT_DOUBLED', // Distinct type for UI context
+               amount: rentAmount,
+               requesterId: currentPlayer.id,
+               targetId: target.id,
+               cardId: cardId, // This is the Double Rent card
+               card: card
+             });
+             setGameState('REQUEST_PAYMENT');
+             rentPayments.push({ player: target.name, note: 'pending payment...' });
+             return;
+          }
+
+          if (target.isHuman && availableCards.length === 0) {
+             rentPayments.push({ player: target.name, note: 'had no assets' });
+             return; 
+          }
+
+          const targetIdx = newPlayersState.findIndex(p => p.id === target.id);
+          const payer = { ...newPlayersState[targetIdx] };
+          
+          const paymentCards = calculateOptimalPayment(availableCards, rentAmount, target.properties);
+          const paymentIds = paymentCards.map(c => c.id);
+          
+          payer.bank = (payer.bank || []).filter(c => !paymentIds.includes(c.id));
+          payer.properties = (payer.properties || []).filter(c => !paymentIds.includes(c.id));
+          newPlayersState[targetIdx] = payer;
+
+          const paysMoney = paymentCards.filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD);
+          const paysProp = paymentCards.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
+          const currentReceiver = newPlayersState[receiverIdx];
+          currentReceiver.bank = [...(currentReceiver.bank || []), ...paysMoney];
+          currentReceiver.properties = [...(currentReceiver.properties || []), ...paysProp];
+          newPlayersState[receiverIdx] = currentReceiver;
+          
+          rentPayments.push({ 
+            player: target.name, 
+            cards: paymentCards.map(c => c.name || `$${c.value}M`) 
+          });
+        });
+      }
+
       setPlayers(prev => {
-        const newPlayers = [...prev];
-        const p = { ...newPlayers[currentTurnIndex] };
-        p.hand = p.hand.filter(c => c.id !== cardId);
-        newPlayers[currentTurnIndex] = p;
-        return newPlayers;
+         const updatedPlayers = [...newPlayersState];
+         updatedPlayers.forEach((p, idx) => {
+           updatedPlayers[idx] = cleanupBuildings(updatedPlayers[idx]);
+         });
+         return updatedPlayers;
       });
+
+      const paymentSummary = rentPayments.length > 0 
+        ? rentPayments.map(p => `${p.player}: ${p.note || (p.cards && p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`).join('; ')
+        : 'No extra rent collected';
+
       setMatchLog(prev => [{
         id: Date.now(), player: currentPlayer.name, action: 'DOUBLE_RENT',
-        message: 'activated Double Rent', card: card
+        message: `doubled the rent! Collected additional $${rentAmount}M. Payments: ${paymentSummary}`, card: card
       }, ...prev]);
+
       setDiscardPile(p => [...p, card]);
       setMovesLeft(m => m - 1);
+      setLastRentParams(null); // Consume the combo
       return;
     }
 
@@ -764,6 +941,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         if (playedCard.actionType === ACTION_TYPES.HOUSE || playedCard.actionType === ACTION_TYPES.HOTEL) {
            playedCard.color = targetCardId;
         }
+        // For Wild Cards, use the selected color if provided
+        if (playedCard.type === CARD_TYPES.PROPERTY_WILD && targetCardId) {
+             playedCard.currentColor = targetCardId;
+        }
+
         player.properties = [...player.properties, playedCard];
       }
       // 'DISCARD' is handled separately below
@@ -852,6 +1034,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setCurrentTurnIndex(nextIndex);
     setMovesLeft(0);
     setHasDrawnThisTurn(false);
+    setDoubleRentActive(false);
     setGameState('DRAW');
 
     setMatchLog(prev => [{
@@ -894,7 +1077,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         const decision = bot.decideMove(currentPlayer.hand, {
           players,
           currentPlayerIndex: currentTurnIndex,
-          doubleRentActive: doubleRentActive
+          doubleRentActive: doubleRentActive,
+          movesLeft: movesLeft
         });
 
         if (decision.action === 'PLAY_PROPERTY' && decision.card) {
@@ -1063,7 +1247,14 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
            player.properties[cardIndex] = card;
            newPlayers[currentTurnIndex] = player;
            
-           // Log it
+           // Log it UNLESS suppressed (by checking argument)
+           // We can't change the signature easily, so let's just log it.
+           // Ideally, the caller should handle suppression, but here we are.
+           // Maybe we can check a flag on the card? No.
+           // Update: The caller in Game.jsx calls this. If we want to suppress logs, we'd need to change this function signature.
+           // Let's change the signature to accept a 'suppressLog' flag.
+           // However, playCard also calls log.
+           
            setMatchLog(old => [{
              id: Date.now(),
              player: player.name,

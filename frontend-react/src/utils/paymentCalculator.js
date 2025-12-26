@@ -18,49 +18,68 @@ export function calculateOptimalPayment(availableCards, amountDue, allProperties
     return [];
   }
 
-  // Separate cards by type
-  // Property cards are strictly those that are PROPERTY or PROPERTY_WILD
-  const propertyCards = availableCards.filter(c => 
-    c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD
-  );
+  // 1. Determine card location (Bank vs Board) if possible
+  // If allProperties is provided, we can strictly separate Bank (Cash) from Board (Properties/Upgrades)
+  let moneyCards = [];
+  let boardCards = [];
 
-  // Everything else is treated as money (Cash, Action cards in bank, Rent cards in bank, etc.)
-  const moneyCards = availableCards.filter(c => 
-    c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD
-  );
+  if (allProperties) {
+    const boardIds = new Set(allProperties.map(c => c.id));
+    moneyCards = availableCards.filter(c => !boardIds.has(c.id));
+    boardCards = availableCards.filter(c => boardIds.has(c.id));
+  } else {
+    // Fallback: Use type definitions if we don't know where cards effectively are
+    // Property cards are strictly those that are PROPERTY or PROPERTY_WILD
+    boardCards = availableCards.filter(c => 
+      c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD
+    );
+    // Everything else is treated as money (Cash, Action cards in bank, Rent cards in bank, etc.)
+    moneyCards = availableCards.filter(c => 
+      c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD
+    );
+  }
 
-  // Sort money cards by value (ascending)
-  const sortedMoney = [...moneyCards].sort((a, b) => a.value - b.value);
+  // Sort money cards by value (ascending) - Pay with smallest bills first
+  const sortedMoney = [...moneyCards].sort((a, b) => (a.value || 0) - (b.value || 0));
   
-  // Step 1: Try to pay with money cards first
+  // Step 1: Try to pay with money/bank cards first
   const moneyPayment = findExactOrMinimalOverpayment(sortedMoney, amountDue);
   
   if (getTotalValue(moneyPayment) >= amountDue) {
     return moneyPayment;
   }
 
-  // Step 2: Need to use properties - categorize them by whether they break sets
+  // Step 2: Need to use board assets - categorize them
   const remainingAmount = amountDue - getTotalValue(moneyPayment);
   
   // If we don't have property info, fall back to simple sorting
   if (!allProperties) {
-    const sortedProps = [...propertyCards].sort((a, b) => (a.value || 0) - (b.value || 0));
+    const sortedProps = [...boardCards].sort((a, b) => (a.value || 0) - (b.value || 0));
     const propPayment = findExactOrMinimalOverpayment(sortedProps, remainingAmount);
     return [...moneyPayment, ...propPayment];
   }
 
   // Determine which properties are in complete sets
   const sets = getSets(allProperties);
-  const completeSets = new Set();
+  const completeSetCardIds = new Set();
   sets.forEach(set => {
     if (set.isComplete) {
-      set.cards.forEach(card => completeSets.add(card.id));
+      set.cards.forEach(card => completeSetCardIds.add(card.id));
     }
   });
 
-  // Categorize properties
-  const nonSetBreaking = propertyCards.filter(c => !completeSets.has(c.id));
-  const setBreaking = propertyCards.filter(c => completeSets.has(c.id));
+  // Categorize board cards
+  // Non-set-breaking: Loose properties, or houses/hotels on INCOMPLETE sets (if any? shouldn't be), 
+  // or properties that are not part of a complete set.
+  // CRITICAL: Houses/Hotels usually only exist on complete sets. 
+  // Should we prioritize giving up a House (Action card value) vs breaking the Set (Property card)?
+  // Usually House Value (3M/4M) is high. Breaking a set is bad.
+  // But giving a House doesn't "break" the set completion status, just lowers rent.
+  // So Houses are "Non-Set-Breaking" technically??
+  // Let's stick effectively to "Not in a Complete Set" vs "In a Complete Set".
+  
+  const nonSetBreaking = boardCards.filter(c => !completeSetCardIds.has(c.id));
+  const setBreaking = boardCards.filter(c => completeSetCardIds.has(c.id));
 
   // Sort both by value (descending) to minimize number of properties given
   const sortedNonSetBreaking = [...nonSetBreaking].sort((a, b) => (b.value || 0) - (a.value || 0));

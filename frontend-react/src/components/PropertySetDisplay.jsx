@@ -137,10 +137,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
               {/* Completion indicator */}
               {isComplete && (
                 <div 
-                  className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white z-[100] shadow-lg animate-bounce"
-                  style={{
-                     transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`
-                  }}
+                  className="absolute -top-3 -left-3 bg-green-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white z-[100] shadow-lg"
                 >
                   ✓
                 </div>
@@ -160,9 +157,8 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                 if (hasRainbowWild && color !== 'any_rainbow') {
                   return (
                     <div 
-                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg"
+                      className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg"
                       style={{
-                        transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`,
                         background: 'linear-gradient(135deg, #EF5350 0%, #FFA726 20%, #FFEB3B 40%, #66BB6A 60%, #42A5F5 80%, #AB47BC 100%)'
                       }}
                       title="Contains Rainbow Wild Card"
@@ -182,10 +178,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                     <>
                       {/* Main dual-color badge */}
                       <div 
-                        className="absolute -top-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg overflow-hidden"
-                        style={{
-                          transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`
-                        }}
+                        className="absolute -top-2 -left-2 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg overflow-hidden"
                         title={`Contains ${dualWilds.length} ${color1Data?.name}/${color2Data?.name} Wild Card${dualWilds.length > 1 ? 's' : ''}`}
                       >
                         {/* Split circle showing both colors */}
@@ -209,9 +202,9 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                           {dualWilds.slice(1, 3).map((_, idx) => (
                             <div 
                               key={idx}
-                              className="absolute -top-1 -right-1 w-7 h-7 rounded-full border-2 border-white shadow-lg overflow-hidden"
+                              className="absolute -top-2 -left-2 w-7 h-7 rounded-full border-2 border-white shadow-lg overflow-hidden"
                               style={{
-                                transform: `translate(${(cards.length - 1) * 3 - (idx + 1) * 4}px, ${(cards.length - 1) * 4 + (idx + 1) * 4}px)`,
+                                transform: `translate(${-(idx + 1) * 4}px, ${(idx + 1) * 4}px)`,
                                 zIndex: 101 - (idx + 1)
                               }}
                             >

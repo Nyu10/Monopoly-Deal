@@ -21,7 +21,6 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
       ACTION_TYPES.FORCED_DEAL,
       ACTION_TYPES.DEAL_BREAKER,
       ACTION_TYPES.DEBT_COLLECTOR,  // Needs player selection
-      ACTION_TYPES.BIRTHDAY,         // Targets all players but needs confirmation
     ];
     
     const buildingActions = [ACTION_TYPES.HOUSE, ACTION_TYPES.HOTEL];
