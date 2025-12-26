@@ -96,7 +96,7 @@ const LandingPage = () => {
 
           {/* Multiplayer Card */}
           <button
-            onClick={() => navigate('/multiplayer')}
+            onClick={() => navigate('/lobby')}
             className="group relative bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-slate-200 hover:border-purple-500 hover:scale-105"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />

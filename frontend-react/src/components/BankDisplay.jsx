@@ -68,13 +68,24 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
           {/* Always show card back */}
           <div className="absolute shadow-lg rounded-lg overflow-hidden">
             <div 
-              className="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 border-4 border-blue-700 rounded-lg flex items-center justify-center"
+              className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 border-[3px] border-blue-500/50 rounded-lg flex flex-col items-center justify-center shadow-inner"
               style={{ 
                 width: `${192 * 0.35}px`, 
                 height: `${272 * 0.35}px` 
               }}
             >
-              <div className="text-white text-xs font-black opacity-50">💰</div>
+              {!shouldHideCards ? (
+                <>
+                  <div className="text-white font-black text-2xl leading-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">{cardCount}</div>
+                  <div className="text-blue-300/80 text-[7px] font-bold uppercase tracking-wider scale-90 my-0.5">Cards</div>
+                  <div className="w-8 h-[1px] bg-white/10 my-0.5"></div>
+                  <div className="text-emerald-400 font-black text-xs leading-none drop-shadow-md">
+                    {shouldHideValue ? '???' : `$${totalValue}M`}
+                  </div>
+                </>
+              ) : (
+                <div className="text-white text-xl font-black opacity-20">💰</div>
+              )}
             </div>
           </div>
           
@@ -88,19 +99,13 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
           {/* Hover tooltip - only show if showBankCards is ON */}
           {isHovered && !shouldHideCards && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] pointer-events-none">
-              <div className="bg-slate-900/95 backdrop-blur-sm p-4 rounded-xl shadow-2xl border border-white/20 min-w-[140px]">
-                {/* Summary Card */}
-                <div className="flex flex-col items-center gap-2">
-                  <div className="text-emerald-400 text-3xl">💰</div>
-                  <div className="text-white text-sm font-bold">
-                    {cardCount} Card{cardCount !== 1 ? 's' : ''}
-                  </div>
-                  <div className="w-full h-px bg-white/20"></div>
-                  <div className="text-emerald-400 text-2xl font-black">
-                    ${totalValue}M
+                <div className="bg-slate-900/95 backdrop-blur-sm p-3 rounded-xl shadow-2xl border border-white/20">
+                  <div className="flex gap-1.5 flex-wrap max-w-[280px] justify-center">
+                    {cards.map((card, idx) => (
+                      <MiniCard key={card.id || idx} card={card} scale={0.25} />
+                    ))}
                   </div>
                 </div>
-              </div>
               {/* Arrow */}
               <div className="absolute top-full -mt-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-900/95"></div>
             </div>
@@ -152,13 +157,24 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
         {/* Always show card back */}
         <div className="absolute shadow-lg rounded-lg overflow-hidden">
           <div 
-            className="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 border-4 border-blue-700 rounded-lg flex items-center justify-center"
+            className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 border-4 border-blue-500/50 rounded-lg flex flex-col items-center justify-center shadow-inner"
             style={{ 
               width: `${192 * 0.4}px`, 
               height: `${272 * 0.4}px` 
             }}
           >
-            <div className="text-white text-sm font-black opacity-50">💰</div>
+            {!shouldHideCards ? (
+              <>
+                <div className="text-white font-black text-3xl leading-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]">{cardCount}</div>
+                <div className="text-blue-300/80 text-[8px] font-bold uppercase tracking-widest scale-90 mb-1 mt-0.5">Cards</div>
+                <div className="w-10 h-[1.5px] bg-white/10 mb-1 rounded-full"></div>
+                <div className="text-emerald-400 font-black text-sm leading-none drop-shadow-md tracking-tight">
+                  {shouldHideValue ? '???' : `$${totalValue}M`}
+                </div>
+              </>
+            ) : (
+              <div className="text-white text-3xl font-black opacity-20">💰</div>
+            )}
           </div>
         </div>
         
@@ -170,17 +186,11 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
         {/* Hover tooltip - only show if showBankCards is ON */}
         {isHovered && !shouldHideCards && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] pointer-events-none">
-            <div className="bg-slate-900/95 backdrop-blur-sm p-4 rounded-xl shadow-2xl border border-white/20 min-w-[140px]">
-              {/* Summary Card */}
-              <div className="flex flex-col items-center gap-2">
-                <div className="text-emerald-400 text-3xl">💰</div>
-                <div className="text-white text-sm font-bold">
-                  {cardCount} Card{cardCount !== 1 ? 's' : ''}
-                </div>
-                <div className="w-full h-px bg-white/20"></div>
-                <div className="text-emerald-400 text-2xl font-black">
-                  ${totalValue}M
-                </div>
+            <div className="bg-slate-900/95 backdrop-blur-sm p-3 rounded-xl shadow-2xl border border-white/20">
+              <div className="flex gap-1.5 flex-wrap max-w-[280px] justify-center">
+                {cards.map((card, idx) => (
+                  <MiniCard key={card.id || idx} card={card} scale={0.25} />
+                ))}
               </div>
             </div>
             {/* Arrow */}
