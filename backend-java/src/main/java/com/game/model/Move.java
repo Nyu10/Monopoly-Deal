@@ -6,6 +6,7 @@ public class Move {
     private String cardUid;
     private Integer targetPlayerId;
     private String targetCardUid;
+    private String destination; // BANK, PROPERTIES, DISCARD
 
     public Move() {}
 
@@ -27,4 +28,6 @@ public class Move {
     public void setTargetPlayerId(Integer targetPlayerId) { this.targetPlayerId = targetPlayerId; }
     public String getTargetCardUid() { return targetCardUid; }
     public void setTargetCardUid(String targetCardUid) { this.targetCardUid = targetCardUid; }
+    public String getDestination() { return destination; }
+    public void setDestination(String destination) { this.destination = destination; }
 }

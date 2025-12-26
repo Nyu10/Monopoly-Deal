@@ -16,8 +16,8 @@ describe('useLocalGameState - Wildcard Logic', () => {
             { 
               id: 'wild-1', 
               type: CARD_TYPES.PROPERTY_WILD, 
-              colors: ['blue', 'green'], 
-              currentColor: 'blue', 
+              colors: [ 'dark_blue', 'green'], 
+              currentColor:  'dark_blue', 
               name: 'Blue/Green Wild' 
             }
           ] 
@@ -52,8 +52,8 @@ describe('useLocalGameState - Wildcard Logic', () => {
             { 
               id: 'wild-in-hand', 
               type: CARD_TYPES.PROPERTY_WILD, 
-              colors: ['blue', 'green'], 
-              currentColor: 'blue', 
+              colors: [ 'dark_blue', 'green'], 
+              currentColor:  'dark_blue', 
               name: 'Blue/Green Wild' 
             }
           ], 
@@ -74,7 +74,7 @@ describe('useLocalGameState - Wildcard Logic', () => {
     });
 
     // currentColor should NOT have changed (it shouldn't even find the card)
-    expect(result.current.players[0].hand[0].currentColor).toBe('blue');
+    expect(result.current.players[0].hand[0].currentColor).toBe( 'dark_blue');
     expect(result.current.movesLeft).toBe(3);
   });
 
@@ -90,8 +90,8 @@ describe('useLocalGameState - Wildcard Logic', () => {
             { 
               id: 'wild-1', 
               type: CARD_TYPES.PROPERTY_WILD, 
-              colors: ['blue', 'green'], 
-              currentColor: 'blue', 
+              colors: [ 'dark_blue', 'green'], 
+              currentColor:  'dark_blue', 
               name: 'Blue/Green Wild' 
             }
           ] 
@@ -114,7 +114,7 @@ describe('useLocalGameState - Wildcard Logic', () => {
     act(() => {
       result.current.flipWildCard('wild-1');
     });
-    expect(result.current.players[0].properties[0].currentColor).toBe('blue');
+    expect(result.current.players[0].properties[0].currentColor).toBe( 'dark_blue');
   });
 
   it('should not flip a rainbow wild property (multi-color)', () => {

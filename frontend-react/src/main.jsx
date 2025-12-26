@@ -11,24 +11,27 @@ import TutorialPage from './pages/TutorialPage.jsx'
 import Game from './pages/Game.jsx'
 import TestDeck from './pages/TestDeck.jsx'
 import RulesChatWidget from './components/RulesChatWidget.jsx'
+import { SettingsProvider } from './hooks/useSettings.jsx'
 
 console.log('main.jsx: Rendering root...');
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/tutorial" element={<TutorialPage />} />
-        <Route path="/multiplayer" element={<MultiplayerPage />} />
-        <Route path="/lobby" element={<Lobby />} />
-        <Route path="/game/:roomId" element={<Game />} />
-        <Route path="/cards" element={<CardGallery />} />
-        <Route path="/test-deck" element={<TestDeck />} />
+    <SettingsProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/multiplayer" element={<MultiplayerPage />} />
+          <Route path="/lobby" element={<Lobby />} />
+          <Route path="/game/:roomId" element={<Game />} />
+          <Route path="/cards" element={<CardGallery />} />
+          <Route path="/test-deck" element={<TestDeck />} />
 
-        <Route path="/stadium" element={<Game />} />
-      </Routes>
-      <RulesChatWidget />
-    </BrowserRouter>
+          <Route path="/stadium" element={<Game />} />
+        </Routes>
+        <RulesChatWidget />
+      </BrowserRouter>
+    </SettingsProvider>
   </StrictMode>,
 )
 console.log('main.jsx: render() called.');

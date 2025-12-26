@@ -1,4 +1,4 @@
-import { CARD_TYPES, ACTION_TYPES, COLORS } from './gameHelpers';
+import { CARD_TYPES, ACTION_TYPES, COLORS } from '../constants';
 
 /**
  * Generates the official 110-card Monopoly Deal deck
@@ -29,7 +29,8 @@ export const generateOfficialDeck = () => {
   // 2. Property Cards (28 solid properties)
   const props = [
     { c: 'brown', n: ['Baltic Ave', 'Mediterranean Ave'], v: 1 },
-    { c: 'dark_blue', n: ['Boardwalk', 'Park Place'], v: 4 },
+    { c: 'dark_blue', n: ['Boardwalk'], v: 4 },
+    { c: 'dark_blue', n: ['Park Place'], v: 3 },
     { c: 'green', n: ['North Carolina Ave', 'Pacific Ave', 'Pennsylvania Ave'], v: 4 },
     { c: 'yellow', n: ['Marvin Gardens', 'Ventnor Ave', 'Atlantic Ave'], v: 3 },
     { c: 'orange', n: ['New York Ave', 'St. James Place', 'Tennessee Ave'], v: 2 },
@@ -71,7 +72,7 @@ export const generateOfficialDeck = () => {
   add({ 
     type: CARD_TYPES.PROPERTY_WILD, 
     colors: ['any'], 
-    value: 0, 
+    value: 1, 
     name: 'Rainbow Wild', 
     currentColor: 'multi', 
     isRainbow: true 

@@ -1,5 +1,6 @@
 package com.game.service;
 
+import com.game.constants.GameConstants;
 import com.game.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,9 +42,9 @@ public class GameEngine {
         Stack<Card> deck = DeckGenerator.generateDeck();
         Collections.shuffle(deck);
 
-        // Deal 5 cards
+        // Deal initial hands
         for (Player p : players) {
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < GameConstants.STARTING_HAND_SIZE; i++) {
                 if (!deck.isEmpty()) {
                     p.getHand().add(deck.pop());
                 }
@@ -109,7 +110,7 @@ public class GameEngine {
 
     private void handleDraw(GameState state, int playerId) {
         Player p = state.getPlayers().get(playerId);
-        int drawCount = p.getHand().isEmpty() ? 5 : 2;
+        int drawCount = p.getHand().isEmpty() ? GameConstants.EMPTY_HAND_DRAW_COUNT : GameConstants.NORMAL_DRAW_COUNT;
         
         for (int i = 0; i < drawCount; i++) {
             if (!state.getDeck().isEmpty()) {
@@ -129,8 +130,8 @@ public class GameEngine {
         
         state.getLogs().add(new GameState.GameLog(p.getName() + " drew " + drawCount + " cards.", "info"));
         
-        // After drawing, set actions to 3
-        state.getTurnContext().setActionsRemaining(3);
+        // After drawing, set actions
+        state.getTurnContext().setActionsRemaining(GameConstants.MAX_ACTIONS_PER_TURN);
     }
 
     private void handlePlayCard(GameState state, Move move) {
@@ -178,7 +179,16 @@ public class GameEngine {
                 handleRentCard(state, p, card, move);
                 break;
             case ACTION:
-                handleActionCard(state, p, card, move);
+                // Check if the action card should be banked instead of played
+                // Houses and Hotels can be banked as money cards
+                if (move.getDestination() != null && move.getDestination().equals("BANK")) {
+                    p.getBank().add(card);
+                    state.getLogs().add(new GameState.GameLog(
+                        p.getName() + " banked " + card.getName() + " as $" + card.getValue() + "M.", 
+                        "info"));
+                } else {
+                    handleActionCard(state, p, card, move);
+                }
                 break;
             default:
                 break;
@@ -529,8 +539,8 @@ public class GameEngine {
             targetPlayerId = selectRichestOpponent(state, player.getId());
         }
         
-        // Create payment request for $5M
-        createPaymentRequest(state, targetPlayerId, player.getId(), 5, "debt_collector", null);
+        // Create payment request for Debt Collector amount
+        createPaymentRequest(state, targetPlayerId, player.getId(), GameConstants.DEBT_COLLECTOR_AMOUNT, "debt_collector", null);
         
         // Process payment immediately (for bots)
         PaymentRequest request = state.getTurnContext().getPendingPayments()
@@ -545,10 +555,10 @@ public class GameEngine {
     }
 
     private void handleBirthday(GameState state, Player player) {
-        // All other players pay $2M to the active player
+        // All other players pay Birthday amount to the active player
         for (Player opponent : state.getPlayers()) {
             if (opponent.getId() != player.getId()) {
-                createPaymentRequest(state, opponent.getId(), player.getId(), 2, "birthday", null);
+                createPaymentRequest(state, opponent.getId(), player.getId(), GameConstants.BIRTHDAY_AMOUNT_PER_PLAYER, "birthday", null);
             }
         }
         

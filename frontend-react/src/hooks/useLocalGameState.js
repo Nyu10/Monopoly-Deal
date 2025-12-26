@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { generateOfficialDeck, shuffleDeck } from '../utils/deckGenerator';
-import { CARD_TYPES, ACTION_TYPES, COLORS, getSets } from '../utils/gameHelpers';
+import { getSets, countCompleteSets } from '../utils/gameHelpers';
+import { CARD_TYPES, ACTION_TYPES, GAME_RULES } from '../constants';
 import { createBot, BOT_DIFFICULTY } from '../ai/BotEngine';
 import { calculateOptimalPayment } from '../utils/paymentCalculator';
 import CARD_BACK_STYLES from '../utils/cardBackStyles';
@@ -43,8 +44,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       });
     }
 
-    // Deal initial hands (5 cards each)
-    for (let i = 0; i < 5; i++) {
+    // Deal initial hands
+    for (let i = 0; i < GAME_RULES.STARTING_HAND_SIZE; i++) {
       newPlayers.forEach(player => {
         if (newDeck.length > 0) {
           player.hand.push(newDeck.pop());
@@ -80,7 +81,9 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
     const currentPlayerIndexRef = currentTurnIndex;
     const currentPlayer = players[currentPlayerIndexRef];
-    const drawCount = (currentPlayer.hand && currentPlayer.hand.length === 0) ? 5 : 2;
+    const drawCount = (currentPlayer.hand && currentPlayer.hand.length === 0) 
+      ? GAME_RULES.EMPTY_HAND_DRAW_COUNT 
+      : GAME_RULES.NORMAL_DRAW_COUNT;
     
     // Compute new deck and hand
     const newDeck = [...deck];
@@ -99,7 +102,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     });
 
     setHasDrawnThisTurn(true);
-    setMovesLeft(3);
+    setMovesLeft(GAME_RULES.MAX_ACTIONS_PER_TURN);
     setGameState('PLAYING');
 
     setMatchLog(prev => [{
@@ -179,6 +182,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         setMovesLeft(m => m - 1); // Safety: Burn a move on invalid action to prevent bot loops
         return; 
       }
+      // Houses and Hotels CAN be banked as money cards
     }
 
     // Handle Pass Go Action: Draw 2 cards
@@ -214,7 +218,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
             // Human needs to choose payment
             setPendingRequest({
               type: 'DEBT',
-              amount: 5,
+              amount: GAME_RULES.DEBT_COLLECTOR_AMOUNT,
               requesterId: currentPlayer.id,
               targetId: targetPlayerId,
               cardId: cardId
@@ -224,7 +228,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           }
           
           const availableCards = [...(victim.bank || []), ...(victim.properties || [])];
-          const paymentCards = calculateOptimalPayment(availableCards, 5);
+          const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.DEBT_COLLECTOR_AMOUNT);
           const paymentIds = paymentCards.map(c => c.id);
           
           victim.bank = (victim.bank || []).filter(c => !paymentIds.includes(c.id));
@@ -267,7 +271,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           }
 
           const availableCards = [...(player.bank || []), ...(player.properties || [])];
-          const paymentCards = calculateOptimalPayment(availableCards, 2);
+          const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER);
           const paymentIds = paymentCards.map(c => c.id);
           
           player.bank = (player.bank || []).filter(c => !paymentIds.includes(c.id));
@@ -513,8 +517,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       return;
     }
 
-    // Handle House/Hotel Validation
-    if (card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) {
+    // Handle House/Hotel Validation (only when playing on properties, not when banking)
+    if ((card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL) && destination === 'PROPERTIES') {
       const charger = players[currentTurnIndex];
       const sets = getSets(charger.properties);
       const targetColor = targetCardId; 
@@ -562,7 +566,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       
       // Check for win condition
       const completeSets = countCompleteSets(player.properties);
-      if (completeSets >= 3) {
+      if (completeSets >= GAME_RULES.COMPLETE_SETS_TO_WIN) {
         setWinner(player);
         setGameState('GAME_OVER');
       }
@@ -626,10 +630,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       const player = { ...newPlayers[turningPlayerIndex] };
 
       // Rule: Hand limit 7 cards at end of turn
-      if (player.hand && player.hand.length > 7) {
+      if (player.hand && player.hand.length > GAME_RULES.MAX_HAND_SIZE_END_OF_TURN) {
         const sorted = [...player.hand].sort((a, b) => (a.value || 0) - (b.value || 0));
-        const toDiscard = sorted.slice(0, player.hand.length - 7);
-        player.hand = sorted.slice(player.hand.length - 7);
+        const toDiscard = sorted.slice(0, player.hand.length - GAME_RULES.MAX_HAND_SIZE_END_OF_TURN);
+        player.hand = sorted.slice(player.hand.length - GAME_RULES.MAX_HAND_SIZE_END_OF_TURN);
         setDiscardPile(p => [...p, ...toDiscard]);
         newPlayers[turningPlayerIndex] = player;
       }
@@ -834,26 +838,3 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   };
 };
 
-/**
- * Helper: Count complete sets
- */
-function countCompleteSets(properties) {
-  const sets = {};
-  
-  properties.forEach(prop => {
-    const color = prop.currentColor || prop.color;
-    if (!sets[color]) sets[color] = [];
-    sets[color].push(prop);
-  });
-
-  const setSizes = {
-    brown: 2, dark_blue: 2, blue: 2, green: 3, yellow: 3,
-    orange: 3, pink: 3, red: 3, light_blue: 3, cyan: 3,
-    utility: 2, railroad: 4
-  };
-
-  return Object.entries(sets).filter(([color, cards]) => {
-    const needed = setSizes[color] || 3;
-    return cards.length >= needed;
-  }).length;
-}

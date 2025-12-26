@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
-import { CARD_TYPES } from '../utils/gameHelpers';
+import { CARD_TYPES } from '../constants';
 import { generateOfficialDeck } from '../utils/deckGenerator';
 import Card from '../components/Card';
 
@@ -91,7 +91,7 @@ export default function CardGallery() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-5xl font-black italic text-slate-900 mb-2">Card Gallery</h1>
-              <p className="text-slate-600 text-sm">Complete 110-Card Monopoly Deal Deck • Click cards to flip</p>
+              <p className="text-slate-600 text-sm">Complete 106-Card Monopoly Deal Deck • Click cards to flip</p>
             </div>
             <div className="text-right">
               <div className="text-4xl font-black text-blue-600">{filteredCards.length}</div>

@@ -112,8 +112,8 @@ function getSetsFromProperties(properties) {
 
 function getSetSize(color) {
   const sizes = {
-    brown: 2, blue: 2, green: 3, yellow: 3,
-    orange: 3, pink: 3, red: 3, cyan: 3,
+    brown: 2, dark_blue: 2, green: 3, yellow: 3,
+    orange: 3, pink: 3, red: 3, light_blue: 3,
     utility: 2, railroad: 4
   };
   return sizes[color] || 3;
@@ -310,7 +310,7 @@ export class HardBot {
     // Strategy 2: Complete high-value sets (Dark Blue, Green)
     const highValueSets = mySets.filter(s => 
       !s.isComplete && 
-      ['blue', 'green', 'railroad'].includes(s.color)
+      ['dark_blue', 'green', 'railroad'].includes(s.color)
     );
     for (const set of highValueSets) {
       const completingCard = hand.find(c =>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import OpponentCard from './OpponentCard';
 import HandCountDisplay from './HandCountDisplay';
 import Card from './Card';
-import { CARD_TYPES, ACTION_TYPES, COLORS } from '../utils/gameHelpers';
+import { CARD_TYPES, ACTION_TYPES, COLORS } from '../constants';
 import { X, DollarSign, Home, Zap } from 'lucide-react';
 import PropertySetDisplay from './PropertySetDisplay';
 import { BankCardMini } from './MiniCard';
@@ -44,9 +44,9 @@ const StadiumLayout = ({
   const getPlayerPosition = (index, totalOpponents) => {
     // Ellipse parameters (percentage of container)
     const centerX = 50; // Center X (%)
-    const centerY = 45; // Center Y (%) - moved down to give more room at top
+    const centerY = 53; // Center Y (%) - moved further down to prevent cutting off top bot
     const radiusX = 35; // Horizontal radius (%) - closer to center
-    const radiusY = 28; // Vertical radius (%) - increased to give more room at top
+    const radiusY = 28; // Vertical radius (%)
     
     // Start from bottom and go clockwise
     // Angle in radians (π/2 = bottom)
@@ -69,7 +69,7 @@ const StadiumLayout = ({
   // Calculate position for card fans (further out, around the table)
   const getCardFanPosition = (index, totalOpponents) => {
     const centerX = 50;
-    const centerY = 40;
+    const centerY = 53; // Aligned with player info
     const radiusX = 45; // Further out from center
     const radiusY = 35; // Further out from center
     
@@ -235,16 +235,17 @@ const StadiumLayout = ({
               </div>
               
               {/* Deck and Discard in center */}
-              <div className="absolute inset-0 flex items-center justify-center gap-8">
+              {/* Deck and Discard in center - Shifted down to avoid overlapping top player */}
+              <div className="absolute inset-0 flex items-center justify-center gap-8 translate-y-24">
                 {/* Deck */}
                 <div 
                   id="tutorial-deck"
-                  className="flex flex-col items-center gap-2 mt-32 cursor-pointer group relative"
+                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative"
                   onClick={onDraw}
                 >
                   {/* "Your Turn - Draw Cards" Prompt */}
                   {shouldShowDrawPrompt && (
-                    <div className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-30 animate-bounce">
+                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap z-[60] animate-bounce">
                       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl shadow-2xl border-2 border-blue-400">
                         <div className="flex items-center gap-2">
                           <div>
@@ -259,7 +260,7 @@ const StadiumLayout = ({
                   )}
                   
                   <div 
-                    className={`w-20 h-28 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-lg border ${CARD_BACK_STYLES.border} shadow-xl flex items-center justify-center relative transition-all ${
+                    className={`w-24 h-36 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-lg border ${CARD_BACK_STYLES.border} shadow-xl flex items-center justify-center relative transition-all ${
                       shouldShowDrawPrompt
                         ? 'group-hover:scale-110 group-hover:-translate-y-2 animate-pulse-glow' 
                         : 'group-hover:scale-105 group-hover:-translate-y-1'
@@ -274,7 +275,7 @@ const StadiumLayout = ({
                       backgroundImage: CARD_BACK_STYLES.patternDots,
                       backgroundSize: '15px 15px'
                     }}></div>
-                    <div className="font-black text-2xl z-10" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'system-ui, sans-serif' }}>{deck.length > 0 ? 'M' : ''}</div>
+                    <div className="font-black text-4xl z-10" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'serif' }}>{deck.length > 0 ? 'M' : ''}</div>
                   </div>
                   <span className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-md border transition-all ${
                     shouldShowDrawPrompt
@@ -286,7 +287,7 @@ const StadiumLayout = ({
                 </div>
 
                 {/* Discard */}
-                <div className="flex flex-col items-center gap-2 mt-32">
+                <div className="flex flex-col items-center gap-2 mt-0">
                   {discardPile.length > 0 ? (
                     <div className="relative grayscale opacity-60">
                       <Card 
@@ -296,7 +297,7 @@ const StadiumLayout = ({
                       />
                     </div>
                   ) : (
-                    <div className="w-16 h-24 bg-gradient-to-br from-slate-300 to-slate-400 rounded-lg border-3 border-white shadow-lg flex items-center justify-center opacity-60">
+                    <div className="w-24 h-36 bg-gradient-to-br from-slate-300 to-slate-400 rounded-lg border-3 border-white shadow-lg flex items-center justify-center opacity-60">
                       <span className="text-white text-[10px] font-bold">DISCARD</span>
                     </div>
                   )}
@@ -313,7 +314,11 @@ const StadiumLayout = ({
             
             // Calculate tooltip alignment based on horizontal position to prevent overflow
             const leftPos = parseFloat(infoPosition.left);
+            const topPos = parseFloat(infoPosition.top);
             const tooltipAlign = leftPos < 30 ? 'left' : leftPos > 70 ? 'right' : 'center';
+            
+            // Top bots (top < 30%) should use horizontal layout
+            const isTopBot = topPos < 30;
 
             const isCurrentTurn = players[currentTurnIndex]?.id === player.id;
             const isMe = player.id === currentPlayerId;
@@ -341,6 +346,7 @@ const StadiumLayout = ({
                       showHand={true}
                       tooltipDirection={parseInt(infoPosition.top) < 40 ? 'bottom' : 'top'}
                       tooltipAlign={tooltipAlign}
+                      layout={isTopBot ? 'horizontal' : 'vertical'}
                     />
                   </div>
                 )}

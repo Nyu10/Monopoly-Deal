@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import Card from './Card';
-import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import { COLORS, CARD_TYPES, ACTION_TYPES } from '../constants';
 import { getSets } from '../utils/gameHelpers';
 
 // ============================================================================

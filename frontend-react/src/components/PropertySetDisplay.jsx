@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MiniCard from './MiniCard';
 import Card from './Card';
 
-const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center' }) => {
+const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center', horizontal = false }) => {
   const [expandedSet, setExpandedSet] = useState(null);
   const [hoveredColor, setHoveredColor] = useState(null);
 
@@ -63,7 +63,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
       </div>
       
       {/* Visual property cards */}
-      <div className="flex flex-wrap gap-2 justify-center w-full py-2">
+      <div className={`flex gap-2 w-full py-2 ${horizontal ? 'flex-row overflow-x-auto' : 'flex-wrap justify-center'}`}>
         {setStatuses.map(({ color, cards, houses, hotels, current, required, isComplete, colorData }) => (
           <div 
             key={color} 
@@ -91,15 +91,15 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                 setExpandedSet(expandedSet === color ? null : color);
               }}
               style={{ 
-                width: `${192 * 0.3}px`, 
-                height: `${288 * 0.3 + (cards.length - 1) * 16}px`,
-                minHeight: `${288 * 0.3}px`
+                width: `${192 * 0.25}px`, 
+                height: `${288 * 0.25 + (cards.length - 1) * 10}px`,
+                minHeight: `${288 * 0.25}px`
               }}
             >
               {/* Show stacked cards - Front to Back fanning */}
               {[...cards].reverse().map((card, i, arr) => {
                 const actualIndex = arr.length - 1 - i;
-                const offset = actualIndex * 16;
+                const offset = actualIndex * 10;
                 
                 return (
                   <div
@@ -113,13 +113,13 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                   >
                     <MiniCard 
                       card={card} 
-                      scale={0.3} 
+                      scale={0.25} 
                       onClick={() => {
                         if (onCardClick) onCardClick(card);
                       }}
-                      className={`shadow-md border border-black/5 rounded-lg overflow-hidden transition-all duration-300 ${
-                        actualIndex === 0 ? 'ring-2 ring-white/50' : 'brightness-[0.9]'
-                      } group-hover:brightness-100 group-hover:shadow-xl group-hover:-translate-y-1`}
+                      className={`shadow-md border border-black/5 rounded overflow-hidden transition-all duration-300 ${
+                        actualIndex === 0 ? 'ring-1 ring-white/50' : 'brightness-[0.9]'
+                      } group-hover:brightness-100 group-hover:shadow-lg group-hover:-translate-y-1`}
                     />
                   </div>
                 );

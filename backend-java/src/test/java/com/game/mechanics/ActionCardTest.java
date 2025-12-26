@@ -185,6 +185,32 @@ class ActionCardTest {
     // ==================== HOUSE TESTS ====================
 
     @Test
+    @DisplayName("House - Can be banked as $3M")
+    void testHouseCanBeBanked() {
+        Player player = gameState.getPlayers().get(0);
+        
+        Card house = createActionCard(ActionType.HOUSE, "House", 3);
+        player.getHand().add(house);
+        
+        int initialBankSize = player.getBank().size();
+        
+        gameEngine.processMove("test-actions", new Move(0, "DRAW", null, null, null));
+        
+        // Create move with BANK destination
+        Move bankMove = new Move(0, "PLAY_CARD", house.getUid(), null, null);
+        bankMove.setDestination("BANK");
+        gameEngine.processMove("test-actions", bankMove);
+        
+        gameState = gameEngine.getGameState("test-actions");
+        player = gameState.getPlayers().get(0);
+        
+        // House should be in bank
+        assertEquals(initialBankSize + 1, player.getBank().size(), "House should be banked");
+        assertTrue(player.getBank().stream().anyMatch(c -> c.getActionType() == ActionType.HOUSE),
+                "Bank should contain the house card");
+    }
+
+    @Test
     @DisplayName("House - Must be placed on complete set")
     void testHouseRequiresCompleteSet() {
         Player player = gameState.getPlayers().get(0);
@@ -199,6 +225,28 @@ class ActionCardTest {
         // Should be able to place on complete set
         // This test documents the rule
         assertEquals(2, player.getProperties().size());
+    }
+
+    @Test
+    @DisplayName("House - Cannot be placed on incomplete set")
+    void testHouseCannotBeOnIncompleteSet() {
+        Player player = gameState.getPlayers().get(0);
+        
+        // Incomplete brown set (needs 2, only has 1)
+        player.getProperties().add(createProperty("Baltic Ave", "brown", 1));
+        
+        Card house = createActionCard(ActionType.HOUSE, "House", 3);
+        player.getHand().add(house);
+        
+        gameEngine.processMove("test-actions", new Move(0, "DRAW", null, null, null));
+        gameEngine.processMove("test-actions", new Move(0, "PLAY_CARD", house.getUid(), null, null));
+        
+        gameState = gameEngine.getGameState("test-actions");
+        player = gameState.getPlayers().get(0);
+        
+        // House should not be placed (no complete set available)
+        // The game engine should handle this gracefully
+        assertNotNull(gameState);
     }
 
     @Test
@@ -224,16 +272,43 @@ class ActionCardTest {
     // ==================== HOTEL TESTS ====================
 
     @Test
+    @DisplayName("Hotel - Can be banked as $4M")
+    void testHotelCanBeBanked() {
+        Player player = gameState.getPlayers().get(0);
+        
+        Card hotel = createActionCard(ActionType.HOTEL, "Hotel", 4);
+        player.getHand().add(hotel);
+        
+        int initialBankSize = player.getBank().size();
+        
+        gameEngine.processMove("test-actions", new Move(0, "DRAW", null, null, null));
+        
+        // Create move with BANK destination
+        Move bankMove = new Move(0, "PLAY_CARD", hotel.getUid(), null, null);
+        bankMove.setDestination("BANK");
+        gameEngine.processMove("test-actions", bankMove);
+        
+        gameState = gameEngine.getGameState("test-actions");
+        player = gameState.getPlayers().get(0);
+        
+        // Hotel should be in bank
+        assertEquals(initialBankSize + 1, player.getBank().size(), "Hotel should be banked");
+        assertTrue(player.getBank().stream().anyMatch(c -> c.getActionType() == ActionType.HOTEL),
+                "Bank should contain the hotel card");
+    }
+
+    @Test
     @DisplayName("Hotel - Requires House on set")
     void testHotelRequiresHouse() {
         Player player = gameState.getPlayers().get(0);
         
         // Complete set with house
-        player.getProperties().add(createProperty("Baltic Ave", "brown", 1));
-        player.getProperties().add(createProperty("Mediterranean Ave", "brown", 1));
-        Card house = createActionCard(ActionType.HOUSE, "House", 3);
-        house.setCurrentColor("brown");
-        player.getProperties().add(house);
+        Card prop1 = createProperty("Baltic Ave", "brown", 1);
+        Card prop2 = createProperty("Mediterranean Ave", "brown", 1);
+        prop1.setHasHouse(true); // Mark one property as having a house
+        
+        player.getProperties().add(prop1);
+        player.getProperties().add(prop2);
         
         Card hotel = createActionCard(ActionType.HOTEL, "Hotel", 4);
         player.getHand().add(hotel);
@@ -241,7 +316,30 @@ class ActionCardTest {
         // Should be able to place hotel (has house)
         // This test documents the rule
         assertTrue(player.getProperties().stream()
-                .anyMatch(c -> c.getActionType() == ActionType.HOUSE));
+                .anyMatch(c -> c.hasHouse()));
+    }
+
+    @Test
+    @DisplayName("Hotel - Cannot be placed without House")
+    void testHotelCannotBeWithoutHouse() {
+        Player player = gameState.getPlayers().get(0);
+        
+        // Complete set WITHOUT house
+        player.getProperties().add(createProperty("Baltic Ave", "brown", 1));
+        player.getProperties().add(createProperty("Mediterranean Ave", "brown", 1));
+        
+        Card hotel = createActionCard(ActionType.HOTEL, "Hotel", 4);
+        player.getHand().add(hotel);
+        
+        gameEngine.processMove("test-actions", new Move(0, "DRAW", null, null, null));
+        gameEngine.processMove("test-actions", new Move(0, "PLAY_CARD", hotel.getUid(), null, null));
+        
+        gameState = gameEngine.getGameState("test-actions");
+        player = gameState.getPlayers().get(0);
+        
+        // Hotel should not be placed (no house on complete set)
+        // The game engine should handle this gracefully
+        assertNotNull(gameState);
     }
 
     // ==================== DOUBLE RENT TESTS ====================

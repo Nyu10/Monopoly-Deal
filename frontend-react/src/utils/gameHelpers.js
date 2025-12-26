@@ -1,38 +1,6 @@
-export const COLORS = {
-  brown: { hex: '#A1887F', count: 2, name: 'Brown', rent: [1, 2], text: 'white' },
-  dark_blue: { hex: '#42A5F5', count: 2, name: 'Dark Blue', rent: [3, 8], text: 'white' },
-  green: { hex: '#66BB6A', count: 3, name: 'Green', rent: [2, 4, 7], text: 'white' },
-  yellow: { hex: '#FFEB3B', count: 3, name: 'Yellow', rent: [2, 4, 6], text: 'black' },
-  orange: { hex: '#FFA726', count: 3, name: 'Orange', rent: [1, 3, 5], text: 'white' },
-  pink: { hex: '#EC407A', count: 3, name: 'Pink', rent: [1, 2, 4], text: 'white' },
-  red: { hex: '#EF5350', count: 3, name: 'Red', rent: [2, 3, 6], text: 'white' },
-  light_blue: { hex: '#4FC3F7', count: 3, name: 'Light Blue', rent: [1, 2, 3], text: 'black' },
-  utility: { hex: '#D4E157', count: 2, name: 'Utility', rent: [1, 2], text: 'black' },
-  railroad: { hex: '#616161', count: 4, name: 'Railroad', rent: [1, 2, 3, 4], text: 'white' },
-  multi: { hex: 'linear-gradient(45deg, #f06, #4a90e2, #7ed321, #f5a623)', count: 0, name: 'Multi', text: 'white', rent: [] }
-};
+import { COLORS, CARD_TYPES, ACTION_TYPES, GAME_RULES } from '../constants';
 
-export const CARD_TYPES = {
-  PROPERTY: 'PROPERTY',
-  ACTION: 'ACTION',
-  MONEY: 'MONEY',
-  RENT: 'RENT',
-  PROPERTY_WILD: 'PROPERTY_WILD',
-  RENT_WILD: 'RENT_WILD'
-};
-
-export const ACTION_TYPES = {
-  PASS_GO: 'PASS_GO',
-  DEAL_BREAKER: 'DEAL_BREAKER',
-  JUST_SAY_NO: 'JUST_SAY_NO',
-  SLY_DEAL: 'SLY_DEAL',
-  FORCED_DEAL: 'FORCED_DEAL',
-  DEBT_COLLECTOR: 'DEBT_COLLECTOR',
-  BIRTHDAY: 'BIRTHDAY',
-  HOUSE: 'HOUSE',
-  HOTEL: 'HOTEL',
-  DOUBLE_RENT: 'DOUBLE_RENT'
-};
+export { COLORS, CARD_TYPES, ACTION_TYPES };
 
 export const getSets = (properties) => {
   if (!properties) return [];
@@ -57,9 +25,13 @@ export const getSets = (properties) => {
       let rentIndex = Math.min(set.cards.length - 1, def.rent.length - 1);
       let rent = def.rent[rentIndex] || 0;
       if (isComplete) {
-          if (set.houses) rent += 3;
-          if (set.hotels) rent += 4;
+          if (set.houses) rent += GAME_RULES.HOUSE_RENT_BONUS;
+          if (set.hotels) rent += GAME_RULES.HOTEL_RENT_BONUS;
       }
       return { ...set, isComplete, rent };
   });
+};
+
+export const countCompleteSets = (properties) => {
+    return getSets(properties).filter(s => s.isComplete).length;
 };

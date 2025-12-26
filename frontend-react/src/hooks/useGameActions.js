@@ -69,8 +69,8 @@ export const useGameActions = (gameState, sendMove, isDemo) => {
       return;
     }
 
-    // Action cards that need targets
-    if (requiresTarget(card)) {
+    // Action cards that need targets (unless being banked)
+    if (requiresTarget(card) && targetType !== 'BANK') {
       setPendingAction(card);
       setTargetSelectionMode({
         card,

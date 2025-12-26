@@ -10,7 +10,7 @@ describe('RentColorSelectionDialog', () => {
   const rentCard = {
     id: 'rent-1',
     type: CARD_TYPES.RENT,
-    colors: ['blue', 'green'],
+    colors: ['dark_blue', 'green'],
     name: 'Rent',
     value: 1
   };

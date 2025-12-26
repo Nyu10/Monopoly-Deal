@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy, Settings } from 'lucide-react';
 import StadiumLayout from '../components/StadiumLayout';
 import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog, RentColorSelectionDialog } from '../components/ActionDialogs';
+import SettingsModal from '../components/SettingsModal';
 import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
@@ -21,6 +22,7 @@ const Game = () => {
   const { roomId } = useParams();
   const [showCardActionDialog, setShowCardActionDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
 
   // Determine game mode
@@ -228,6 +230,13 @@ const Game = () => {
           </div>
           
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="group flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-blue-600 px-3 py-2 rounded-lg font-bold transition-all"
+              title="Settings"
+            >
+              <Settings size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
             {isMultiplayer && !backendGameState && connected && (
               <button
                 onClick={startMultiplayerGame}
@@ -397,6 +406,11 @@ const Game = () => {
           onCancel={movesLeft > 0 ? () => setShowDiscardDialog(false) : undefined}
         />
       )}
+
+      <SettingsModal 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
+      />
     </div>
   );
 };

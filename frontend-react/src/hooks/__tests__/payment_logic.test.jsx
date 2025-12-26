@@ -17,7 +17,7 @@ describe('useLocalGameState - Payment Logic (Properties as Payment)', () => {
           id: 'p1', name: 'Bot-P2', 
           hand: [], 
           bank: [], 
-          properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'blue', value: 4 }] 
+          properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'dark_blue', value: 4 }] 
         }
       ],
       currentTurnIndex: 0,

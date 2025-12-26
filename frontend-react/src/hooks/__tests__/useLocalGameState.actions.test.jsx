@@ -36,7 +36,7 @@ describe('useLocalGameState - Action Card Logic', () => {
     const initialState = {
       players: [
         { id: 'p0', name: 'P1', hand: [{ id: 'sly-1', actionType: ACTION_TYPES.SLY_DEAL, type: CARD_TYPES.ACTION, value: 3 }], bank: [], properties: [] },
-        { id: 'p1', name: 'P2', hand: [], bank: [], properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'blue', value: 3 }] }
+        { id: 'p1', name: 'P2', hand: [], bank: [], properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'dark_blue', value: 3 }] }
       ],
       currentTurnIndex: 0,
       movesLeft: 3,
@@ -58,7 +58,7 @@ describe('useLocalGameState - Action Card Logic', () => {
     const initialState = {
       players: [
         { id: 'p0', name: 'P1', hand: [{ id: 'sly-1', actionType: ACTION_TYPES.SLY_DEAL, type: CARD_TYPES.ACTION, value: 3 }], bank: [], properties: [] },
-        { id: 'p1', name: 'Bot', isHuman: false, hand: [{ id: 'jsn-1', actionType: ACTION_TYPES.JUST_SAY_NO, type: CARD_TYPES.ACTION, value: 4 }], bank: [], properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'blue', value: 3 }] }
+        { id: 'p1', name: 'Bot', isHuman: false, hand: [{ id: 'jsn-1', actionType: ACTION_TYPES.JUST_SAY_NO, type: CARD_TYPES.ACTION, value: 4 }], bank: [], properties: [{ id: 'prop-1', type: CARD_TYPES.PROPERTY, color: 'dark_blue', value: 3 }] }
       ],
       currentTurnIndex: 0,
       movesLeft: 3,
@@ -87,7 +87,7 @@ describe('useLocalGameState - Action Card Logic', () => {
           id: 'p0', name: 'P1', 
           hand: [
             { id: 'dr-1', actionType: ACTION_TYPES.DOUBLE_RENT, type: CARD_TYPES.ACTION, value: 1 },
-            { id: 'rent-1', type: CARD_TYPES.RENT, colors: ['blue', 'green'], value: 1 }
+            { id: 'rent-1', type: CARD_TYPES.RENT, colors: [ 'dark_blue', 'green'], value: 1 }
           ], 
           bank: [], 
           properties: [{ id: 'b1', type: CARD_TYPES.PROPERTY, color: 'dark_blue', value: 4 }] // Blue rent for 1 is $3M

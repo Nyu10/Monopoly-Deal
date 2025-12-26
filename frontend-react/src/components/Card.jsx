@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { COLORS, CARD_TYPES, ACTION_TYPES } from '../utils/gameHelpers';
+import { COLORS, CARD_TYPES, ACTION_TYPES } from '../constants';
 import { createPortal } from 'react-dom';
 import CARD_BACK_STYLES from '../utils/cardBackStyles';
 
@@ -627,7 +627,7 @@ const RentCard = ({ card, size = 'lg', onClick, selected, className, style, layo
                   <path
                     key={color}
                     d={`M ${x1} ${y1} L ${x2} ${y2} A ${outerRadius} ${outerRadius} 0 0 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 0 0 ${x1} ${y1}`}
-                    fill={COLORS[color].hex}
+                    fill={COLORS[color]?.hex || '#666'}
                     stroke="white"
                     strokeWidth="1"
                   />

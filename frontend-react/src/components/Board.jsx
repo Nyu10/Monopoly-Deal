@@ -93,7 +93,7 @@ const Board = ({
                 <div className="flex-1 flex items-center justify-center gap-16 relative">
                     {/* Deck Tracking */}
                     <div className="flex flex-col items-center gap-4 group">
-                        <div onClick={() => isMyTurn && gameState === 'DRAW' && onDraw()} className={`relative ${isMyTurn && gameState === 'DRAW' ? 'cursor-pointer hover:scale-110 active:scale-95' : 'opacity-40'} transition-all duration-300`}>
+                        <div onClick={() => isMyTurn && gameState === 'DRAW' && onDraw()} className={`relative w-48 h-72 flex items-center justify-center ${isMyTurn && gameState === 'DRAW' ? 'cursor-pointer hover:scale-110 active:scale-95' : 'opacity-40'} transition-all duration-300`}>
                             {deck && <Card faceDown size="lg" className="shadow-2xl translate-y-[-2px] translate-x-[-2px]" />}
                             <Card faceDown size="lg" className="absolute top-1 left-1 -z-10 opacity-60" />
                             <Card faceDown size="lg" className="absolute top-2 left-2 -z-20 opacity-30" />
@@ -106,10 +106,10 @@ const Board = ({
 
                     {/* Discard Pile */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="relative w-52 h-80 bg-zinc-950/40 border-2 border-dashed border-white/10 rounded-[2rem] flex items-center justify-center overflow-hidden">
+                        <div className="relative w-48 h-72 bg-zinc-950/40 border-2 border-dashed border-white/10 rounded-[2rem] flex items-center justify-center overflow-hidden">
                             <AnimatePresence mode="popLayout">
                                 {discardPile?.length > 0 ? (
-                                    <Card key={discardPile[discardPile.length - 1].uid} card={discardPile[discardPile.length - 1]} size="lg" className="shadow-2xl" />
+                                    <Card key={discardPile[discardPile.length - 1].uid} card={discardPile[discardPile.length - 1]} size="lg" className="shadow-2xl" enableHover={false} />
                                 ) : (
                                     <Trash2 size={48} className="text-white/5" />
                                 )}
