@@ -121,10 +121,23 @@ const LandingPage = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     localStorage.removeItem('monopoly_deal_sync_state'); // Clear old session
-                    window.open('/multiplayer/1', '_blank');
-                    window.open('/multiplayer/2', '_blank');
-                    window.open('/multiplayer/3', '_blank');
-                    window.open('/multiplayer/4', '_blank');
+                    
+                    // Open tabs with small delays to avoid pop-up blockers
+                    const tab1 = window.open('/multiplayer/1', '_blank');
+                    setTimeout(() => {
+                      const tab2 = window.open('/multiplayer/2', '_blank');
+                      setTimeout(() => {
+                        const tab3 = window.open('/multiplayer/3', '_blank');
+                        setTimeout(() => {
+                          const tab4 = window.open('/multiplayer/4', '_blank');
+                          
+                          // Check if any tabs were blocked
+                          if (!tab1 || !tab2 || !tab3 || !tab4) {
+                            alert('⚠️ Pop-up blocker detected!\n\nPlease allow pop-ups for this site and try again.\n\nYou can also manually open:\n• /multiplayer/1\n• /multiplayer/2\n• /multiplayer/3\n• /multiplayer/4');
+                          }
+                        }, 50);
+                      }, 50);
+                    }, 50);
                   }}
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md text-sm"
                 >

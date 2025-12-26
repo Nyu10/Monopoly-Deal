@@ -1,40 +1,83 @@
 import { CARD_TYPES } from '../utils/gameHelpers';
+import { getSets } from '../utils/gameHelpers';
 
 /**
  * Calculate the optimal payment for a debt
- * Prioritizes: 1) Money cards, 2) Exact change with properties, 3) Minimum overpayment
+ * Prioritizes:
+ * 1) Cash (money cards) first
+ * 2) Properties that don't break a complete set (minimizing count)
+ * 3) Properties that break a complete set (minimizing count)
  * 
- * @param {Array} availableCards - All cards the player can pay with (hand, bank, properties)
+ * @param {Array} availableCards - All cards the player can pay with (bank + properties)
  * @param {number} amountDue - Amount that needs to be paid
+ * @param {Array} allProperties - All properties the player owns (needed to determine sets)
  * @returns {Array} - Optimal set of cards to pay with
  */
-export function calculateOptimalPayment(availableCards, amountDue) {
+export function calculateOptimalPayment(availableCards, amountDue, allProperties = null) {
   if (!availableCards || availableCards.length === 0) {
     return [];
   }
 
   // Separate cards by type
-  const moneyCards = availableCards.filter(c => c.type === CARD_TYPES.MONEY);
-  const otherCards = availableCards.filter(c => c.type !== CARD_TYPES.MONEY);
+  // Property cards are strictly those that are PROPERTY or PROPERTY_WILD
+  const propertyCards = availableCards.filter(c => 
+    c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD
+  );
+
+  // Everything else is treated as money (Cash, Action cards in bank, Rent cards in bank, etc.)
+  const moneyCards = availableCards.filter(c => 
+    c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD
+  );
 
   // Sort money cards by value (ascending)
   const sortedMoney = [...moneyCards].sort((a, b) => a.value - b.value);
   
-  // Sort other cards by value (ascending)
-  const sortedOther = [...otherCards].sort((a, b) => (a.value || 0) - (b.value || 0));
-
-  // Try to pay with money cards first
+  // Step 1: Try to pay with money cards first
   const moneyPayment = findExactOrMinimalOverpayment(sortedMoney, amountDue);
   
   if (getTotalValue(moneyPayment) >= amountDue) {
     return moneyPayment;
   }
 
-  // If money isn't enough, combine money + other cards
+  // Step 2: Need to use properties - categorize them by whether they break sets
   const remainingAmount = amountDue - getTotalValue(moneyPayment);
-  const otherPayment = findExactOrMinimalOverpayment(sortedOther, remainingAmount);
   
-  return [...moneyPayment, ...otherPayment];
+  // If we don't have property info, fall back to simple sorting
+  if (!allProperties) {
+    const sortedProps = [...propertyCards].sort((a, b) => (a.value || 0) - (b.value || 0));
+    const propPayment = findExactOrMinimalOverpayment(sortedProps, remainingAmount);
+    return [...moneyPayment, ...propPayment];
+  }
+
+  // Determine which properties are in complete sets
+  const sets = getSets(allProperties);
+  const completeSets = new Set();
+  sets.forEach(set => {
+    if (set.isComplete) {
+      set.cards.forEach(card => completeSets.add(card.id));
+    }
+  });
+
+  // Categorize properties
+  const nonSetBreaking = propertyCards.filter(c => !completeSets.has(c.id));
+  const setBreaking = propertyCards.filter(c => completeSets.has(c.id));
+
+  // Sort both by value (descending) to minimize number of properties given
+  const sortedNonSetBreaking = [...nonSetBreaking].sort((a, b) => (b.value || 0) - (a.value || 0));
+  const sortedSetBreaking = [...setBreaking].sort((a, b) => (b.value || 0) - (a.value || 0));
+
+  // Step 3: Try to pay with non-set-breaking properties first
+  const nonSetPayment = findExactOrMinimalOverpayment(sortedNonSetBreaking, remainingAmount);
+  
+  if (getTotalValue(nonSetPayment) >= remainingAmount) {
+    return [...moneyPayment, ...nonSetPayment];
+  }
+
+  // Step 4: Need to use set-breaking properties too
+  const stillRemaining = remainingAmount - getTotalValue(nonSetPayment);
+  const setBreakingPayment = findExactOrMinimalOverpayment(sortedSetBreaking, stillRemaining);
+  
+  return [...moneyPayment, ...nonSetPayment, ...setBreakingPayment];
 }
 
 /**

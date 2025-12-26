@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy, Settings } from 'lucide-r
 import StadiumLayout from '../components/StadiumLayout';
 import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog, RentColorSelectionDialog } from '../components/ActionDialogs';
 import SettingsModal from '../components/SettingsModal';
+import WildCardSetSelectionDialog from '../components/WildCardSetSelectionDialog';
 import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
@@ -24,6 +25,7 @@ const Game = () => {
   const { roomId, playerId } = useParams();
   const [showCardActionDialog, setShowCardActionDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showWildCardSetDialog, setShowWildCardSetDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const { settings } = useSettings();
@@ -148,6 +150,7 @@ const Game = () => {
     // For local games, we want to allow banking action/rent/building cards
     const isMoney = card.type === CARD_TYPES.MONEY;
     const isSimpleProperty = card.type === CARD_TYPES.PROPERTY && !card.actionType;
+    const isWildProperty = card.type === CARD_TYPES.PROPERTY_WILD;
     
     // 1. If it's a pure money card, bank it immediately UNLESS confirmation is forced
     if (isInHand && isMoney && !settings.confirmAllMoves) {
@@ -161,7 +164,13 @@ const Game = () => {
       return;
     }
 
-    // 3. For everything else (Actions, Rent, Buildings, Wild Properties), show the confirmation dialog
+    // 3. If it's a wild property card in hand, show the wild card set selection dialog
+    if (isInHand && isWildProperty) {
+      setShowWildCardSetDialog(true);
+      return;
+    }
+
+    // 4. For everything else (Actions, Rent, Buildings, Wild Properties in play), show the confirmation dialog
     // This allows the player to choose between banking or using the card's special effect
     setShowCardActionDialog(true);
   };
@@ -234,6 +243,45 @@ const Game = () => {
       localGame.flipWildCard(selectedCard.id);
     }
     setShowCardActionDialog(false);
+    setSelectedCard(null);
+  };
+
+  const handleWildCardSetSelect = (selection) => {
+    if (!selectedCard) return;
+    
+    if (isMultiplayer) {
+      // For multiplayer, we'd need to send this to the server
+      console.warn("Multiplayer wild card placement not fully implemented");
+    } else {
+      // If player chose to bank the card
+      if (selection.asBank) {
+        localGame.playCard(selectedCard.id, 'BANK');
+      } else {
+        // First, update the card's currentColor in the player's hand
+        localGame.setPlayers(prev => {
+          const newPlayers = [...prev];
+          const playerIdx = newPlayers.findIndex(p => p.id === playerIdentity);
+          if (playerIdx !== -1) {
+            const player = { ...newPlayers[playerIdx] };
+            const cardIdx = player.hand.findIndex(c => c.id === selectedCard.id);
+            if (cardIdx !== -1) {
+              player.hand = [...player.hand];
+              player.hand[cardIdx] = { ...player.hand[cardIdx], currentColor: selection.color };
+              newPlayers[playerIdx] = player;
+            }
+          }
+          return newPlayers;
+        });
+        
+        // Then play the card to properties
+        // The playCard function will preserve the currentColor we just set
+        setTimeout(() => {
+          localGame.playCard(selectedCard.id, 'PROPERTIES');
+        }, 0);
+      }
+    }
+    
+    setShowWildCardSetDialog(false);
     setSelectedCard(null);
   };
 
@@ -459,6 +507,18 @@ const Game = () => {
           movesLeft={movesLeft}
           onConfirm={handleDiscardConfirm}
           onCancel={movesLeft > 0 ? () => setShowDiscardDialog(false) : undefined}
+        />
+      )}
+
+      {showWildCardSetDialog && selectedCard && (
+        <WildCardSetSelectionDialog
+          card={selectedCard}
+          player={players.find(p => p.id === playerIdentity)}
+          onSelect={handleWildCardSetSelect}
+          onCancel={() => {
+            setShowWildCardSetDialog(false);
+            setSelectedCard(null);
+          }}
         />
       )}
 

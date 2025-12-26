@@ -25,6 +25,8 @@ const StadiumLayout = ({
   actionConfirmation = null,
   matchLog = []
 }) => {
+  // Determine if we should show mini card previews (usually if not too many players to clutter UI)
+  const showMiniCardPreviews = false; // Disabled - using badge system (Option 1) instead
   // Filter out current player
   // Seating arrangement: Start with current player at index 0
   const [showRules, setShowRules] = useState(false);
@@ -239,16 +241,27 @@ const StadiumLayout = ({
               {/* Deck and Discard in center */}
               {/* Deck and Discard in center - Shifted down significantly to avoid overlapping top player */}
               <div className="absolute inset-0 flex items-center justify-center gap-8 translate-y-20 sm:translate-y-24 pointer-events-none">
+                {/* Custom animation style for gentle bounce */}
+                <style>{`
+                  @keyframes gentleBounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                  }
+                `}</style>
+
                 {/* Deck */}
                 <div 
                   id="tutorial-deck"
-                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto z-50"
+                  className={`flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto z-50 transition-all duration-300`}
+                  style={{
+                    animation: shouldShowDrawPrompt ? 'gentleBounce 2s infinite ease-in-out' : 'none'
+                  }}
                   onClick={onDraw}
                 >
                   <div 
-                    className={`w-28 h-40 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-xl border-2 ${CARD_BACK_STYLES.border} shadow-2xl flex items-center justify-center relative transition-all duration-300 ${
+                    className={`w-24 h-36 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-xl border-2 ${CARD_BACK_STYLES.border} shadow-lg flex items-center justify-center relative transition-all duration-300 ${
                       shouldShowDrawPrompt
-                        ? 'group-hover:scale-105 group-hover:-translate-y-2 ring-4 ring-amber-400/50 cursor-pointer animate-pulse-glow' 
+                        ? 'ring-4 ring-white ring-offset-4 ring-offset-slate-50 shadow-[0_8px_30px_rgba(255,255,255,0.6)] border-white/80 cursor-pointer' 
                         : 'group-hover:scale-105 group-hover:-translate-y-1'
                     }`}
                   >
@@ -259,69 +272,38 @@ const StadiumLayout = ({
                     }}></div>
                     
                     {/* Inner Decorative Border */}
-                    <div className="absolute inset-3 border border-white/20 rounded-lg pointer-events-none"></div>
-
-                    {/* Pulsing Glow Overlay when it's time to draw */}
-                    {shouldShowDrawPrompt && (
-                      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-400/20 to-yellow-300/20 animate-pulse pointer-events-none"></div>
-                    )}
+                    <div className={`absolute inset-3 border rounded-lg pointer-events-none transition-colors duration-300 ${shouldShowDrawPrompt ? 'border-white/70' : 'border-white/20'}`}></div>
 
                     {/* Content */}
                     <div className="z-10 flex flex-col items-center justify-center pointer-events-none select-none">
-                      {shouldShowDrawPrompt ? (
-                        <div className="relative">
-                          {/* Pulsing Halo */}
-                          <div className="absolute inset-0 -m-8 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+                      {/* Always show the same clean deck design */}
+                      <div className="flex flex-col items-center">
+                        {/* Centered Minimalist Logo Mark */}
+                        <div className="relative w-24 h-24 flex items-center justify-center">
+                          {/* Background Glow */}
+                          <div className={`absolute inset-0 blur-3xl transition-all duration-300 ${shouldShowDrawPrompt ? 'bg-white/40' : 'bg-transparent'}`}></div>
                           
-                          <div className="relative flex flex-col items-center">
-                            {/* Visual cue for drawing (Stack with positive energy) */}
-                            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                              <Layers size={40} className="text-white drop-shadow-md" strokeWidth={1.5} />
-                            </div>
-                            
-                            {/* Multi-dot pulse indicator */}
-                            <div className="mt-6 flex gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 animate-bounce" style={{ animationDelay: '0s' }}></div>
-                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-70 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            </div>
+                          {/* The Symbol - Wordless & High-end */}
+                          <div className={`w-16 h-16 border rounded-full flex items-center justify-center relative transition-colors duration-300 ${shouldShowDrawPrompt ? 'border-white/90 bg-white/20' : 'border-amber-400/30'}`}>
+                             <Layers size={28} className={`transition-colors duration-300 ${shouldShowDrawPrompt ? 'text-white' : 'text-amber-400/60'}`} strokeWidth={1.5} />
+                             
+                             {/* Compass Pins */}
+                             <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-3 bg-gradient-to-b transition-colors duration-300 ${shouldShowDrawPrompt ? 'from-white/90' : 'from-amber-400/60'} to-transparent`}></div>
+                             <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-3 bg-gradient-to-t transition-colors duration-300 ${shouldShowDrawPrompt ? 'from-white/90' : 'from-amber-400/60'} to-transparent`}></div>
                           </div>
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center">
-                          {/* Centered Minimalist Logo Mark */}
-                          <div className="relative w-24 h-24 flex items-center justify-center">
-                            {/* Background Glow */}
-                            <div className="absolute inset-0 bg-amber-400/5 blur-3xl"></div>
-                            
-                            {/* The Symbol - Wordless & High-end */}
-                            <div className="w-16 h-16 border border-amber-400/30 rounded-full flex items-center justify-center relative">
-                               <Layers size={28} className="text-amber-400/60" strokeWidth={1} />
-                               
-                               {/* Compass Pins */}
-                               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-3 bg-gradient-to-b from-amber-400/60 to-transparent"></div>
-                               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-3 bg-gradient-to-t from-amber-400/60 to-transparent"></div>
-                            </div>
-                            
-                            {/* Thin outer decorative arcs */}
-                            <svg className="absolute w-24 h-24 rotate-45" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" className="text-amber-400/10" strokeWidth="0.5" strokeDasharray="20 180" />
-                              <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" className="text-amber-400/10" strokeWidth="0.5" strokeDasharray="20 180" transform="rotate(180, 50, 50)" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-md border transition-all ${
+                  <span className={`text-sm font-black px-4 py-2 rounded-lg shadow-lg border-2 transition-all ${
                     shouldShowDrawPrompt
-                      ? 'bg-blue-600 text-white border-blue-400 animate-pulse'
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-blue-300/50 scale-105'
                       : 'bg-white text-slate-700 border-slate-200'
                   }`}>
-                    DECK ({deck.length})
+                    {shouldShowDrawPrompt ? `DRAW 2` : `DECK (${deck.length})`}
                   </span>
                 </div>
-
+                
                 {/* Discard */}
                 <div className="flex flex-col items-center gap-2 mt-0 pointer-events-auto">
                   {discardPile.length > 0 ? (
@@ -383,6 +365,7 @@ const StadiumLayout = ({
                       tooltipDirection={parseInt(infoPosition.top) < 40 ? 'bottom' : 'top'}
                       tooltipAlign={tooltipAlign}
                       layout={isTopBot ? 'horizontal' : 'vertical'}
+                      showMiniCardPreviews={showMiniCardPreviews}
                     />
                   </div>
                 )}
@@ -559,6 +542,7 @@ const StadiumLayout = ({
                       properties={currentPlayer.properties}
                       tooltipDirection="left"
                       onCardClick={onCardClick}
+                      isCurrentPlayer={true}
                     />
                     {(!currentPlayer.properties || currentPlayer.properties.length === 0) && (
                       <div className="text-blue-600/30 text-[10px] font-bold uppercase tracking-wider w-full text-center py-12">

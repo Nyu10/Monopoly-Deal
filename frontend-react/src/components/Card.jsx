@@ -26,6 +26,7 @@ const ValueBadge = ({ value, size = 'lg' }) => {
 
 const CardWrapper = ({ children, onClick, size, selected, className, style, layoutId, enableHover = true, onHoverStart, onHoverEnd }) => {
   const orientations = {
+    micro: { w: 'w-[40px]', h: 'h-[60px]', rounded: 'rounded' },   // 40x60 (1.5 ratio) - MINI preview
     xs: { w: 'w-24', h: 'h-36', rounded: 'rounded-lg' },   // 96x144 (1.5 ratio)
     sm: { w: 'w-32', h: 'h-48', rounded: 'rounded-xl' },   // 128x192 (1.5 ratio)
     md: { w: 'w-40', h: 'h-60', rounded: 'rounded-2xl' },  // 160x240 (1.5 ratio)

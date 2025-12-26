@@ -48,7 +48,7 @@ export const generateOfficialDeck = () => {
   }, 1)));
 
   // 3. Wild Property Cards (11 total)
-  // Dual-color wilds (9)
+  // Dual-color wilds (9) - These have values printed on them but cannot be used for payment
   const duals = [
     { c: ['dark_blue', 'green'], v: 4 }, 
     { c: ['light_blue', 'brown'], v: 1 }, 
@@ -68,11 +68,11 @@ export const generateOfficialDeck = () => {
     currentColor: d.c[0] 
   }, 1));
   
-  // Rainbow wilds (2)
+  // Rainbow wilds (2) - No value
   add({ 
     type: CARD_TYPES.PROPERTY_WILD, 
     colors: ['any'], 
-    value: 1, 
+    value: 0, 
     name: 'Rainbow Wild', 
     currentColor: 'multi', 
     isRainbow: true 

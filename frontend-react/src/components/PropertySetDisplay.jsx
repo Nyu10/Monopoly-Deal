@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import Card from './Card';
 
-const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center', horizontal = false, accentColor }) => {
+const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center', horizontal = false, accentColor, showMiniCardPreviews = false, isCurrentPlayer = false }) => {
   const [expandedSet, setExpandedSet] = useState(null);
   const [hoveredColor, setHoveredColor] = useState(null);
 
@@ -39,7 +39,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
       </div>
       
       {/* Visual property cards */}
-      <div className={`flex gap-2 w-full py-2 ${horizontal ? 'flex-row' : 'flex-wrap justify-center'}`}>
+      <div className={`flex gap-3 w-full ${showMiniCardPreviews ? 'py-2 pb-20' : 'py-2'} ${horizontal ? 'flex-row' : 'flex-wrap justify-center'}`}>
         {setStatuses.map(({ color, cards, houses, hotels, current, required, isComplete, colorData }) => (
           <div 
             key={color} 
@@ -57,36 +57,56 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
               ))}
             </div>
 
-            {/* Property card stack using actual cards */}
-            {/* Property card stack - Abstracted View */}
-            <div 
-              className="relative cursor-pointer transition-all duration-300 hover:scale-105"
-              onClick={() => {
-                if (onCardClick && cards.length > 0) {
-                  onCardClick(cards[0]);
-                }
-                setExpandedSet(expandedSet === color ? null : color);
-              }}
-              style={{ 
-                width: `${44 + (Math.min(cards.length, 5) - 1) * 3}px`, 
-                height: `${60 + (Math.min(cards.length, 5) - 1) * 4}px`
-              }}
-            >
-              {[...cards].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute rounded-md shadow-sm border border-black/10 transition-all"
-                  style={{
-                    background: colorData?.hex || '#94a3b8',
-                    width: '44px',
-                    height: '60px',
-                    left: 0,
-                    top: 0,
-                    transform: `translate(${i * 3}px, ${i * 4}px)`,
-                    zIndex: i
-                  }}
-                />
-              ))}
+            {/* Show actual cards for current player */}
+            {isCurrentPlayer ? (
+              <div className="flex -space-x-12">
+                {cards.map((card, idx) => (
+                  <div 
+                    key={card.uid || idx}
+                    className="relative transition-transform hover:scale-110 hover:-translate-y-2 hover:z-50"
+                    style={{ zIndex: idx }}
+                    onClick={() => onCardClick && onCardClick(card)}
+                  >
+                    <Card 
+                      card={card} 
+                      size="xs" 
+                      className="shadow-lg cursor-pointer"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Show colored blocks for opponents */
+              <div 
+                className="relative cursor-pointer transition-all duration-300 hover:scale-105"
+                onClick={() => {
+                  if (onCardClick && cards.length > 0) {
+                    onCardClick(cards[0]);
+                  }
+                  setExpandedSet(expandedSet === color ? null : color);
+                }}
+                style={{ 
+                  width: `${44 + (Math.min(cards.length, 5) - 1) * 3}px`, 
+                  height: `${60 + (Math.min(cards.length, 5) - 1) * 4}px`
+                }}
+              >
+                {[...cards].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-md shadow-sm border border-black/10 transition-all"
+                    style={{
+                      background: color === 'any_rainbow' 
+                        ? 'linear-gradient(135deg, #EF5350 0%, #FFA726 20%, #FFEB3B 40%, #66BB6A 60%, #42A5F5 80%, #AB47BC 100%)'
+                        : (colorData?.hex || '#94a3b8'),
+                      width: '44px',
+                      height: '60px',
+                      left: 0,
+                      top: 0,
+                      transform: `translate(${i * 3}px, ${i * 4}px)`,
+                      zIndex: i
+                    }}
+                  />
+                ))}
 
               {/* Top Layer Content */}
               <div 
@@ -101,9 +121,17 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                   color: colorData?.text || 'white'
                 }}
               >
-                  <span className="font-black text-xl leading-none drop-shadow-md">{current}</span>
-                  <div className="w-6 h-[1px] bg-current opacity-40 my-0.5"></div>
-                  <span className="font-bold text-[10px] opacity-75">{required}</span>
+                  {color === 'any_rainbow' ? (
+                    // Rainbow set - just show count, no progress
+                    <span className="font-black text-2xl leading-none drop-shadow-md text-white">{current}</span>
+                  ) : (
+                    // Normal set - show progress
+                    <>
+                      <span className="font-black text-xl leading-none drop-shadow-md">{current}</span>
+                      <div className="w-6 h-[1px] bg-current opacity-40 my-0.5"></div>
+                      <span className="font-bold text-[10px] opacity-75">{required}</span>
+                    </>
+                  )}
               </div>
 
               {/* Completion indicator */}
@@ -117,9 +145,111 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                   ✓
                 </div>
               )}
+              
+              {/* Wild Card Badges (Option 1) */}
+              {(() => {
+                // Check if this set contains any wild cards
+                const hasRainbowWild = cards.some(card => card.isRainbow);
+                const dualWilds = cards.filter(card => 
+                  card.type === 'PROPERTY_WILD' && 
+                  card.colors?.length === 2 && 
+                  !card.isRainbow
+                );
+                
+                // Only show rainbow badge if this is NOT the rainbow set itself
+                if (hasRainbowWild && color !== 'any_rainbow') {
+                  return (
+                    <div 
+                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg"
+                      style={{
+                        transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`,
+                        background: 'linear-gradient(135deg, #EF5350 0%, #FFA726 20%, #FFEB3B 40%, #66BB6A 60%, #42A5F5 80%, #AB47BC 100%)'
+                      }}
+                      title="Contains Rainbow Wild Card"
+                    >
+                      <span className="text-white text-[9px] font-black drop-shadow-md">🌈</span>
+                    </div>
+                  );
+                }
+                
+                if (dualWilds.length > 0) {
+                  // Get the two colors from the dual wild card
+                  const wildCard = dualWilds[0];
+                  const color1Data = COLORS[wildCard.colors[0]];
+                  const color2Data = COLORS[wildCard.colors[1]];
+                  
+                  return (
+                    <>
+                      {/* Main dual-color badge */}
+                      <div 
+                        className="absolute -top-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white z-[101] shadow-lg overflow-hidden"
+                        style={{
+                          transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`
+                        }}
+                        title={`Contains ${dualWilds.length} ${color1Data?.name}/${color2Data?.name} Wild Card${dualWilds.length > 1 ? 's' : ''}`}
+                      >
+                        {/* Split circle showing both colors */}
+                        <div className="absolute inset-0 flex">
+                          <div 
+                            className="w-1/2 h-full" 
+                            style={{ backgroundColor: color1Data?.hex || '#666' }}
+                          />
+                          <div 
+                            className="w-1/2 h-full" 
+                            style={{ backgroundColor: color2Data?.hex || '#666' }}
+                          />
+                        </div>
+                        {/* Wild card icon */}
+                        <span className="relative z-10 text-white text-[10px] font-black drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">W</span>
+                      </div>
+                      
+                      {/* Additional badges for multiple wilds - stacked behind */}
+                      {dualWilds.length > 1 && (
+                        <>
+                          {dualWilds.slice(1, 3).map((_, idx) => (
+                            <div 
+                              key={idx}
+                              className="absolute -top-1 -right-1 w-7 h-7 rounded-full border-2 border-white shadow-lg overflow-hidden"
+                              style={{
+                                transform: `translate(${(cards.length - 1) * 3 - (idx + 1) * 4}px, ${(cards.length - 1) * 4 + (idx + 1) * 4}px)`,
+                                zIndex: 101 - (idx + 1)
+                              }}
+                            >
+                              <div className="absolute inset-0 flex">
+                                <div 
+                                  className="w-1/2 h-full opacity-90" 
+                                  style={{ backgroundColor: color1Data?.hex || '#666' }}
+                                />
+                                <div 
+                                  className="w-1/2 h-full opacity-90" 
+                                  style={{ backgroundColor: color2Data?.hex || '#666' }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          {/* Count badge if more than 3 */}
+                          {dualWilds.length > 3 && (
+                            <div 
+                              className="absolute -bottom-1 -right-1 bg-slate-900 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-lg"
+                              style={{
+                                transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`,
+                                zIndex: 102
+                              }}
+                            >
+                              {dualWilds.length}
+                             </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  );
+                }
+                
+                return null;
+              })()}
             </div>
-            
-            {/* Hover details tooltip */}
+            )}
+            {/* Hover card preview (no text) */}
             <AnimatePresence>
               {hoveredColor === color && (
                 <motion.div 
@@ -132,7 +262,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                     'left-1/2 -translate-x-1/2'
                   } z-[100] pointer-events-none`}
                 >
-                  <div className="bg-slate-900/95 backdrop-blur-sm p-2.5 rounded-xl shadow-2xl border border-white/20 flex flex-col items-center gap-2">
+                  <div className="bg-slate-900/95 backdrop-blur-sm p-2.5 rounded-xl shadow-2xl border border-white/20">
                     <div className="flex -space-x-8 px-4">
                       {cards.map((card, idx) => (
                         <div 
@@ -149,9 +279,6 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                         </div>
                       ))}
                     </div>
-                    <div className="text-white text-[9px] font-black uppercase tracking-widest opacity-80">
-                      {colorData?.name} SET • {current}/{required}
-                    </div>
                   </div>
                   {/* Arrow */}
                   <div className={`absolute ${tooltipDirection === 'top' ? 'top-full -mt-1 border-t-slate-900/95' : 'bottom-full -mb-1 border-b-slate-900/95'} ${
@@ -163,18 +290,30 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
               )}
             </AnimatePresence>
             
-            {/* Expanded details (legacy mobile/click view) */}
-            {expandedSet === color && (
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-black/90 text-white p-3 rounded-lg shadow-2xl z-50 min-w-[150px]">
-                <div className="text-xs font-bold mb-2">{colorData?.name} Set</div>
-                <div className="text-xs space-y-1">
-                  <div>Cards: {current}/{required}</div>
-                  <div>Status: {isComplete ? '✓ Complete' : 'In Progress'}</div>
-                  {isComplete && colorData?.rent && (
-                    <div>Rent: ${colorData.rent[colorData.rent.length - 1]}M</div>
-                  )}
-                </div>
-                <div className="text-xs mt-2 text-gray-400">Click to close</div>
+            {/* Expanded details (legacy mobile/click view) - REMOVED */}
+            
+            {/* Mini Card Previews (Option 2) */}
+            {showMiniCardPreviews && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 flex -space-x-7 z-20">
+                {cards.slice(0, 5).map((card, idx) => (
+                  <div 
+                    key={card.uid || idx} 
+                    className="relative transition-transform hover:scale-125 hover:z-30"
+                    style={{ zIndex: idx }}
+                  >
+                    <Card 
+                      card={card} 
+                      size="micro" 
+                      enableHover={false}
+                      className="shadow-md border border-white/60"
+                    />
+                  </div>
+                ))}
+                {cards.length > 5 && (
+                  <div className="w-[40px] h-[60px] bg-slate-700 rounded border border-white/40 flex items-center justify-center text-[8px] text-white font-black shadow-md">
+                    +{cards.length - 5}
+                  </div>
+                )}
               </div>
             )}
           </div>

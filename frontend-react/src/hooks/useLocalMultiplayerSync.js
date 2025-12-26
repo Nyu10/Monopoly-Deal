@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Hook to sync local game state across multiple tabs using BroadcastChannel
@@ -6,104 +6,112 @@ import { useEffect } from 'react';
  * @param {boolean} enabled - Whether syncing is enabled
  */
 export const useLocalMultiplayerSync = (game, enabled = false) => {
+  const isUpdatingFromSync = useRef(false);
+  
   useEffect(() => {
     if (!enabled) return;
 
     // Create a broadcast channel for the game state
     const channel = new BroadcastChannel('monopoly-deal-local-multiplayer');
 
-    // Function to broadcast current state
-    const broadcastState = () => {
-      const stateToSync = {
-        gameState: game.gameState,
-        players: game.players,
-        currentTurnIndex: game.currentTurnIndex,
-        movesLeft: game.movesLeft,
-        hasDrawnThisTurn: game.hasDrawnThisTurn,
-        deck: game.deck,
-        discardPile: game.discardPile,
-        winner: game.winner,
-        matchLog: game.matchLog,
-        pendingRequest: game.pendingRequest
-      };
-      
-      // Save to localStorage as a persistent backup
-      localStorage.setItem('monopoly_deal_sync_state', JSON.stringify(stateToSync));
-      
-      // Broadcast to other tabs
-      channel.postMessage({ type: 'STATE_UPDATE', state: stateToSync });
-    };
-
     // Listen for messages from other tabs
     const handleMessage = (event) => {
-      if (event.data.type === 'STATE_UPDATE') {
-        const newState = event.data.state;
+      const { type, state } = event.data;
+      
+      if (type === 'STATE_UPDATE') {
+        isUpdatingFromSync.current = true;
+        
+        console.log('Received sync update', state);
         
         // Update local state using setters exposed by useLocalGameState
-        if (newState.gameState !== undefined) game.setGameState(newState.gameState);
-        if (newState.players !== undefined) game.setPlayers(newState.players);
-        if (newState.currentTurnIndex !== undefined) game.setCurrentTurnIndex(newState.currentTurnIndex);
-        if (newState.movesLeft !== undefined) game.setMovesLeft(newState.movesLeft);
-        if (newState.hasDrawnThisTurn !== undefined) game.setHasDrawnThisTurn(newState.hasDrawnThisTurn);
-        if (newState.deck !== undefined) game.setDeck(newState.deck);
-        if (newState.discardPile !== undefined) game.setDiscardPile(newState.discardPile);
-        if (newState.winner !== undefined) game.setWinner(newState.winner);
-        if (newState.matchLog !== undefined) game.setMatchLog(newState.matchLog);
-        if (newState.pendingRequest !== undefined) game.setPendingRequest(newState.pendingRequest);
+        if (state.gameState !== undefined && state.gameState !== game.gameState) game.setGameState(state.gameState);
+        if (state.players !== undefined) game.setPlayers(state.players);
+        if (state.currentTurnIndex !== undefined && state.currentTurnIndex !== game.currentTurnIndex) game.setCurrentTurnIndex(state.currentTurnIndex);
+        if (state.movesLeft !== undefined && state.movesLeft !== game.movesLeft) game.setMovesLeft(state.movesLeft);
+        if (state.hasDrawnThisTurn !== undefined && state.hasDrawnThisTurn !== game.hasDrawnThisTurn) game.setHasDrawnThisTurn(state.hasDrawnThisTurn);
+        if (state.deck !== undefined) game.setDeck(state.deck);
+        if (state.discardPile !== undefined) game.setDiscardPile(state.discardPile);
+        if (state.winner !== undefined && state.winner !== game.winner) game.setWinner(state.winner);
+        if (state.matchLog !== undefined) game.setMatchLog(state.matchLog);
+        if (state.pendingRequest !== undefined) game.setPendingRequest(state.pendingRequest);
+        
+        // Reset flag after a short delay to allow React to process updates
+        setTimeout(() => {
+          isUpdatingFromSync.current = false;
+        }, 100);
+      } else if (type === 'REQUEST_STATE') {
+         // Another tab is asking for the state (new joiner)
+         // We should broadcast our current state if we have a valid game running
+         if (game.gameState !== 'SETUP' && game.players.length > 0) {
+            channel.postMessage({
+                type: 'STATE_UPDATE',
+                state: {
+                    gameState: game.gameState,
+                    players: game.players,
+                    currentTurnIndex: game.currentTurnIndex,
+                    movesLeft: game.movesLeft,
+                    hasDrawnThisTurn: game.hasDrawnThisTurn,
+                    deck: game.deck,
+                    discardPile: game.discardPile,
+                    winner: game.winner,
+                    matchLog: game.matchLog,
+                    pendingRequest: game.pendingRequest
+                }
+            });
+         }
       }
     };
 
     channel.addEventListener('message', handleMessage);
-
-    // Patch action functions to broadcast state after they are called
-    // We wrap them in a small delay to allow state updates to settle if they use multiple setters
-    const originalStartGame = game.startGame;
-    const originalDrawCards = game.drawCards;
-    const originalPlayCard = game.playCard;
-    const originalEndTurn = game.endTurn;
-    const originalConfirmPayment = game.confirmPayment;
-    const originalFlipWildCard = game.flipWildCard;
-
-    // This is a bit hacky but effective for this local-only mode
-    const wrapAndBroadcast = (fn) => (...args) => {
-      const res = fn(...args);
-      setTimeout(broadcastState, 50); // Small delay to let React process the state change
-      return res;
-    };
-
-    // We can't easily re-bind the hook's internal functions from outside without changing the hook
-    // But since the UI calls these functions, we can provide wrapped versions
     
-    // Initial sync: Load from localStorage if available
-    const savedState = localStorage.getItem('monopoly_deal_sync_state');
-    if (savedState) {
-        try {
-            const parsed = JSON.parse(savedState);
-            // Only load if we are not the one who just started (actually, all tabs should sync on mount)
-            // But we don't want to overwrite if we are the master player who just initialized.
-            // For now, let's just sync everything on mount if it's there.
-        } catch (e) {
-            console.error('Failed to parse saved state', e);
+    // Also request state on mount, just in case we missed the local storage window or it's stale
+    channel.postMessage({ type: 'REQUEST_STATE' });
+    
+    // Fallback: Listen to storage events (e.g. if another tab saves to localStorage)
+    const handleStorageChange = (e) => {
+        if (e.key === 'monopoly_deal_sync_state' && e.newValue) {
+            try {
+                const state = JSON.parse(e.newValue);
+                // Trigger update
+                isUpdatingFromSync.current = true;
+                 if (state.gameState !== undefined) game.setGameState(state.gameState);
+                 if (state.players !== undefined) game.setPlayers(state.players);
+                 if (state.currentTurnIndex !== undefined) game.setCurrentTurnIndex(state.currentTurnIndex);
+                 if (state.movesLeft !== undefined) game.setMovesLeft(state.movesLeft);
+                 if (state.hasDrawnThisTurn !== undefined) game.setHasDrawnThisTurn(state.hasDrawnThisTurn);
+                 if (state.deck !== undefined) game.setDeck(state.deck);
+                 if (state.discardPile !== undefined) game.setDiscardPile(state.discardPile);
+                 if (state.winner !== undefined) game.setWinner(state.winner);
+                 if (state.matchLog !== undefined) game.setMatchLog(state.matchLog);
+                 if (state.pendingRequest !== undefined) game.setPendingRequest(state.pendingRequest);
+                 
+                setTimeout(() => { isUpdatingFromSync.current = false; }, 100);
+            } catch (err) {
+                console.error('Failed to parse storage update', err);
+            }
         }
-    }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       channel.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorageChange);
       channel.close();
     };
-  }, [enabled, game]);
+  }, [enabled]); // Dependencies removed to run this setup once on mount/enable
 
-  // Return wrapped actions that trigger broadcast
-  const wrap = (fn) => (...args) => {
-    fn(...args);
-    // Broadcast is handled by a separate effect monitoring state changes to be more reliable
-  };
-
-  // Improved sync: Monitor state changes and broadcast
+  // Monitor state changes and broadcast
   useEffect(() => {
     if (!enabled) return;
     
-    // Debounce broadcast to avoid overwhelming the channel
+    // Skip broadcast if this update was triggered by an incoming sync
+    if (isUpdatingFromSync.current) return;
+    
+    // Skip broadcast if game is in initial setup state (don't overwrite established games with empty state)
+    if (game.gameState === 'SETUP' && game.players.length === 0) return;
+    
+    // Debounce broadcast
     const timerId = setTimeout(() => {
         const stateToSync = {
             gameState: game.gameState,
@@ -122,7 +130,7 @@ export const useLocalMultiplayerSync = (game, enabled = false) => {
           channel.postMessage({ type: 'STATE_UPDATE', state: stateToSync });
           localStorage.setItem('monopoly_deal_sync_state', JSON.stringify(stateToSync));
           channel.close();
-    }, 100);
+    }, 50);
 
     return () => clearTimeout(timerId);
   }, [

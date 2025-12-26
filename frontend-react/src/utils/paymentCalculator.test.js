@@ -156,5 +156,117 @@ describe('Payment Calculator', () => {
       // Should prioritize money first
       expect(payment.some(c => c.type === CARD_TYPES.MONEY)).toBe(true);
     });
+
+    it('should prioritize non-set-breaking properties over set-breaking ones', () => {
+      // Create a complete brown set (2 properties needed)
+      const allProperties = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+        { id: 'p3', type: CARD_TYPES.PROPERTY, value: 2, name: 'Park Place', color: 'blue' }, // Not in a complete set
+      ];
+
+      const availableCards = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+        { id: 'p3', type: CARD_TYPES.PROPERTY, value: 2, name: 'Park Place', color: 'blue' },
+      ];
+
+      const payment = calculateOptimalPayment(availableCards, 2, allProperties);
+      const total = payment.reduce((sum, c) => sum + c.value, 0);
+
+      expect(total).toBeGreaterThanOrEqual(2);
+      // Should use Park Place (non-set-breaking) instead of breaking the brown set
+      expect(payment.find(c => c.id === 'p3')).toBeDefined();
+      expect(payment.length).toBe(1);
+    });
+
+    it('should use cash before any properties', () => {
+      const allProperties = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+      ];
+
+      const availableCards = [
+        { id: 'm1', type: CARD_TYPES.MONEY, value: 3, name: '$3M' },
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+      ];
+
+      const payment = calculateOptimalPayment(availableCards, 3, allProperties);
+      const total = payment.reduce((sum, c) => sum + c.value, 0);
+
+      expect(total).toBe(3);
+      // Should only use cash
+      expect(payment.length).toBe(1);
+      expect(payment[0].type).toBe(CARD_TYPES.MONEY);
+    });
+
+    it('should break sets only when necessary', () => {
+      // Complete brown set
+      const allProperties = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+      ];
+
+      const availableCards = [
+        { id: 'm1', type: CARD_TYPES.MONEY, value: 1, name: '$1M' },
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+      ];
+
+      const payment = calculateOptimalPayment(availableCards, 2, allProperties);
+      const total = payment.reduce((sum, c) => sum + c.value, 0);
+
+      expect(total).toBeGreaterThanOrEqual(2);
+      // Should use $1M cash + 1 property from the set (minimal set breaking)
+      expect(payment.some(c => c.type === CARD_TYPES.MONEY)).toBe(true);
+      expect(payment.some(c => c.type === CARD_TYPES.PROPERTY)).toBe(true);
+    });
+
+    it('should minimize number of properties given when breaking sets', () => {
+      // Complete brown set
+      const allProperties = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+        { id: 'p3', type: CARD_TYPES.PROPERTY, value: 4, name: 'Boardwalk', color: 'blue' },
+        { id: 'p4', type: CARD_TYPES.PROPERTY, value: 4, name: 'Park Place', color: 'blue' },
+      ];
+
+      const availableCards = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 1, name: 'Baltic', color: 'brown' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Mediterranean', color: 'brown' },
+        { id: 'p3', type: CARD_TYPES.PROPERTY, value: 4, name: 'Boardwalk', color: 'blue' },
+        { id: 'p4', type: CARD_TYPES.PROPERTY, value: 4, name: 'Park Place', color: 'blue' },
+      ];
+
+      const payment = calculateOptimalPayment(availableCards, 5, allProperties);
+      const total = payment.reduce((sum, c) => sum + c.value, 0);
+
+      expect(total).toBeGreaterThanOrEqual(5);
+      // Should use fewer higher-value properties rather than many low-value ones
+      // Ideally: 1 property worth 4M + 1 property worth 1M = 5M (2 cards)
+      // Not: Baltic + Mediterranean + something else (3+ cards)
+      expect(payment.length).toBeLessThanOrEqual(2);
+    });
+    it('should prefer one high value property over multiple low value properties', () => {
+      const allProperties = [
+        { id: 'p1', type: CARD_TYPES.PROPERTY, value: 5, name: 'BigProp', color: 'blue' },
+        { id: 'p2', type: CARD_TYPES.PROPERTY, value: 1, name: 'Small1', color: 'brown' },
+        { id: 'p3', type: CARD_TYPES.PROPERTY, value: 1, name: 'Small2', color: 'brown' },
+        { id: 'p4', type: CARD_TYPES.PROPERTY, value: 1, name: 'Small3', color: 'brown' },
+        { id: 'p5', type: CARD_TYPES.PROPERTY, value: 1, name: 'Small4', color: 'brown' },
+        { id: 'p6', type: CARD_TYPES.PROPERTY, value: 1, name: 'Small5', color: 'brown' },
+      ];
+
+      const availableCards = [...allProperties];
+      const payment = calculateOptimalPayment(availableCards, 5, allProperties);
+      
+      const total = payment.reduce((sum, c) => sum + c.value, 0);
+      expect(total).toBe(5);
+      
+      // Should use the single 5M property instead of the five 1M properties
+      expect(payment.length).toBe(1);
+      expect(payment[0].value).toBe(5);
+    });
   });
 });

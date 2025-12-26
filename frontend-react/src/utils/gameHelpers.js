@@ -6,7 +6,8 @@ export const getSets = (properties) => {
   if (!properties) return [];
   const sets = {};
   properties.forEach(card => {
-      let color = card.color || card.currentColor;
+      // For wild cards, currentColor takes precedence over color
+      let color = card.currentColor || card.color;
       if (card.isRainbow && color === 'multi') color = 'any_rainbow'; 
       
       if (!sets[color]) sets[color] = { color, cards: [], houses: 0, hotels: 0 };

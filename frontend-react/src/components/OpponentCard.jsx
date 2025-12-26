@@ -62,7 +62,8 @@ const OpponentCard = ({
   showHand = true,
   tooltipDirection = 'top',
   tooltipAlign = 'center',
-  layout = 'vertical' // 'vertical' or 'horizontal'
+  layout = 'vertical', // 'vertical' or 'horizontal'
+  showMiniCardPreviews = false // Enable mini card preview feature (Option 2)
 }) => {
   // Get the color scheme for this bot
   const colors = BOT_COLORS[player.name] || BOT_COLORS.default;
@@ -126,6 +127,7 @@ const OpponentCard = ({
                   tooltipAlign={tooltipAlign}
                   horizontal={true}
                   accentColor={colors.accent}
+                  showMiniCardPreviews={showMiniCardPreviews}
                 />
               ) : (
                 <div className={`text-[9px] ${colors.text} opacity-50 italic px-2`}>No properties yet</div>
@@ -192,6 +194,7 @@ const OpponentCard = ({
               tooltipDirection={tooltipDirection}
               tooltipAlign={tooltipAlign}
               accentColor={colors.accent}
+              showMiniCardPreviews={showMiniCardPreviews}
             />
           ) : (
             <div className={`text-[9px] ${colors.text} opacity-50 italic`}>No properties yet</div>

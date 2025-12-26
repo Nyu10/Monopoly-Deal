@@ -25,6 +25,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   
   const botsRef = useRef([]);
   const playersRef = useRef(players); // Keep a ref for internal logic checks without dependency loops
+  const isEndingTurnRef = useRef(false); // Prevent duplicate end turn calls
 
   useEffect(() => {
     playersRef.current = players;
@@ -339,7 +340,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           // Proceed to bot-like logic (which will handle 0 cards correctly)
         }
 
-        const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.DEBT_COLLECTOR_AMOUNT);
+        const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.DEBT_COLLECTOR_AMOUNT, targetPlayer.properties);
         const paymentIds = paymentCards.map(c => c.id);
         const paymentSummary = paymentCards.length > 0 
           ? paymentCards.map(c => c.name || `$${c.value}M`).join(', ') 
@@ -422,7 +423,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         }
 
         const availableCards = [...(player.bank || []), ...(player.properties || [])];
-        const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER);
+        const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER, player.properties);
         const paymentIds = paymentCards.map(c => c.id);
         
         const victim = { ...newPlayersState[idx] };
@@ -539,7 +540,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           const targetIdx = newPlayersState.findIndex(p => p.id === target.id);
           const payer = { ...newPlayersState[targetIdx] };
           
-          const paymentCards = calculateOptimalPayment(availableCards, rentAmount);
+          const paymentCards = calculateOptimalPayment(availableCards, rentAmount, target.properties);
           const paymentIds = paymentCards.map(c => c.id);
           
           payer.bank = (payer.bank || []).filter(c => !paymentIds.includes(c.id));
@@ -821,6 +822,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
    * End turn
    */
   const endTurn = useCallback(() => {
+    // Prevent duplicate calls
+    if (isEndingTurnRef.current) {
+      console.warn('endTurn already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    isEndingTurnRef.current = true;
     const turningPlayerIndex = currentTurnIndex;
     
     setPlayers(prev => {
@@ -852,6 +860,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       action: 'END_TURN',
       message: 'ended their turn'
     }, ...prev]);
+    
+    // Reset guard after a short delay to allow state updates to complete
+    setTimeout(() => {
+      isEndingTurnRef.current = false;
+    }, 100);
   }, [currentTurnIndex, playerCount, players]);
 
   /**
