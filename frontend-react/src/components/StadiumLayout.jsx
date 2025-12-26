@@ -3,7 +3,7 @@ import OpponentCard from './OpponentCard';
 import HandCountDisplay from './HandCountDisplay';
 import Card from './Card';
 import { CARD_TYPES, ACTION_TYPES, COLORS, calculateBankTotal } from '../utils/gameHelpers';
-import { X, DollarSign, Home, Zap } from 'lucide-react';
+import { X, DollarSign, Home, Zap, ArrowDown, Layers } from 'lucide-react';
 import PropertySetDisplay from './PropertySetDisplay';
 import { BankCardMini } from './MiniCard';
 import QuickRules from './QuickRules';
@@ -36,17 +36,17 @@ const StadiumLayout = ({
   ];
   const currentPlayer = players[humanIdx];
   
-  // Check if it's the human player's turn and they haven't drawn yet
-  const isHumanTurn = players[currentTurnIndex]?.isHuman;
-  const shouldShowDrawPrompt = isHumanTurn && !hasDrawnThisTurn;
+  // Check if it's the local player's turn and they haven't drawn yet
+  const isMyTurn = players[currentTurnIndex]?.id === currentPlayerId;
+  const shouldShowDrawPrompt = isMyTurn && !hasDrawnThisTurn;
   
   // Calculate position around an ellipse for player info boxes (closer to center)
   const getPlayerPosition = (index, totalOpponents) => {
     // Ellipse parameters (percentage of container)
     const centerX = 50; // Center X (%)
-    const centerY = 58; // Center Y (%) - moved down to avoid header
+    const centerY = 50; // Center Y (%) - centered vertically, moved up from 58
     const radiusX = 38; // Horizontal radius (%) - moved slightly further out
-    const radiusY = 30; // Vertical radius (%) - slightly more compact vertically
+    const radiusY = 26; // Vertical radius (%) - reduced from 30 to keep bots higher
     
     // Start from bottom and go clockwise
     // Angle in radians (π/2 = bottom)
@@ -69,9 +69,9 @@ const StadiumLayout = ({
   // Calculate position for card fans (further out, around the table)
   const getCardFanPosition = (index, totalOpponents) => {
     const centerX = 50;
-    const centerY = 58; // Aligned with player info
+    const centerY = 50; // Aligned with player info, moved up from 58
     const radiusX = 46; // Further out from center
-    const radiusY = 36; // Slightly more compact vertically
+    const radiusY = 32; // Reduced from 36 to match the adjusted vertical positioning
     
     const startAngle = Math.PI / 2;
     const angleStep = (2 * Math.PI) / totalOpponents;
@@ -212,6 +212,8 @@ const StadiumLayout = ({
 
         {/* Main Game Board (Circular Layout) */}
         <div className="flex-1 relative bg-slate-50">
+          {/* Spotlight Overlay - Only affects game board, not hand */}
+
           {/* Table background */}
           <div className="absolute inset-0 flex items-center justify-center translate-y-12">
             <div 
@@ -240,42 +242,76 @@ const StadiumLayout = ({
                 {/* Deck */}
                 <div 
                   id="tutorial-deck"
-                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto"
+                  className="flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto z-50"
                   onClick={onDraw}
                 >
-                  {/* "Your Turn - Draw Cards" Prompt */}
-                  {shouldShowDrawPrompt && (
-                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap z-[60] animate-bounce">
-                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl shadow-2xl border-2 border-blue-400">
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <div className="text-sm font-black uppercase tracking-wider">Your Turn!</div>
-                            <div className="text-xs font-bold opacity-90">Draw 2 Cards</div>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Arrow pointing down */}
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-blue-700"></div>
-                    </div>
-                  )}
-                  
                   <div 
-                    className={`w-24 h-36 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-lg border ${CARD_BACK_STYLES.border} shadow-xl flex items-center justify-center relative transition-all ${
+                    className={`w-28 h-40 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-xl border-2 ${CARD_BACK_STYLES.border} shadow-2xl flex items-center justify-center relative transition-all duration-300 ${
                       shouldShowDrawPrompt
-                        ? 'group-hover:scale-110 group-hover:-translate-y-2 animate-pulse-glow' 
+                        ? 'group-hover:scale-105 group-hover:-translate-y-2 ring-4 ring-amber-400/50 cursor-pointer animate-pulse-glow' 
                         : 'group-hover:scale-105 group-hover:-translate-y-1'
                     }`}
-                    style={
-                      shouldShowDrawPrompt
-                        ? { boxShadow: `0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.3)` } // Amber glow
-                        : {}
-                    }
                   >
-                    <div className="absolute inset-0 opacity-20 rounded-lg" style={{
+                    {/* Pattern Pattern */}
+                    <div className="absolute inset-0 opacity-20" style={{
                       backgroundImage: CARD_BACK_STYLES.patternDots,
                       backgroundSize: '15px 15px'
                     }}></div>
-                    <div className="font-black text-4xl z-10" style={{ color: CARD_BACK_STYLES.accent, fontFamily: 'serif' }}>{deck.length > 0 ? 'M' : ''}</div>
+                    
+                    {/* Inner Decorative Border */}
+                    <div className="absolute inset-3 border border-white/20 rounded-lg pointer-events-none"></div>
+
+                    {/* Pulsing Glow Overlay when it's time to draw */}
+                    {shouldShowDrawPrompt && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-400/20 to-yellow-300/20 animate-pulse pointer-events-none"></div>
+                    )}
+
+                    {/* Content */}
+                    <div className="z-10 flex flex-col items-center justify-center pointer-events-none select-none">
+                      {shouldShowDrawPrompt ? (
+                        <div className="relative">
+                          {/* Pulsing Halo */}
+                          <div className="absolute inset-0 -m-8 bg-white/10 rounded-full blur-2xl animate-pulse"></div>
+                          
+                          <div className="relative flex flex-col items-center">
+                            {/* Visual cue for drawing (Stack with positive energy) */}
+                            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                              <Layers size={40} className="text-white drop-shadow-md" strokeWidth={1.5} />
+                            </div>
+                            
+                            {/* Multi-dot pulse indicator */}
+                            <div className="mt-6 flex gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 animate-bounce" style={{ animationDelay: '0s' }}></div>
+                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-70 animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          {/* Centered Minimalist Logo Mark */}
+                          <div className="relative w-24 h-24 flex items-center justify-center">
+                            {/* Background Glow */}
+                            <div className="absolute inset-0 bg-amber-400/5 blur-3xl"></div>
+                            
+                            {/* The Symbol - Wordless & High-end */}
+                            <div className="w-16 h-16 border border-amber-400/30 rounded-full flex items-center justify-center relative">
+                               <Layers size={28} className="text-amber-400/60" strokeWidth={1} />
+                               
+                               {/* Compass Pins */}
+                               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-3 bg-gradient-to-b from-amber-400/60 to-transparent"></div>
+                               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-3 bg-gradient-to-t from-amber-400/60 to-transparent"></div>
+                            </div>
+                            
+                            {/* Thin outer decorative arcs */}
+                            <svg className="absolute w-24 h-24 rotate-45" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" className="text-amber-400/10" strokeWidth="0.5" strokeDasharray="20 180" />
+                              <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" className="text-amber-400/10" strokeWidth="0.5" strokeDasharray="20 180" transform="rotate(180, 50, 50)" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <span className={`text-xs font-bold px-3 py-1.5 rounded-lg shadow-md border transition-all ${
                     shouldShowDrawPrompt
@@ -364,8 +400,8 @@ const StadiumLayout = ({
           )}
 
           {/* Status Indicators (Bottom Left) */}
-          {currentTurnIndex !== 0 && (
-            <div className="absolute bottom-8 left-8 z-40">
+          {!isMyTurn && (
+            <div className="absolute bottom-8 left-8 z-[100]">
               <div className="bg-slate-900/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
@@ -380,7 +416,7 @@ const StadiumLayout = ({
 
         {/* Current Player Area at bottom - HAND ONLY */}
         {currentPlayer && (
-          <div className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-blue-600 shadow-2xl relative z-30">
+          <div className="bg-white/95 backdrop-blur-sm p-3 border-t-4 border-blue-600 shadow-2xl relative z-50">
             <div className="max-w-7xl mx-auto relative px-4">
               {/* Inline Action Confirmation - Floating above hand */}
               {actionConfirmation && (
@@ -534,7 +570,7 @@ const StadiumLayout = ({
               </div>
 
               {/* End Turn Button - Bottom of Sidebar */}
-              {isHumanTurn && hasDrawnThisTurn && (
+              {isMyTurn && hasDrawnThisTurn && (
                 <div className="p-4 border-t border-slate-100">
                   <button
                     onClick={onEndTurn}

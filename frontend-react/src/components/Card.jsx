@@ -233,8 +233,16 @@ const PropertyCard = ({ card, size = 'lg', onClick, selected, className, style, 
 // ============================================================================
 
 const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, style, layoutId, showDescription = false }) => {
-  const color1Data = COLORS[card.colors[0]] || { hex: '#666', name: 'Unknown' };
-  const color2Data = COLORS[card.colors[1]] || { hex: '#666', name: 'Unknown' };
+  // Determine which color is currently active
+  const currentColor = card.currentColor || card.colors[0];
+  
+  // Swap colors so the active one is always on top
+  const isFlipped = currentColor === card.colors[1];
+  const topColor = isFlipped ? card.colors[1] : card.colors[0];
+  const bottomColor = isFlipped ? card.colors[0] : card.colors[1];
+  
+  const color1Data = COLORS[topColor] || { hex: '#666', name: 'Unknown' };
+  const color2Data = COLORS[bottomColor] || { hex: '#666', name: 'Unknown' };
   const color1 = color1Data.hex;
   const color2 = color2Data.hex;
   const text1 = color1Data.text === 'black' ? 'text-slate-900' : 'text-white';
@@ -249,8 +257,8 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
     return hexColor; // Use original color for other colors
   };
 
-  const textColor1 = getTextColor(color1, card.colors[0]);
-  const textColor2 = getTextColor(color2, card.colors[1]);
+  const textColor1 = getTextColor(color1, topColor);
+  const textColor2 = getTextColor(color2, bottomColor);
   
   const isTiny = size === 'xs';
   const isSmallSize = size === 'sm';
@@ -268,14 +276,14 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
       style={style} 
       layoutId={layoutId}
     >
-      {/* Top Header Hook (Color 1) */}
+      {/* Top Header Hook (Active Color) */}
       <div className={`absolute top-0 left-0 right-0 ${headerHeight} z-10 border-t-2 border-x-2`} style={{ backgroundColor: color1, borderColor: color1 }}>
         <div className="h-full w-full flex items-center justify-end pr-3">
           <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text1}`}>Wild Card</span>
         </div>
       </div>
 
-      {/* Bottom Header Hook (Color 2 - Rotated) */}
+      {/* Bottom Header Hook (Inactive Color - Rotated) */}
       <div className={`absolute bottom-0 left-0 right-0 ${headerHeight} z-10 border-b-2 border-x-2`} style={{ backgroundColor: color2, borderColor: color2 }}>
         <div className="h-full w-full flex items-center justify-end pr-3 transform rotate-180">
           <span className={`${headerFontSize} font-black uppercase tracking-[0.2em] italic ${text2}`}>Wild Card</span>
@@ -286,7 +294,7 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
       
       {!showDescription && (
       <div className={`absolute inset-x-0 ${contentTop} ${contentBottom} flex`}>
-        {/* Color 1 Column (White Aesthetic) */}
+        {/* Active Color Column (White Aesthetic) */}
         <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-r border-slate-100 bg-white overflow-hidden border-l-2" style={{ borderLeftColor: color1 }}>
           <div className={`${isTiny ? 'text-[5px] mb-1' : 'text-[8px] mb-2'} font-black uppercase tracking-wider text-center`} style={{ color: textColor1 }}>
             {color1Data.name}
@@ -305,7 +313,7 @@ const WildPropertyCard = ({ card, size = 'lg', onClick, selected, className, sty
           </div>
         </div>
 
-        {/* Color 2 Column (White Aesthetic - Bottom half orientation) */}
+        {/* Inactive Color Column (White Aesthetic - Bottom half orientation) */}
         <div className="w-1/2 h-full flex flex-col p-1 pt-1.5 items-center border-l border-slate-100 bg-white overflow-hidden justify-end border-r-2" style={{ borderRightColor: color2 }}>
           <div className={`${isTiny ? 'space-y-0.5' : 'space-y-1'} w-full mb-1`}>
             {[...(color2Data.rent || [])].reverse().map((rent, i, arr) => (

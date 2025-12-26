@@ -6,7 +6,7 @@ export const PROPERTY_SETS = {
   BROWN: {
     id: 'brown',
     color: 'brown',
-    hex: '#A1887F',
+    hex: '#8D6E63',
     text: 'white',
     name: 'Brown',
     cardsNeeded: 2,
@@ -33,7 +33,7 @@ export const PROPERTY_SETS = {
   ORANGE: {
     id: 'orange',
     color: 'orange',
-    hex: '#FFA726',
+    hex: '#FF6F00',
     text: 'white',
     name: 'Orange',
     cardsNeeded: 3,
@@ -42,7 +42,7 @@ export const PROPERTY_SETS = {
   RED: {
     id: 'red',
     color: 'red',
-    hex: '#EF5350',
+    hex: '#D32F2F',
     text: 'white',
     name: 'Red',
     cardsNeeded: 3,
@@ -51,7 +51,7 @@ export const PROPERTY_SETS = {
   YELLOW: {
     id: 'yellow',
     color: 'yellow',
-    hex: '#FFEB3B',
+    hex: '#FDD835',
     text: 'black',
     name: 'Yellow',
     cardsNeeded: 3,
@@ -60,7 +60,7 @@ export const PROPERTY_SETS = {
   GREEN: {
     id: 'green',
     color: 'green',
-    hex: '#66BB6A',
+    hex: '#388E3C',
     text: 'white',
     name: 'Green',
     cardsNeeded: 3,
@@ -69,7 +69,7 @@ export const PROPERTY_SETS = {
   DARK_BLUE: {
     id: 'dark_blue',
     color: 'dark_blue',
-    hex: '#42A5F5',
+    hex: '#0D47A1',
     text: 'white',
     name: 'Dark Blue',
     cardsNeeded: 2,
@@ -78,7 +78,7 @@ export const PROPERTY_SETS = {
   RAILROAD: {
     id: 'railroad',
     color: 'railroad',
-    hex: '#616161',
+    hex: '#424242',
     text: 'white',
     name: 'Railroad',
     cardsNeeded: 4,

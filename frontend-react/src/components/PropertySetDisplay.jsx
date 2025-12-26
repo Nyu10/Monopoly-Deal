@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { COLORS, ACTION_TYPES, getSets } from '../utils/gameHelpers';
 import { motion, AnimatePresence } from 'framer-motion';
-import MiniCard from './MiniCard';
+
 import Card from './Card';
 
-const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center', horizontal = false }) => {
+const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipDirection = 'top', tooltipAlign = 'center', horizontal = false, accentColor }) => {
   const [expandedSet, setExpandedSet] = useState(null);
   const [hoveredColor, setHoveredColor] = useState(null);
 
@@ -23,7 +23,18 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+      <div 
+        className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border"
+        style={accentColor ? {
+          backgroundColor: `${accentColor}15`,
+          color: accentColor,
+          borderColor: `${accentColor}40`
+        } : {
+          backgroundColor: '#f1f5f9',
+          color: '#64748b',
+          borderColor: '#e2e8f0'
+        }}
+      >
         Sets: {completedSets}/{setStatuses.length}
       </div>
       
@@ -47,8 +58,9 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
             </div>
 
             {/* Property card stack using actual cards */}
+            {/* Property card stack - Abstracted View */}
             <div 
-              className="relative cursor-pointer transition-all duration-300 hover:z-50"
+              className="relative cursor-pointer transition-all duration-300 hover:scale-105"
               onClick={() => {
                 if (onCardClick && cards.length > 0) {
                   onCardClick(cards[0]);
@@ -56,43 +68,52 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
                 setExpandedSet(expandedSet === color ? null : color);
               }}
               style={{ 
-                width: `${192 * 0.25}px`, 
-                height: `${288 * 0.25 + (cards.length - 1) * 10}px`,
-                minHeight: `${288 * 0.25}px`
+                width: `${44 + (Math.min(cards.length, 5) - 1) * 3}px`, 
+                height: `${60 + (Math.min(cards.length, 5) - 1) * 4}px`
               }}
             >
-              {/* Show stacked cards - Front to Back fanning */}
-              {[...cards].reverse().map((card, i, arr) => {
-                const actualIndex = arr.length - 1 - i;
-                const offset = actualIndex * 10;
-                
-                return (
-                  <div
-                    key={card.id || i}
-                    className="absolute transition-all duration-300 group"
-                    style={{
-                      left: '0px',
-                      top: `${offset}px`,
-                      zIndex: actualIndex
-                    }}
-                  >
-                    <MiniCard 
-                      card={card} 
-                      scale={0.25} 
-                      onClick={() => {
-                        if (onCardClick) onCardClick(card);
-                      }}
-                      className={`shadow-md border border-black/5 rounded overflow-hidden transition-all duration-300 ${
-                        actualIndex === 0 ? 'ring-1 ring-white/50' : 'brightness-[0.9]'
-                      } group-hover:brightness-100 group-hover:shadow-lg group-hover:-translate-y-1`}
-                    />
-                  </div>
-                );
-              })}
-              
+              {[...cards].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-md shadow-sm border border-black/10 transition-all"
+                  style={{
+                    background: colorData?.hex || '#94a3b8',
+                    width: '44px',
+                    height: '60px',
+                    left: 0,
+                    top: 0,
+                    transform: `translate(${i * 3}px, ${i * 4}px)`,
+                    zIndex: i
+                  }}
+                />
+              ))}
+
+              {/* Top Layer Content */}
+              <div 
+                className="absolute flex flex-col items-center justify-center rounded-md border-t border-white/20"
+                style={{
+                  width: '44px',
+                  height: '60px',
+                  left: 0,
+                  top: 0,
+                  transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`,
+                  zIndex: cards.length + 1,
+                  color: colorData?.text || 'white'
+                }}
+              >
+                  <span className="font-black text-xl leading-none drop-shadow-md">{current}</span>
+                  <div className="w-6 h-[1px] bg-current opacity-40 my-0.5"></div>
+                  <span className="font-bold text-[10px] opacity-75">{required}</span>
+              </div>
+
               {/* Completion indicator */}
               {isComplete && (
-                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white z-[100] shadow-lg animate-bounce">
+                <div 
+                  className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white z-[100] shadow-lg animate-bounce"
+                  style={{
+                     transform: `translate(${(cards.length - 1) * 3}px, ${(cards.length - 1) * 4}px)`
+                  }}
+                >
                   ✓
                 </div>
               )}

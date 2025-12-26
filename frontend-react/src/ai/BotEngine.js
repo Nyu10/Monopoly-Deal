@@ -371,13 +371,24 @@ export class HardBot {
     // Strategy 5: Use Debt Collector/Birthday to gain liquidity
     const debtCollector = hand.find(c => c.actionType === ACTION_TYPES.DEBT_COLLECTOR);
     if (debtCollector) {
-      const richest = this.getRichestOpponent(players);
-      return { action: 'PLAY_ACTION', card: debtCollector, target: richest };
+      const bestTarget = this.findBestDebtCollectorTarget(players);
+      if (bestTarget) {
+        return { action: 'PLAY_ACTION', card: debtCollector, target: bestTarget };
+      }
     }
 
     const birthday = hand.find(c => c.actionType === ACTION_TYPES.BIRTHDAY);
     if (birthday) {
-      return { action: 'PLAY_ACTION', card: birthday };
+      // Only play if at least one opponent has assets
+      const opponentsWithAssets = players.filter((p, idx) => {
+        if (idx === this.playerIndex) return false;
+        const wealth = (p.bank || []).reduce((s, c) => s + (c.value || 0), 0) +
+                      (p.properties || []).reduce((s, c) => s + (c.value || 0), 0);
+        return wealth > 0;
+      });
+      if (opponentsWithAssets.length > 0) {
+        return { action: 'PLAY_ACTION', card: birthday };
+      }
     }
 
     // Strategy 5.5: Pass Go (Draw 2)
@@ -494,6 +505,43 @@ export class HardBot {
         }
       }
     });
+    return bestTarget;
+  }
+
+  findBestDebtCollectorTarget(players) {
+    let bestTarget = null;
+    let maxValue = 0;
+
+    players.forEach((opp, idx) => {
+      if (idx === this.playerIndex) return;
+      
+      const availableCards = [...(opp.bank || []), ...(opp.properties || [])];
+      if (availableCards.length === 0) return; // Skip if they have nothing
+      
+      // Simulate what they would pay (using same logic as calculateOptimalPayment)
+      // Sort by value ascending, take cards until we hit $5M
+      const sorted = [...availableCards].sort((a, b) => (a.value || 0) - (b.value || 0));
+      let totalPaid = 0;
+      let propertyCount = 0;
+      
+      for (const card of sorted) {
+        if (totalPaid >= 5) break;
+        totalPaid += card.value || 0;
+        if (card.type === 'PROPERTY' || card.type === 'PROPERTY_WILD') {
+          propertyCount++;
+        }
+      }
+      
+      // Value calculation: Prioritize getting properties over money
+      // Properties are worth more because they hurt the opponent's sets
+      const extractionValue = totalPaid + (propertyCount * 2); // Bonus for each property
+      
+      if (extractionValue > maxValue) {
+        maxValue = extractionValue;
+        bestTarget = opp;
+      }
+    });
+
     return bestTarget;
   }
 

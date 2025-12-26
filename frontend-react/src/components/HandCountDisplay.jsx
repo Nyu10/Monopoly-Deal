@@ -1,7 +1,7 @@
 import React from 'react';
 import CARD_BACK_STYLES from '../utils/cardBackStyles';
 
-const HandCountDisplay = ({ cardCount, compact = false }) => {
+const HandCountDisplay = ({ cardCount, compact = false, accentColor }) => {
   if (cardCount === 0) return null;
 
   // Premium card fan layout
@@ -59,7 +59,14 @@ const HandCountDisplay = ({ cardCount, compact = false }) => {
       </div>
       
       {/* Card count badge - after the fan */}
-      <div className="bg-gradient-to-br from-slate-600 to-slate-700 text-white px-2 py-1 rounded-md shadow-md border border-slate-500/50 flex items-center gap-1.5">
+      <div 
+        className="text-white px-2.5 py-1 rounded-md shadow-md border border-white/20 flex items-center gap-1.5"
+        style={{ 
+          background: accentColor 
+            ? `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` 
+            : 'linear-gradient(135deg, #475569, #334155)'
+        }}
+      >
         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>

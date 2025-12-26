@@ -8,6 +8,7 @@ import { useGameWebSocket } from '../hooks/useGameWebSocket';
 import { useGameActions } from '../hooks/useGameActions';
 import { useLocalGameState } from '../hooks/useLocalGameState';
 import { useSettings } from '../hooks/useSettings';
+import { useLocalMultiplayerSync } from '../hooks/useLocalMultiplayerSync';
 import { BOT_DIFFICULTY } from '../ai/BotEngine';
 import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination } from '../utils/gameHelpers';
 
@@ -20,7 +21,7 @@ import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination }
  */
 const Game = () => {
   const navigate = useNavigate();
-  const { roomId } = useParams();
+  const { roomId, playerId } = useParams();
   const [showCardActionDialog, setShowCardActionDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -29,13 +30,32 @@ const Game = () => {
 
   // Determine game mode
   const isMultiplayer = !!roomId;
-  const isBotGame = !roomId; // /stadium route
+  const isLocalMultiplayer = !!playerId;
+  const isBotGame = !roomId && !playerId; // /stadium route or offline
+  const playerIdentity = isLocalMultiplayer ? `player-${parseInt(playerId) - 1}` : 'player-0';
 
   // Multiplayer mode: Connect to backend
   const { gameState: backendGameState, connected, error, sendMove, startGame: startMultiplayerGame } = useGameWebSocket(roomId);
 
-  // Bot game mode: Local game state with AI
-  const localGame = useLocalGameState(4, BOT_DIFFICULTY.MEDIUM);
+  // Bot game or Local Multiplayer mode: Local game state
+  const loadInitialState = () => {
+    if (isLocalMultiplayer) {
+      const saved = localStorage.getItem('monopoly_deal_sync_state');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved state', e);
+        }
+      }
+    }
+    return null;
+  };
+
+  const localGame = useLocalGameState(4, BOT_DIFFICULTY.MEDIUM, loadInitialState(), isLocalMultiplayer);
+
+  // Sync state if in local multiplayer mode
+  useLocalMultiplayerSync(localGame, isLocalMultiplayer);
 
   // Use appropriate game state based on mode
   const players = isMultiplayer ? (backendGameState?.players || []) : localGame.players;
@@ -49,12 +69,20 @@ const Game = () => {
   // Initialize game actions hook
   const gameActions = useGameActions(backendGameState, sendMove, !isMultiplayer);
 
-  // Auto-start bot game on mount
+  // Auto-start game on mount
   useEffect(() => {
     if (isBotGame && gameState === 'SETUP') {
       localGame.startGame();
     }
-  }, [isBotGame, gameState, localGame]);
+    // In local multiplayer, only player 1 starts the game automatically
+    // or if no state exists yet
+    if (isLocalMultiplayer && playerId === '1' && gameState === 'SETUP') {
+      const savedState = localStorage.getItem('monopoly_deal_sync_state');
+      if (!savedState) {
+        localGame.startGame();
+      }
+    }
+  }, [isBotGame, isLocalMultiplayer, playerId, gameState, localGame]);
 
   const handleDraw = () => {
     if (isMultiplayer) {
@@ -66,10 +94,9 @@ const Game = () => {
 
   const handleEndTurn = () => {
     // Check for excess cards before ending turn
-    const currentPlayer = players.find(p => p.id === 'player-0'); // Assuming 'player-0' is always human in local game
-    // For multiplayer, we'd check checking against backendGameState.players[backendGameState.socketId] ?
+    const currentPlayer = players.find(p => p.id === playerIdentity); 
 
-    if (!isMultiplayer && currentPlayer && currentPlayer.hand.length > 7) {
+    if ((isBotGame || isLocalMultiplayer) && currentPlayer && currentPlayer.hand.length > 7) {
       setShowDiscardDialog(true);
       return;
     }
@@ -95,11 +122,11 @@ const Game = () => {
   };
 
   const handleCardClick = (card) => {
-    // Only allow human player to click cards during their turn
-    if (currentTurnIndex !== 0) return;
+    // Only allow current player to click cards during their turn
+    if (currentTurnIndex !== parseInt(playerIdentity.split('-')[1])) return;
     if (gameState !== 'PLAYING') return;
 
-    const currentPlayer = players.find(p => p.id === 'player-0');
+    const currentPlayer = players.find(p => p.id === playerIdentity);
     const isInHand = currentPlayer?.hand.some(c => c.id === card.id);
     const isInProperties = currentPlayer?.properties.some(c => c.id === card.id);
 
@@ -241,6 +268,11 @@ const Game = () => {
                 )}
               </div>
             )}
+            {isLocalMultiplayer && (
+              <div className="flex items-center gap-2 justify-center mt-1">
+                <p className="text-xs text-purple-600 font-bold">Local Multiplayer • {players[parseInt(playerId)-1]?.name}</p>
+              </div>
+            )}
             {isBotGame && (
               <div className="flex items-center gap-2 justify-center mt-1">
                 <p className="text-xs text-blue-600">Bot Game</p>
@@ -268,7 +300,7 @@ const Game = () => {
                 Start Game
               </button>
             )}
-            {isBotGame && gameState === 'SETUP' && (
+            {(isBotGame || (isLocalMultiplayer && playerId === '1')) && gameState === 'SETUP' && (
               <button
                 onClick={handleNewGame}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-md"
@@ -321,7 +353,7 @@ const Game = () => {
       <div className="h-[calc(100vh-80px)] relative overflow-hidden">
         <StadiumLayout
           players={players}
-          currentPlayerId="player-0"
+          currentPlayerId={playerIdentity}
           currentTurnIndex={currentTurnIndex}
           hasDrawnThisTurn={hasDrawnThisTurn}
           onDraw={handleDraw}
@@ -348,7 +380,7 @@ const Game = () => {
         />
 
         {/* Floating Game Controls (Bottom Right) */}
-        {currentTurnIndex === 0 && gameState !== 'GAME_OVER' && gameState !== 'SETUP' && (
+        {currentTurnIndex === parseInt(playerIdentity.split('-')[1]) && gameState !== 'GAME_OVER' && gameState !== 'SETUP' && (
           <div className="absolute bottom-8 right-8 flex flex-col items-end gap-3 z-40">
             {!hasDrawnThisTurn && (
               <div className="bg-blue-600 text-white px-6 py-3 rounded-xl shadow-2xl border-2 border-blue-400 animate-pulse font-black uppercase tracking-wider mb-2">
@@ -389,7 +421,7 @@ const Game = () => {
       {gameActions.targetSelectionMode && gameActions.targetSelectionMode.type === 'RENT_COLOR' && (
         <RentColorSelectionDialog
           card={gameActions.pendingAction}
-          player={players.find(p => p.id === 'player-0')}
+          player={players.find(p => p.id === playerIdentity)}
           onSelect={handleTargetSelect}
           onCancel={gameActions.cancelAction}
         />
@@ -400,30 +432,30 @@ const Game = () => {
           card={gameActions.pendingAction}
           targetType={gameActions.targetSelectionMode.type}
           players={players}
-          currentPlayerId="player-0"
+          currentPlayerId={playerIdentity}
           onSelect={handleTargetSelect}
           onCancel={gameActions.cancelAction}
         />
       )}
 
-      {(gameActions.paymentSelectionMode || (isBotGame && gameState === 'REQUEST_PAYMENT')) && (
+      {(gameActions.paymentSelectionMode || ((isBotGame || isLocalMultiplayer) && gameState === 'REQUEST_PAYMENT')) && (
         <PaymentSelectionDialog
-          amount={isBotGame ? localGame.pendingRequest?.amount : gameActions.paymentSelectionMode.amount}
-          player={players.find(p => p.id === 'player-0')}
+          amount={isBotGame || isLocalMultiplayer ? localGame.pendingRequest?.amount : gameActions.paymentSelectionMode.amount}
+          player={players.find(p => p.id === playerIdentity)}
           onConfirm={(cards) => {
-            if (isBotGame && gameState === 'REQUEST_PAYMENT') {
+            if ((isBotGame || isLocalMultiplayer) && gameState === 'REQUEST_PAYMENT') {
               localGame.confirmPayment(cards);
             } else {
               handlePaymentConfirm(cards);
             }
           }}
-          onCancel={isBotGame ? undefined : gameActions.cancelAction} // Cannot cancel a forced payment/debt in bot game
+          onCancel={isBotGame || isLocalMultiplayer ? undefined : gameActions.cancelAction} // Cannot cancel a forced payment/debt
         />
       )}
 
       {showDiscardDialog && (
         <DiscardDialog
-          cards={players.find(p => p.id === 'player-0')?.hand || []}
+          cards={players.find(p => p.id === playerIdentity)?.hand || []}
           movesLeft={movesLeft}
           onConfirm={handleDiscardConfirm}
           onCancel={movesLeft > 0 ? () => setShowDiscardDialog(false) : undefined}

@@ -116,9 +116,23 @@ const LandingPage = () => {
                 Challenge friends in real-time matches.
               </p>
               
-              <div className="flex items-center justify-center gap-2 text-sm text-amber-600 font-bold">
-                <span className="inline-block w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                <span>Coming Soon</span>
+              <div className="flex flex-col gap-2 mt-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    localStorage.removeItem('monopoly_deal_sync_state'); // Clear old session
+                    window.open('/multiplayer/1', '_blank');
+                    window.open('/multiplayer/2', '_blank');
+                    window.open('/multiplayer/3', '_blank');
+                    window.open('/multiplayer/4', '_blank');
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md text-sm"
+                >
+                  🚀 Launch 4-Player Local Test
+                </button>
+                <div className="flex items-center justify-center gap-2 text-sm text-slate-500 font-medium">
+                  <span>Open 4 tabs to play yourself</span>
+                </div>
               </div>
             </div>
           </button>

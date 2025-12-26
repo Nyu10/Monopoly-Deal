@@ -10,7 +10,7 @@ import CARD_BACK_STYLES from '../utils/cardBackStyles';
  * Custom hook for managing local bot game state
  * This handles the full game logic without needing a backend
  */
-export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULTY.MEDIUM, initialState = null) => {
+export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULTY.MEDIUM, initialState = null, isMultiplayer = false) => {
   const [gameState, setGameState] = useState(initialState?.gameState || 'SETUP');
   const [deck, setDeck] = useState(initialState?.deck || []);
   const [discardPile, setDiscardPile] = useState(initialState?.discardPile || []);
@@ -108,9 +108,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     for (let i = 0; i < playerCount; i++) {
       newPlayers.push({
         id: `player-${i}`,
-        name: i === 0 ? 'You' : `Bot ${i}`,
-        isHuman: i === 0,
-        hand: [],
+        name: isMultiplayer ? `Player ${i + 1}` : (i === 0 ? 'You' : `Bot ${i}`),
+        isHuman: isMultiplayer ? true : (i === 0),        hand: [],
         bank: [],
         properties: [],
       });
@@ -388,16 +387,37 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       players.forEach((player, idx) => {
         if (idx === receiverIdx) return;
         
-        // Check for Just Say No
-        if (checkForJustSayNo(player.id, 'Birthday')) {
-          birthdayPayments.push({ player: player.name, note: 'said NO!' });
-          // Ensure hand is updated in our local state too
-          const jsnCard = player.hand.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
-          if (jsnCard) {
-            const victim = { ...newPlayersState[idx] };
-            victim.hand = victim.hand.filter(c => c.id !== jsnCard.id);
-            newPlayersState[idx] = victim;
+        // Handle Human Interaction: Set pending request for human players
+        if (player.isHuman) {
+          const availableCards = [...(player.bank || []), ...(player.properties || [])];
+          if (availableCards.length > 0) {
+            setPendingRequest({
+              type: 'BIRTHDAY',
+              amount: GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER,
+              requesterId: currentPlayer.id,
+              targetId: player.id,
+              cardId: cardId,
+              card: card
+            });
+            setGameState('REQUEST_PAYMENT');
+            birthdayPayments.push({ player: player.name, note: 'pending payment...' });
+            return;
           }
+          if (availableCards.length === 0) {
+            birthdayPayments.push({ player: player.name, note: 'had no assets' });
+            return;
+          }
+        }
+
+        // Handle Bots: Auto-calculate and check for Just Say No
+        // Check hand for JSN locally on the player object from the current state iteration
+        const jsnCard = player.hand.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
+        if (jsnCard) {
+          birthdayPayments.push({ player: player.name, note: 'said NO!' });
+          const victim = { ...newPlayersState[idx] };
+          victim.hand = victim.hand.filter(c => c.id !== jsnCard.id);
+          newPlayersState[idx] = victim;
+          setDiscardPile(prev => [...prev, jsnCard]);
           return;
         }
 
@@ -405,11 +425,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         const paymentCards = calculateOptimalPayment(availableCards, GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER);
         const paymentIds = paymentCards.map(c => c.id);
         
-        const victimIdx = idx;
-        const victim = { ...newPlayersState[victimIdx] };
+        const victim = { ...newPlayersState[idx] };
         victim.bank = (victim.bank || []).filter(c => !paymentIds.includes(c.id));
         victim.properties = (victim.properties || []).filter(c => !paymentIds.includes(c.id));
-        newPlayersState[victimIdx] = victim;
+        newPlayersState[idx] = victim;
 
         const paysMoney = paymentCards.filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD);
         const paysProp = paymentCards.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
@@ -422,13 +441,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         });
       });
 
+      // Update state with bot payments (Human payment is handled later via confirmPayment)
       setPlayers(prev => {
          const updatedPlayers = [...newPlayersState];
-         updatedPlayers[receiverIdx] = cleanupBuildings(updatedPlayers[receiverIdx]);
-         newPlayersState.forEach((p, idx) => {
-           if (idx !== receiverIdx) {
-             updatedPlayers[idx] = cleanupBuildings(updatedPlayers[idx]);
-           }
+         // Apply cleanup to all affected players
+         updatedPlayers.forEach((p, idx) => {
+           updatedPlayers[idx] = cleanupBuildings(updatedPlayers[idx]);
          });
          return updatedPlayers;
       });
@@ -838,24 +856,26 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
   /**
    * Bot turn automation
+   * CRITICAL: Only trigger bot actions when it's actually the bot's turn
    */
   useEffect(() => {
     if (gameState === 'GAME_OVER') return;
     
     const currentPlayer = players[currentTurnIndex];
-    if (!currentPlayer || currentPlayer.isHuman) return;
+    // IMPORTANT: Return early if current player is human OR doesn't exist OR in multiplayer mode
+    if (!currentPlayer || currentPlayer.isHuman || isMultiplayer) return;
 
     const bot = botsRef.current[currentTurnIndex];
     if (!bot) return;
 
     let timerId;
 
-    // Bot draws
+    // Bot draws - ONLY if it's this bot's turn
     if (gameState === 'DRAW' && !hasDrawnThisTurn) {
       timerId = setTimeout(() => drawCards(), 1000);
     }
 
-    // Bot plays
+    // Bot plays - ONLY if it's this bot's turn
     else if (gameState === 'PLAYING' && movesLeft > 0) {
       timerId = setTimeout(() => {
         const decision = bot.decideMove(currentPlayer.hand, {
@@ -917,7 +937,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       }, 1500);
     }
 
-    // Bot ends turn when out of moves
+    // Bot ends turn when out of moves - ONLY if it's this bot's turn
     else if (gameState === 'PLAYING' && movesLeft === 0) {
       timerId = setTimeout(() => endTurn(), 1000);
     }
@@ -950,14 +970,21 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       requesterName = requester.name;
       
       const paymentIds = paymentCards.map(c => c.id);
-      
-      // Transfer cards
-      victim.bank = (victim.bank || []).filter(c => !paymentIds.includes(c.id));
-      victim.properties = (victim.properties || []).filter(c => !paymentIds.includes(c.id));
-      const paysMoney = paymentCards.filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD);
-      const paysProp = paymentCards.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
-      requester.bank = [...(requester.bank || []), ...paysMoney];
-      requester.properties = [...(requester.properties || []), ...paysProp];
+      const jsnCard = paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
+
+      if (jsnCard) {
+        // Just Say No case: Remove JSN card from victim's hand, do NOT transfer any other assets
+        victim.hand = (victim.hand || []).filter(c => c.id !== jsnCard.id);
+        setDiscardPile(prev => [...prev, jsnCard]);
+      } else {
+        // Regular payment case: Transfer cards
+        victim.bank = (victim.bank || []).filter(c => !paymentIds.includes(c.id));
+        victim.properties = (victim.properties || []).filter(c => !paymentIds.includes(c.id));
+        const paysMoney = paymentCards.filter(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.PROPERTY_WILD);
+        const paysProp = paymentCards.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.PROPERTY_WILD);
+        requester.bank = [...(requester.bank || []), ...paysMoney];
+        requester.properties = [...(requester.properties || []), ...paysProp];
+      }
       
       // If it was the requester's turn and they played a card, remove it from hand if not already done
       if (pendingRequest.cardId) {
@@ -969,12 +996,16 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       return newPlayers;
     });
 
+    const isJSN = paymentCards.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
+
     setMatchLog(prev => [{
       id: Date.now(),
       player: victimName,
-      action: 'PAYMENT',
-      message: `paid ${paymentNames || 'nothing'} to ${requesterName} for ${pendingRequest.type}`,
-      card: pendingRequest.card
+      action: isJSN ? 'JUST_SAY_NO' : 'PAYMENT',
+      message: isJSN 
+        ? `said NO! to ${pendingRequest.type}` 
+        : `paid ${paymentNames || 'nothing'} to ${requesterName} for ${pendingRequest.type}`,
+      card: isJSN ? paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO) : pendingRequest.card
     }, ...prev]);
 
     setGameState('PLAYING');
@@ -1055,6 +1086,18 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       }, ...prev]);
     }, [currentTurnIndex, players]),
     confirmPayment,
+    
+    // Setters for external sync
+    setGameState,
+    setDeck,
+    setDiscardPile,
+    setPlayers,
+    setCurrentTurnIndex,
+    setMovesLeft,
+    setHasDrawnThisTurn,
+    setWinner,
+    setMatchLog,
+    setPendingRequest
   };
 };
 

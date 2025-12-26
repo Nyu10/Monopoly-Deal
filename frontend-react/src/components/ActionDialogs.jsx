@@ -343,6 +343,9 @@ export const PaymentSelectionDialog = ({ amount, player, onConfirm, onCancel }) 
   const canPay = totalSelectedValue >= amount || (totalSelectedValue === totalPossibleValue && totalPossibleValue > 0); 
   const remainingValue = Math.max(0, amount - totalSelectedValue);
 
+  // Check if player has a "Just Say No" card in hand
+  const jsnCard = (player.hand || []).find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
+
   const toggleCard = (card) => {
     setSelectedCards(prev =>
       prev.find(c => c.id === card.id)
@@ -363,6 +366,21 @@ export const PaymentSelectionDialog = ({ amount, player, onConfirm, onCancel }) 
             <X size={24} />
           </button>
         </div>
+
+        {jsnCard && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl text-white shadow-lg flex items-center justify-between">
+            <div>
+              <div className="font-black uppercase tracking-wider text-sm">Just Say No!</div>
+              <div className="text-xs text-purple-100 font-medium">You have a Just Say No card. Use it to cancel this payment?</div>
+            </div>
+            <button 
+              onClick={() => onConfirm([jsnCard])}
+              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-black uppercase tracking-wider text-[10px] shadow-md hover:bg-purple-50 transition-all hover:scale-105"
+            >
+              Use Card
+            </button>
+          </div>
+        )}
 
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-100">
