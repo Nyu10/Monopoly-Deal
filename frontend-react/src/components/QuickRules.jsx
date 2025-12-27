@@ -140,6 +140,7 @@ const QuickRules = ({ isOpen, onClose }) => {
                    "Properties never go in your Bank.",
                    "Change is never given when paying a debt.",
                    "If you run out of money, you must pay with property.",
+                   "You cannot win with 2 sets of the same color.",
                    "Flip wild property colors anytime during your turn."
                  ].map((rule, i) => (
                    <div key={i} className="p-3 text-[11px] text-slate-700 leading-snug flex items-center gap-3 hover:bg-red-50/30 transition-colors">

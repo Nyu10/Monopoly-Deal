@@ -108,23 +108,20 @@ const StadiumLayout = ({
     <div className="w-full h-full flex bg-slate-50 overflow-hidden">
       
       {/* LEFT SIDEBAR: Match Log */}
-      <div className="w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 z-50 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative">
-        {/* Background Gradient/Texture */}
-        <div className="absolute inset-0 bg-slate-50/30 pointer-events-none"></div>
-        
+      <div className="w-80 h-full flex-shrink-0 bg-slate-50 border-r border-slate-200 z-50 flex flex-col relative">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 bg-white/90 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
+        <div className="p-5 border-b border-slate-200 bg-white flex items-center justify-between z-10 sticky top-0">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm ring-2 ring-green-100"></div>
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Match Log</h3>
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-sm ring-2 ring-blue-100"></div>
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Match Log</h3>
           </div>
-          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full border border-slate-200">{matchLog.length} Actions</span>
+          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-tighter">{matchLog.length} Actions</span>
         </div>
         
         {/* Content */}
         <div 
           ref={logContainerRef}
-          className="overflow-y-auto p-4 space-y-4 flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent z-10"
+          className="overflow-y-auto p-4 flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent z-10"
         >
           {sortedLog.length === 0 && (
              <div className="flex flex-col items-center justify-center h-48 text-center opacity-40">
@@ -135,91 +132,94 @@ const StadiumLayout = ({
              </div>
           )}
           
-          {sortedLog.map((log) => {
-            const cardColor = log.card ? (log.card.currentColor || log.card.color) : null;
-            const colorData = cardColor ? COLORS[cardColor] : null;
-            
-            // Handle Multi/Rainbow color for styling
-            const isMulti = cardColor === 'multi';
-            const borderStyle = isMulti 
-              ? { borderLeft: '4px solid #FFD700', borderImage: 'linear-gradient(to bottom, #f06, #4a90e2, #7ed321, #f5a623) 1' }
-              : (colorData ? { borderLeft: `4px solid ${colorData.hex}` } : {});
+          <div className="relative pl-2 space-y-6 pb-2">
+              {/* Vertical Line - Darker for visibility */}
+              {sortedLog.length > 0 && (
+                 <div className="absolute left-[19px] top-2 bottom-6 w-[2px] bg-slate-200"></div>
+              )}
 
-            return (
-              <div key={log.id} className="group relative">
-                {/* Timeline connector */}
-                <div className="absolute left-[6px] top-7 bottom-[-16px] w-[2px] bg-slate-200 group-last:hidden"></div>
-                
-                {/* Log Item */}
-                <div className="relative pl-0">
-                  <div 
-                    className="text-sm bg-white hover:bg-slate-50 p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 shadow-sm transition-all duration-200 group-hover:translate-x-1 group-hover:shadow-md overflow-hidden"
-                    style={borderStyle}
-                  >
-                    {/* Header: Avatar + Name + Time */}
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <div className={`w-3 h-3 rounded-full shadow-lg border-2 border-white box-content ${
-                        log.player === 'You' || log.player === currentPlayer?.name 
-                          ? 'bg-blue-500 ring-2 ring-blue-100' 
-                          : 'bg-red-500 ring-2 ring-red-100'
-                      }`}></div>
-                      <span className={`font-bold text-xs tracking-wide ${
-                        log.player === 'You' || log.player === currentPlayer?.name ? 'text-blue-600' : 'text-slate-700'
-                      }`}>
-                        {log.player}
-                      </span>
-                      <span className="text-[10px] text-slate-400 ml-auto font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                        {new Date(log.timestamp || log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    
-                    {/* Message */}
-                    <div className="text-slate-600 text-xs leading-relaxed pl-1 font-medium">
-                      {log.message}
-                    </div>
-                    
-                    {/* Action Badge (if card involved) */}
-                    {log.card && (() => {
-                      // Determine styles based on card type and action
-                      let badgeStyle = {};
-                      let badgeClass = "mt-2.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 border transition-colors w-full ";
-                      
-                      if (log.action === 'BANK') {
-                        badgeClass += "bg-emerald-50 text-emerald-700 border-emerald-200";
-                      } else if (log.action === 'PROPERTY' && colorData) {
-                        badgeStyle = {
-                          backgroundColor: `${colorData.hex}15`, // Very light version of the color
-                          color: colorData.hex,
-                          borderColor: `${colorData.hex}40`
-                        };
-                      } else if (log.card.type === CARD_TYPES.ACTION) {
-                        // Generic action style if not specifically handled
-                        badgeClass += "bg-slate-50 text-slate-600 border-slate-200";
-                      } else if ((log.card.type === CARD_TYPES.RENT || log.card.type === CARD_TYPES.RENT_WILD) && colorData) {
-                        badgeStyle = {
-                          backgroundColor: `${colorData.hex}15`,
-                          color: colorData.hex,
-                          borderColor: `${colorData.hex}40`
-                        };
-                      } else {
-                        badgeClass += "bg-slate-50 text-slate-600 border-slate-200";
-                      }
+              {sortedLog.map((log, index) => {
+                const isLatest = index === sortedLog.length - 1;
+                const cardColor = log.card ? (log.card.currentColor || log.card.color) : null;
+                const colorData = cardColor ? COLORS[cardColor] : null;
 
-                      return (
-                        <div className={badgeClass} style={badgeStyle}>
-                          {log.action === 'BANK' && <DollarSign size={10} strokeWidth={3} />}
-                          {(log.action === 'PROPERTY' || log.card.type === CARD_TYPES.PROPERTY || log.card.type === CARD_TYPES.PROPERTY_WILD) && <Home size={10} strokeWidth={3} />}
-                          {(log.action === 'ACTION' || log.card.type === CARD_TYPES.ACTION) && <Zap size={10} strokeWidth={3} />}
-                          {(log.card.type === CARD_TYPES.RENT || log.card.type === CARD_TYPES.RENT_WILD) && <DollarSign size={10} strokeWidth={3} />}
-                          <span className="truncate">{log.card.name}</span>
-                        </div>
-                      );
-                    })()}
+                return (
+                  <div key={log.id} className={`relative pl-8 transition-all duration-500 ${isLatest ? 'animate-in fade-in slide-in-from-bottom-2' : ''}`}>
+                    {/* Timeline Dot */}
+                    <div className={`absolute left-[11px] top-3 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-md z-10 box-content transition-all duration-300 ${
+                        isLatest ? 'bg-blue-600 ring-4 ring-blue-100 scale-110' : 'bg-slate-300'
+                    }`}>
+                        {isLatest && <div className="absolute inset-0 rounded-full bg-blue-500 animate-ping opacity-30"></div>}
+                    </div>
+
+                    {/* Content Card */}
+                    <div className={`
+                        relative flex flex-col gap-1.5 rounded-xl p-3 border transition-all duration-300 group
+                        ${isLatest 
+                            ? 'bg-white border-blue-400 shadow-[0_8px_20px_-4px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/20' 
+                            : 'bg-white border-slate-200 shadow-sm hover:border-slate-300 hover:shadow-md'
+                        }
+                    `}>
+                        {/* "New" Badge for Latest */}
+                        {isLatest && (
+                            <div className="absolute -right-1 -top-2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-lg border border-blue-400 tracking-wider flex items-center gap-1 z-10">
+                                LATEST
+                            </div>
+                        )}
+
+                        {/* Header */}
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {/* Avatar (Small) */}
+                                <div className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-black border ${
+                                    log.player === 'You' ? 'bg-blue-600 text-white border-blue-700' : 'bg-rose-500 text-white border-rose-600'
+                                }`}>
+                                    {log.player.charAt(0)}
+                                </div>
+                                <span className={`text-xs font-black tracking-tight ${log.player === 'You' ? 'text-blue-600' : 'text-slate-700'}`}>
+                                    {log.player}
+                                </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-bold font-mono">
+                               {new Date(log.timestamp || log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                         </div>
+
+                         {/* Message Body */}
+                         <div className={`text-xs leading-relaxed ${isLatest ? 'text-slate-800 font-semibold' : 'text-slate-600 font-medium'}`}>
+                            {log.message}
+                         </div>
+
+                         {/* Card Attachment (if any) */}
+                         {log.card && (
+                             <div className={`
+                                flex items-center gap-2 px-2.5 py-1.5 rounded-md border mt-1 select-none shadow-inner
+                                ${isLatest ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}
+                             `}>
+                                {/* Tiny Card Icon / Color Indicator */}
+                                {colorData ? (
+                                    <div className="w-2.5 h-2.5 rounded-sm shadow-sm ring-1 ring-black/5 flex-shrink-0" style={{ background: colorData.hex }}></div>
+                                ) : (
+                                    // Action/Bank Icon
+                                    log.action === 'BANK' ? (
+                                        <div className="w-4 h-4 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                                            <DollarSign size={10} strokeWidth={3} />
+                                        </div>
+                                    ) : (
+                                        <div className="w-4 h-4 rounded bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+                                            <Layers size={10} strokeWidth={3} />
+                                        </div>
+                                    )
+                                )}
+                                
+                                <span className="text-[10px] font-bold text-slate-800 truncate">{log.card.name}</span>
+                             </div>
+                         )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                )
+              })}
+          </div>
         </div>
       </div>
 

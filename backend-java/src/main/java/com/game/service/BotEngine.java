@@ -154,67 +154,54 @@ public class BotEngine {
 
     /**
      * Select cards for bot to pay a debt
-     * Priority: Money cards > Action cards > Low-value properties
+     * Goal: Satisfy debt while minimizing total value lost.
+     * Secondary Goal: Keep high-priority cards (Properties) if possible.
      */
     public List<Card> selectCardsForPayment(Player bot, int amount) {
-        List<Card> selectedCards = new ArrayList<>();
-        int totalValue = 0;
-        
-        // Collect all available cards
+        // Collect all available cards FROM TABLE ONLY (Standard Rules)
+        // You cannot pay with cards from your hand
         List<Card> availableCards = new ArrayList<>();
         availableCards.addAll(bot.getBank());
-        availableCards.addAll(bot.getHand());
+        availableCards.addAll(bot.getProperties());
         
-        // Sort by value (ascending) to minimize overpayment
-        availableCards.sort(Comparator.comparingInt(Card::getValue));
+        // Sort by:
+        // 1. Value (Ascending) - to find the smallest combination satisfying debt
+        // 2. Spend Priority (Money first, then Property) - to break value ties
+        availableCards.sort((c1, c2) -> {
+            if (c1.getValue() != c2.getValue()) {
+                return Integer.compare(c1.getValue(), c2.getValue());
+            }
+            return Integer.compare(getSpendPriority(c1), getSpendPriority(c2));
+        });
         
-        // Priority 1: Use money cards first
+        List<Card> selectedCards = new ArrayList<>();
+        int currentTotal = 0;
+        
+        // Greedy selection from sorted list
         for (Card card : availableCards) {
-            if (totalValue >= amount) break;
-            if (card.getType() == CardType.MONEY) {
-                selectedCards.add(card);
-                totalValue += card.getValue();
-            }
+            if (currentTotal >= amount) break;
+            selectedCards.add(card);
+            currentTotal += card.getValue();
         }
         
-        // Priority 2: Use action cards if still need more
-        if (totalValue < amount) {
-            for (Card card : availableCards) {
-                if (totalValue >= amount) break;
-                if (!selectedCards.contains(card) && 
-                    (card.getType() == CardType.ACTION || 
-                     card.getType() == CardType.RENT || 
-                     card.getType() == CardType.RENT_WILD)) {
-                    selectedCards.add(card);
-                    totalValue += card.getValue();
-                }
-            }
-        }
-        
-        // Priority 3: Use properties as last resort (lowest value first)
-        if (totalValue < amount) {
-            for (Card card : availableCards) {
-                if (totalValue >= amount) break;
-                if (!selectedCards.contains(card) && 
-                    (card.getType() == CardType.PROPERTY || 
-                     card.getType() == CardType.PROPERTY_WILD)) {
-                    selectedCards.add(card);
-                    totalValue += card.getValue();
-                }
-            }
-        }
-        
-        return optimizePayment(selectedCards, amount);
+        return optimizePayment(selectedCards, amount, bot);
     }
 
-    private List<Card> optimizePayment(List<Card> selectedCards, int amount) {
+    private int getSpendPriority(Card card) {
+        // Lower number = Spend First (used for tie-breaking equal values)
+        if (card.getType() == CardType.MONEY) return 1;
+        // Action/Rent cards in Bank are treated as Money
+        if (card.getType() == CardType.ACTION || card.getType() == CardType.RENT || card.getType() == CardType.RENT_WILD) return 1; 
+        return 2; // Property (Spend last)
+    }
+
+    private List<Card> optimizePayment(List<Card> selectedCards, int amount, Player bot) {
         int totalValue = selectedCards.stream().mapToInt(Card::getValue).sum();
         
         // Sort by "Keep Priority" (High to Low) so we try to remove valuable cards first
-        // Priority: Property > Action > Money
         selectedCards.sort((c1, c2) -> {
-            int p1 = getKeepPriority(c1);
-            int p2 = getKeepPriority(c2);
+            int p1 = getKeepPriority(c1, bot);
+            int p2 = getKeepPriority(c2, bot);
             if (p1 != p2) return Integer.compare(p2, p1); // Higher priority first
             return Integer.compare(c2.getValue(), c1.getValue()); // Higher value first
         });
@@ -232,11 +219,72 @@ public class BotEngine {
         return selectedCards;
     }
 
-    private int getKeepPriority(Card card) {
-        if (card.getType() == CardType.PROPERTY || card.getType() == CardType.PROPERTY_WILD) return 3;
-        if (card.getType() == CardType.ACTION || card.getType() == CardType.RENT || card.getType() == CardType.RENT_WILD) return 2;
-        return 1; // MONEY
+    private int getKeepPriority(Card card, Player bot) {
+        // HIERARCHY FOR TABLE ASSETS (Bank & Properties)
+        
+        // Tier 1: CRITICAL (Do not use for payment unless absolutely forced)
+        // Properties in Complete Sets
+        if (isCardInCompleteSet(card, bot)) return 100;
+        
+        // Tier 2: VERY HIGH VALUE
+        // Wild Properties (Extremely flexible)
+        if (card.getType() == CardType.PROPERTY_WILD) return 90;
+        
+        // Tier 3: HIGH VALUE MONEY
+        // 10M Money (Rare and powerful buffer)
+        if (card.getValue() >= 10) return 80;
+        // 5M Money (Good buffer)
+        if (card.getValue() >= 5) return 70;
+        
+        // Tier 4: STANDARD PROPERTIES
+        // Single properties are valuable, but less than "Big Money" that protects your sets.
+        // Losing a single property is bad, but losing your last 5M bill exposes your sets to small rents.
+        // However, usually you'd rather pay cash than property.
+        // Let's bias slightly towards KEEPING properties over 5M bills?
+        // User said: "remake the hierarchy".
+        // Strategy: Cash is meant to be spent. Properties are win conditions.
+        // BUT: if I have a 1M property and a 10M bill, and I owe 1M...
+        // Spend the 1M property? No. Spend the 10M bill? (Overpay 9M). No.
+        
+        // Wait, the "Selection" phase handles the "Don't Overpay" logic.
+        // This "Keep Priority" is for deciding between TWO cards of roughly equal utility in satisfying debt.
+        // e.g. I owe 3M. I can pay with 3M Property or 3M Cash.
+        // ALWAYS pay with Cash.
+        
+        if (card.getType() == CardType.PROPERTY) return 60;
+        
+        // Tier 5: LIQUID ASSETS (Spend these first)
+        // Action cards banked as money
+        if (card.getType() == CardType.ACTION || card.getType() == CardType.RENT || card.getType() == CardType.RENT_WILD) return 20;
+        
+        // Pure Money (1M-4M)
+        return 10;
+    }
 
+    private boolean isCardInCompleteSet(Card card, Player bot) {
+        if (card.getType() != CardType.PROPERTY && card.getType() != CardType.PROPERTY_WILD) return false;
+        
+        String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
+        if (color == null) return false;
+        
+        // Count cards of this color in bot's played properties
+        long count = bot.getProperties().stream()
+                .filter(c -> {
+                    String C = c.getCurrentColor() != null ? c.getCurrentColor() : c.getColor();
+                    return C != null && C.equals(color);
+                })
+                .count();
+                
+        // Check requirement
+         Map<String, Integer> requiredCounts = Map.of(
+            "brown", 2, "light_blue", 3, "pink", 3, "orange", 3,
+            "red", 3, "yellow", 3, "green", 3, "dark_blue", 2, 
+            "railroad", 4, "utility", 2
+        );
+        
+        // Note: This checks if the SET is currently complete. 
+        // If it is, this card is part of that complete set.
+        return requiredCounts.containsKey(color) && count >= requiredCounts.get(color);
     }
 
     private int calculateBotWealth(Player bot) {

@@ -28,16 +28,23 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   const playersRef = useRef(players); // Keep a ref for internal logic checks without dependency loops
   const isEndingTurnRef = useRef(false); // Prevent duplicate end turn calls
 
+  // Ref for synchronous log ID calculation
+  const nextLogIdRef = useRef(initialState?.nextLogId || (initialState?.matchLog?.length > 0 ? Math.max(...initialState.matchLog.map(l => l.id)) : 0));
+
   const addLogEntry = useCallback((entry) => {
-    setNextLogId(prevId => {
-      const newId = prevId + 1;
-      setMatchLog(prevLog => [{
-        ...entry,
-        id: newId,
-        timestamp: Date.now() // Keep timestamp for display
-      }, ...prevLog]);
-      return newId;
-    });
+    nextLogIdRef.current += 1;
+    const newId = nextLogIdRef.current;
+    
+    // Sync state for components that might rely on it
+    setNextLogId(newId);
+    
+    setMatchLog(prevLog => [{
+      ...entry,
+      id: newId,
+      timestamp: Date.now()
+    }, ...prevLog]);
+    
+    return newId;
   }, []);
 
   useEffect(() => {
@@ -262,7 +269,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setMovesLeft(0);
     setHasDrawnThisTurn(false);
     setWinner(null);
-    setNextLogId(1);
+    nextLogIdRef.current = 1;
     setMatchLog([{
       id: 1,
       timestamp: Date.now(),
@@ -421,6 +428,33 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       // Houses and Hotels CAN be banked as money cards
     }
 
+    // PRIORITY HANDLING: If banking, skip all action logic
+    if (destination === 'BANK') {
+      setPlayers(prev => {
+        const newPlayers = [...prev];
+        const player = { ...newPlayers[currentTurnIndex] };
+        
+        // Remove from hand
+        player.hand = player.hand.filter(c => c.id !== cardId);
+        
+        // Add to bank
+        player.bank = [...player.bank, card];
+        
+        newPlayers[currentTurnIndex] = player;
+        return newPlayers;
+      });
+
+      addLogEntry({
+        player: currentPlayer.name,
+        action: 'BANK',
+        card: card,
+        message: card.type === CARD_TYPES.MONEY ? `banked $${card.value}M` : `banked ${card.name} ($${card.value}M)`
+      });
+
+      if (!isSandbox) setMovesLeft(m => m - 1);
+      return;
+    }
+
     // Handle Pass Go Action: Draw 2 cards
     let drawnCards = [];
     if (card.actionType === ACTION_TYPES.PASS_GO) {
@@ -464,6 +498,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         const availableCards = [...(targetPlayer.bank || []), ...(targetPlayer.properties || [])];
         
         if (targetPlayer.isHuman && availableCards.length > 0) {
+          // Add log entry first so we can get its ID
+          const logId = addLogEntry({
+            player: currentPlayer.name, action: 'DEBT_COLLECTOR',
+            message: `demanded $5M from ${targetPlayer.name}`, card: card
+          });
+
           // Human needs to choose payment
           setPendingRequest({
             type: 'DEBT',
@@ -471,15 +511,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
             requesterId: currentPlayer.id,
             targetId: targetPlayerId,
             cardId: cardId,
-            card: card
+            card: card,
+            logId: logId
           });
           setGameState('REQUEST_PAYMENT');
-          
-          addLogEntry({
-            player: currentPlayer.name, action: 'DEBT_COLLECTOR',
-            message: `demanded $5M from ${targetPlayer.name}`, card: card
-          });
-          
           return;
         }
 
@@ -544,16 +579,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         if (player.isHuman) {
           const availableCards = [...(player.bank || []), ...(player.properties || [])];
           if (availableCards.length > 0) {
-            setPendingRequest({
-              type: 'BIRTHDAY',
-              amount: GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER,
-              requesterId: currentPlayer.id,
-              targetId: player.id,
-              cardId: cardId,
-              card: card
-            });
+            // We'll set the request but we can't log yet because we need to process other players' payments
+            // So we'll mark this for later in the birthdayPayments array
             setGameState('REQUEST_PAYMENT');
-            birthdayPayments.push({ player: player.name, note: 'pending payment...' });
+            birthdayPayments.push({ player: player.name, note: 'pending payment...', isPending: true });
             return;
           }
           if (availableCards.length === 0) {
@@ -608,11 +637,25 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         .map(p => `${p.player}: ${p.note || (p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`)
         .join('; ');
 
-      addLogEntry({
+      const logId = addLogEntry({
         player: currentPlayer.name, action: 'BIRTHDAY',
         message: `collected from everyone: ${paymentSummary}`, card: card
       });
       
+      // If there was a pending human payment, update the request with the logId and other info
+      const pendingHuman = birthdayPayments.find(p => p.isPending);
+      if (pendingHuman) {
+         setPendingRequest({
+            type: 'BIRTHDAY',
+            amount: GAME_RULES.BIRTHDAY_AMOUNT_PER_PLAYER,
+            requesterId: currentPlayer.id,
+            targetId: players.find(p => p.name === pendingHuman.player)?.id,
+            cardId: cardId,
+            card: card,
+            logId: logId
+         });
+      }
+
       setDiscardPile(p => [...p, card]);
       setMovesLeft(m => m - 1);
       return;
@@ -672,17 +715,9 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
           const availableCards = [...(target.bank || []), ...(target.properties || [])];
           if (target.isHuman && availableCards.length > 0) {
-             setPendingRequest({
-               type: 'RENT',
-               amount: rentAmount,
-               requesterId: charger.id,
-               targetId: target.id,
-               cardId: cardId,
-               card: card
-             });
              setGameState('REQUEST_PAYMENT');
              hasPendingHuman = true;
-             rentPayments.push({ player: target.name, note: 'pending payment...' });
+             rentPayments.push({ player: target.name, note: 'pending payment...', isPending: true });
              return;
           }
 
@@ -727,10 +762,24 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           .map(p => `${p.player}: ${p.note || (p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`)
           .join('; ');
 
-        addLogEntry({
+        const logId = addLogEntry({
           player: charger.name, action: 'RENT',
           message: `charged $${rentAmount}M rent. Payments: ${paymentSummary}`, card: card
         });
+
+        // Store pending request if human needs to pay
+        const pendingHuman = rentPayments.find(p => p.isPending);
+        if (pendingHuman) {
+           setPendingRequest({
+              type: 'RENT',
+              amount: rentAmount,
+              requesterId: charger.id,
+              targetId: players.find(p => p.name === pendingHuman.player)?.id,
+              cardId: cardId,
+              card: card,
+              logId: logId
+           });
+        }
       }
 
       setDiscardPile(p => auxiliaryCard ? [...p, card, auxiliaryCard] : [...p, card]);
@@ -1195,14 +1244,46 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
     const isJSN = paymentCards.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
 
-    addLogEntry({
-      player: victimName,
-      action: isJSN ? 'JUST_SAY_NO' : 'PAYMENT',
-      message: isJSN 
-        ? `said NO! to ${pendingRequest.type}` 
-        : `paid ${paymentNames || 'nothing'} to ${requesterName} for ${pendingRequest.type}`,
-      card: isJSN ? paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO) : pendingRequest.card
-    });
+    // Instead of adding a new log entry, we update the existing one if logId is provided
+    if (pendingRequest.logId) {
+       setMatchLog(prevLog => prevLog.map(entry => {
+          if (entry.id === pendingRequest.logId) {
+             let newMessage = entry.message;
+             const paymentSummary = isJSN ? 'said NO!' : (paymentNames || 'nothing');
+             
+             // Case 1: Multiple players (Birthday/Rent-All)
+             if (newMessage.includes('pending payment...')) {
+                newMessage = newMessage.replace(`${victimName}: pending payment...`, `${victimName}: ${paymentSummary}`);
+             } 
+             // Case 2: Direct targeting (Debt Collector/Rent-Single)
+             else if (pendingRequest.type === 'DEBT') {
+                if (isJSN) {
+                   newMessage = `${victimName} said NO! to ${requesterName}'s Debt Collector`;
+                } else {
+                   newMessage = `${requesterName} collected $5M from ${victimName}`;
+                }
+             }
+             
+             return { 
+               ...entry, 
+               message: newMessage,
+               // If it was a JSN, update the card shown in the log to the JSN card
+               card: isJSN ? paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO) : entry.card
+             };
+          }
+          return entry;
+       }));
+    } else {
+       // Fallback for cases where logId wasn't tracked
+       addLogEntry({
+         player: victimName,
+         action: isJSN ? 'JUST_SAY_NO' : 'PAYMENT',
+         message: isJSN 
+           ? `said NO! to ${pendingRequest.type}` 
+           : `paid ${paymentNames || 'nothing'} to ${requesterName} for ${pendingRequest.type}`,
+         card: isJSN ? paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO) : pendingRequest.card
+       });
+    }
 
     setGameState('PLAYING');
     setPendingRequest(null);

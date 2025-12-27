@@ -112,7 +112,7 @@ COLORS.multi = {
   hex: 'linear-gradient(45deg, #f06, #4a90e2, #7ed321, #f5a623)', 
   text: 'white',
   count: 0, 
-  name: 'Multi', 
+  name: 'Wild', 
   rent: [] 
 };
 

@@ -507,7 +507,7 @@ const ActionCard = ({ card, size = 'lg', onClick, selected, className, style, la
       case ACTION_TYPES.BIRTHDAY:
         return (
           <div className="flex items-center justify-center">
-            <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
+             <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={{ color: actionStyle.iconColor }} strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 12v10H4V12" />
               <path d="M2 7h20v5H2z" />
               <path d="M12 22V7" />

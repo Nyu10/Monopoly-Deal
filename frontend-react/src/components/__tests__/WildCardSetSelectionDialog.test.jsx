@@ -32,7 +32,8 @@ vi.mock('../../utils/gameHelpers', async () => {
             blue: { name: 'Blue', hex: '#0000FF', count: 2 },
             green: { name: 'Green', hex: '#008000', count: 3 },
             red: { name: 'Red', hex: '#FF0000', count: 3 },
-            yellow: { name: 'Yellow', hex: '#FFFF00', count: 3 }
+            yellow: { name: 'Yellow', hex: '#FFFF00', count: 3 },
+            multi: { name: 'Wild', hex: '#FFFFFF', count: 0 }
         }
     };
 });
@@ -80,9 +81,9 @@ describe('WildCardSetSelectionDialog', () => {
       />
     );
 
-    expect(screen.getByText('Where to Play Wild Card?')).toBeTruthy();
-    expect(screen.getByText('Play as New Set')).toBeTruthy();
-    expect(screen.queryByText('Bank It')).toBeNull();
+    expect(screen.getByText('Wild Card Placement')).toBeTruthy();
+    // Should see "Start Wild Set"
+    expect(screen.getByText('Start Wild Set')).toBeTruthy();
   });
 
   it('shows existing compatible sets for dual color wild', () => {
@@ -96,31 +97,24 @@ describe('WildCardSetSelectionDialog', () => {
       />
     );
 
-    expect(screen.getByText('Add to Existing Set:')).toBeTruthy();
-    expect(screen.getByText('Blue Set')).toBeTruthy();
+    expect(screen.getByText('Add to Blue Set')).toBeTruthy();
   });
 
-  it('calls onSelect with correct params when "Play as New Set" is clicked for dual wild', () => {
+  it('calls onSelect with correct params when "Start Wild Set" is clicked', () => {
     render(
       <WildCardSetSelectionDialog
-        card={dualWildCard}
+        card={rainbowWildCard}
         player={mockPlayer}
         onSelect={mockOnSelect}
         onCancel={mockOnCancel}
       />
     );
   
-    // For dual wilds, the "Play as New Set" button usually defaults to the first color (or handled by specific UI logic)
-    // In our component: onClick={() => onSelect({ asNewSet: true, color: card.isRainbow ? availableColors[0] : card.colors[0] })}
-    
-    // Find the main "Play as New Set" button
-    fireEvent.click(screen.getByText('Play as New Set'));
-    
-    // Should default to first color ('blue')
-    expect(mockOnSelect).toHaveBeenCalledWith({ asNewSet: true, color: 'blue' });
+    fireEvent.click(screen.getByText('Start Wild Set'));
+    expect(mockOnSelect).toHaveBeenCalledWith({ asNewSet: true, color: 'multi' });
   });
 
-  it('displays all color options for rainbow wild card new set selection', () => {
+  it('filters out new sets for rainbow wild card (except Wild)', () => {
     render(
         <WildCardSetSelectionDialog
           card={rainbowWildCard}
@@ -130,25 +124,34 @@ describe('WildCardSetSelectionDialog', () => {
         />
       );
 
-      expect(screen.getByText('Or Choose Color for New Set:')).toBeTruthy();
-      // Should see color names
-      expect(screen.getByText('Red')).toBeTruthy();
-      expect(screen.getByText('Green')).toBeTruthy();
-      expect(screen.getByText('Yellow')).toBeTruthy();
+      // Should show Add to Blue (existing)
+      expect(screen.getByText('Add to Blue Set')).toBeTruthy();
+      
+      // Should show Start Wild Set
+      expect(screen.getByText('Start Wild Set')).toBeTruthy();
+
+      // Should NOT show Start Green/Red/Yellow Set
+      expect(screen.queryByText('Start Green Set')).toBeNull();
+      expect(screen.queryByText('Start Red Set')).toBeNull();
+      expect(screen.queryByText('Start Yellow Set')).toBeNull();
   });
 
   it('calls onSelect with specific color when a rainbow color option is clicked', () => {
+    // Note: Since we filtered out non-existing sets, we can only click on 'Add to Blue Set'
+    // or 'Start Wild Set'. To test clicking a color, we might need a scenario where user has that set.
+    // Or we leave this test as testing 'Add to Blue Set' for rainbow card.
+    
     render(
         <WildCardSetSelectionDialog
           card={rainbowWildCard}
-          player={mockPlayer}
+          player={mockPlayer} // Has Blue
           onSelect={mockOnSelect}
           onCancel={mockOnCancel}
         />
       );
 
-      fireEvent.click(screen.getByText('Green'));
-      expect(mockOnSelect).toHaveBeenCalledWith({ asNewSet: true, color: 'green' });
+      fireEvent.click(screen.getByText('Add to Blue Set'));
+      expect(mockOnSelect).toHaveBeenCalledWith({ asNewSet: false, color: 'blue' });
   });
 
   it('calls onSelect when adding to an existing set', () => {
@@ -162,7 +165,7 @@ describe('WildCardSetSelectionDialog', () => {
       );
       
       // Click on the existing Blue Set button
-      fireEvent.click(screen.getByText('Blue Set'));
+      fireEvent.click(screen.getByText('Add to Blue Set'));
       expect(mockOnSelect).toHaveBeenCalledWith({ asNewSet: false, color: 'blue' });
   });
 

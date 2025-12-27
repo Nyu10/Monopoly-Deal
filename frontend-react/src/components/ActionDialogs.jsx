@@ -49,68 +49,93 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
 
         <div className="space-y-2">
           {/* RENT BUTTONS - Show specific color options if provided */}
+          {/* RENT BUTTONS - Show specific color options if provided */}
           {card.type === CARD_TYPES.RENT && card.colors && rentOptions ? (
             <div className="space-y-2">
-              
-              {/* DOUBLE RENT TOGGLE */}
-              {doubleRentCard && (
-                  <div className={`mb-3 p-3 rounded-lg border-2 transition-all ${canDouble ? (useDoubleRent ? 'bg-purple-100 border-purple-400' : 'bg-purple-50 border-purple-200') : 'bg-slate-100 border-slate-200'}`}>
-                      <label className={`flex items-start gap-3 ${canDouble ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                          <div className="relative flex items-center mt-0.5">
-                            <input 
-                                type="checkbox" 
-                                checked={useDoubleRent} 
-                                onChange={(e) => canDouble && setUseDoubleRent(e.target.checked)}
-                                disabled={!canDouble}
-                                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-slate-300 transition-all checked:border-purple-600 checked:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100"
-                            />
-                            <svg className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity peer-checked:opacity-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          </div>
-                          
-                          <div className="flex-1">
-                              <div className={`text-sm font-black uppercase tracking-wider ${canDouble ? 'text-purple-900' : 'text-slate-500'}`}>
-                                  Double It!
-                              </div>
-                              <div className="text-[10px] font-bold text-slate-500 leading-tight mt-0.5">
-                                  {canDouble 
-                                    ? "Combine with 'Double The Rent'" 
-                                    : "Not enough moves (needs 2)"}
-                              </div>
-                              {canDouble && (
-                                <div className="text-[9px] text-purple-600 font-bold mt-1 bg-white/50 inline-block px-1.5 py-0.5 rounded">
-                                    Total Cost: 2 Moves
+              {(() => {
+                 const hasValidRentOption = rentOptions.some(r => r.rent > 0);
+                 const canDouble = doubleRentCard && movesLeft >= 2 && hasValidRentOption;
+                 
+                 return (
+                  <>
+                    {/* DOUBLE RENT TOGGLE */}
+                    {doubleRentCard && (
+                        <div className={`mb-3 p-3 rounded-lg border-2 transition-all ${canDouble ? (useDoubleRent ? 'bg-purple-100 border-purple-400' : 'bg-purple-50 border-purple-200') : 'bg-slate-100 border-slate-200'}`}>
+                            <label className={`flex items-start gap-3 ${canDouble ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                                <div className="relative flex items-center mt-0.5">
+                                  <input 
+                                      type="checkbox" 
+                                      checked={useDoubleRent} 
+                                      onChange={(e) => canDouble && setUseDoubleRent(e.target.checked)}
+                                      disabled={!canDouble}
+                                      className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-slate-300 transition-all checked:border-purple-600 checked:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100"
+                                  />
+                                  <svg className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity peer-checked:opacity-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                 </div>
-                              )}
-                          </div>
-                      </label>
-                  </div>
-              )}
+                                
+                                <div className="flex-1">
+                                    <div className={`text-sm font-black uppercase tracking-wider ${canDouble ? 'text-purple-900' : 'text-slate-500'}`}>
+                                        Double It!
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-500 leading-tight mt-0.5">
+                                        {canDouble 
+                                          ? "Combine with 'Double The Rent'" 
+                                          : (!hasValidRentOption ? "No rent to double" : "Not enough moves (needs 2)")}
+                                    </div>
+                                    {canDouble && (
+                                      <div className="text-[9px] text-purple-600 font-bold mt-1 bg-white/50 inline-block px-1.5 py-0.5 rounded">
+                                          Total Cost: 2 Moves
+                                      </div>
+                                    )}
+                                </div>
+                            </label>
+                        </div>
+                    )}
 
-              {rentOptions.map((option) => {
-                const finalRent = useDoubleRent ? option.rent * 2 : option.rent;
-                return (
-                <button
-                  key={option.color}
-                  onClick={() => onConfirm({ type: 'RENT', color: option.color, requiresFlip: option.requiresFlip, useDoubleRent })}
-                  style={{
-                    backgroundColor: COLORS[option.color]?.hex || '#2563eb',
-                    color: COLORS[option.color]?.text || 'white'
-                  }}
-                  className="w-full group relative flex items-center justify-between p-3 rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-xl hover:brightness-110"
-                >
-                  <div className="flex flex-col text-left">
-                    <span className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
-                       {option.requiresFlip ? `Flip & Rent: ${option.colorName}` : `Rent: ${option.colorName}`}
-                    </span>
-                    <span className="text-xs font-medium opacity-90">
-                      {option.requiresFlip ? 'Flip cards to this color & collect' : 'Collect on your properties'}
-                    </span>
-                  </div>
-                  <div className={`px-3 py-1 rounded-lg font-black font-mono transition-transform ${useDoubleRent ? 'bg-purple-600 text-white scale-110 shadow-lg ring-2 ring-white/30' : 'bg-white/20'}`}>
-                    ${finalRent}M
-                  </div>
-                </button>
-              )})}
+                    {rentOptions.map((option) => {
+                      const finalRent = useDoubleRent ? option.rent * 2 : option.rent;
+                      const canPlay = option.rent > 0;
+                      
+                      return (
+                      <button
+                        key={option.color}
+                        onClick={() => canPlay && onConfirm({ type: 'RENT', color: option.color, requiresFlip: option.requiresFlip, useDoubleRent })}
+                        disabled={!canPlay}
+                        style={canPlay ? {
+                          backgroundColor: COLORS[option.color]?.hex || '#2563eb',
+                          color: COLORS[option.color]?.text || 'white'
+                        } : {
+                           backgroundColor: '#e2e8f0',
+                           color: '#94a3b8'
+                        }}
+                        className={`w-full group relative flex items-center justify-between p-3 rounded-lg transition-all ${
+                           canPlay 
+                           ? 'hover:scale-[1.02] shadow-lg hover:shadow-xl hover:brightness-110 cursor-pointer' 
+                           : 'opacity-60 cursor-not-allowed shadow-none border border-slate-200'
+                        }`}
+                      >
+                        <div className="flex flex-col text-left">
+                          <span className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
+                             {option.requiresFlip ? `Flip & Rent: ${option.colorName}` : `Rent: ${option.colorName}`}
+                          </span>
+                          <span className={`text-xs font-medium ${canPlay ? 'opacity-90' : 'opacity-70'}`}>
+                            {canPlay 
+                              ? (option.requiresFlip ? 'Flip cards to this color & collect' : 'Collect on your properties')
+                              : 'No properties owned'}
+                          </span>
+                        </div>
+                        <div className={`px-3 py-1 rounded-lg font-black font-mono transition-transform ${
+                           canPlay 
+                             ? (useDoubleRent ? 'bg-purple-600 text-white scale-110 shadow-lg ring-2 ring-white/30' : 'bg-white/20')
+                             : 'bg-slate-300 text-slate-500' 
+                        }`}>
+                          ${finalRent}M
+                        </div>
+                      </button>
+                    )})}
+                  </>
+                 );
+              })()}
             </div>
           ) : (
              /* STANDARD PLAY ACTION / PROPERTY BUTTON */
@@ -194,6 +219,10 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
 // TARGET SELECTION DIALOG
 // ============================================================================
 
+// ============================================================================
+// TARGET SELECTION DIALOG
+// ============================================================================
+
 export const TargetSelectionDialog = ({ card, targetType, players, currentPlayerId, onSelect, onCancel }) => {
   if (!card) return null;
 
@@ -206,22 +235,13 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
 
   const getInstructions = () => {
     switch (targetType) {
-      case 'PROPERTY':
-        return 'Select a property to steal';
-      case 'COMPLETE_SET':
-        return 'Select a complete set to steal';
-      case 'OWN_COMPLETE_SET':
-        return 'Select your set for this building';
-      case 'PLAYER':
-        return card.actionType === ACTION_TYPES.DEBT_COLLECTOR 
-          ? 'Select a player to collect $5M from'
-          : 'Select a player to target';
-      case 'ALL_PLAYERS':
-        return 'All players will pay you $2M';
-      case 'PROPERTY_SWAP':
-        return 'Select one of YOUR properties and one OPPONENT property to swap.';
-      default:
-        return 'Select a target';
+      case 'PROPERTY': return 'Steal a property';
+      case 'COMPLETE_SET': return 'Steal a complete set';
+      case 'OWN_COMPLETE_SET': return 'Choose your set';
+      case 'PLAYER': return card.actionType === ACTION_TYPES.DEBT_COLLECTOR ? 'Collect $5M from...' : 'Select target player';
+      case 'ALL_PLAYERS': return 'Collect $2M from all';
+      case 'PROPERTY_SWAP': return 'Select properties to swap';
+      default: return 'Select target';
     }
   };
 
@@ -396,6 +416,13 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                         Cancel Action
                      </button>
                      <button 
+                        onClick={() => onSelect({ action: 'BANK' })}
+                        className="px-6 py-4 rounded-xl font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:scale-[1.02] transition-all uppercase text-xs tracking-wider shadow-sm flex items-center justify-center gap-2 flex-1 sm:flex-none border border-emerald-200"
+                      >
+                        <span className="text-lg">💰</span>
+                        Bank It (${card.value}M)
+                     </button>
+                     <button 
                         onClick={() => onSelect({ 
                            opponentId: swapState.opponentId, 
                            opponentCardId: swapState.opponentCardId, 
@@ -417,80 +444,225 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
       );
   }
 
+
+  // =========================================================================
+  // SPECIAL UI FOR SLY DEAL (STEAL PROPERTY)
+  // =========================================================================
+  if (targetType === 'PROPERTY') {
+      return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/20">
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                 <div className="flex items-center gap-4">
+                    <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600 shadow-sm -rotate-3 text-2xl">
+                        🧤
+                    </div>
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+                           Sly Deal
+                           <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold tracking-wide border border-slate-200">Steal a Property</span>
+                        </h2>
+                        <p className="text-slate-500 font-bold text-xs sm:text-sm mt-0.5">Select any single property card from an opponent to steal.</p>
+                    </div>
+                 </div>
+                 <button onClick={onCancel} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-700">
+                    <X size={24} />
+                 </button>
+              </div>
+
+              {/* Main Content - Opponent Columns */}
+              <div className="flex-1 overflow-x-auto overflow-y-hidden bg-slate-50/50 p-6 custom-scrollbar">
+                 <div className="flex h-full gap-6 min-w-max mx-auto px-2">
+                    {players
+                      .filter(p => p.id !== currentPlayerId)
+                      .map(player => {
+                        const playerSets = getPlayerSets(player);
+                        const hasProperties = player.properties && player.properties.length > 0;
+                        
+                        return (
+                           <div key={player.id} className="w-[280px] flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                              {/* Player Header */}
+                              <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 font-black shadow-sm text-sm">
+                                       {player.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                       <div className="font-black text-slate-800 uppercase tracking-wide text-xs">{player.name}</div>
+                                       <div className="text-[10px] text-slate-500 font-bold">{player.properties?.length || 0} Properties</div>
+                                    </div>
+                                 </div>
+                              </div>
+
+                              {/* Properties Grid */}
+                              <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-slate-50/30">
+                                 {!hasProperties ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 opacity-60">
+                                       <div className="text-4xl grayscale">👻</div>
+                                       <div className="text-[10px] font-black uppercase tracking-widest text-center leading-relaxed">No Properties<br/>to Steal</div>
+                                    </div>
+                                 ) : (
+                                    <div className="grid grid-cols-2 gap-2">
+                                       {player.properties?.map(prop => {
+                                          const propColor = prop.currentColor || prop.color;
+                                          const parentSet = playerSets.find(s => s.color === propColor);
+                                          const isProtected = parentSet?.isComplete;
+                                          
+                                          return (
+                                             <button
+                                                key={prop.id}
+                                                onClick={() => !isProtected && onSelect({ playerId: player.id, cardId: prop.id })}
+                                                disabled={isProtected}
+                                                className={`relative group transition-all duration-300 ${
+                                                   isProtected 
+                                                   ? 'opacity-50 grayscale cursor-not-allowed' 
+                                                   : 'hover:scale-[1.05] hover:shadow-xl hover:z-20 cursor-pointer hover:-rotate-1'
+                                                }`}
+                                             >
+                                                <Card card={prop} size="xs" enableHover={false} />
+                                                
+                                                {/* Overlay for protected/selection */}
+                                                {isProtected ? (
+                                                   <div className="absolute inset-x-0 bottom-6 flex justify-center z-20">
+                                                      <span className="bg-slate-900/90 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-wider backdrop-blur-sm border border-white/20">Full Set</span>
+                                                   </div>
+                                                ) : (
+                                                   <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/20 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
+                                                      <div className="bg-emerald-600 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform flex items-center gap-1 border border-emerald-400">
+                                                         <span>✋</span> STEAL
+                                                      </div>
+                                                   </div>
+                                                )}
+                                             </button>
+                                          );
+                                       })}
+                                    </div>
+                                 )}
+                              </div>
+                           </div>
+                        );
+                      })}
+                 </div>
+              </div>
+              
+              {/* Footer Actions */}
+              <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                 <div className="text-xs text-slate-400 font-medium hidden sm:block">
+                    choose a property to add to your collection.
+                 </div>
+                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                     <button onClick={onCancel} className="px-5 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors uppercase text-xs tracking-wider flex-1 sm:flex-none">
+                        Cancel Action
+                     </button>
+                     <button 
+                        onClick={() => onSelect({ action: 'BANK' })}
+                        className="px-6 py-3 rounded-xl font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:scale-[1.02] transition-all uppercase text-xs tracking-wider shadow-sm flex items-center justify-center gap-2 flex-1 sm:flex-none border border-emerald-200"
+                      >
+                        <span className="text-lg">💰</span>
+                        Or Bank It (${card.value}M)
+                     </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      );
+  }
+
   // =========================================================================
   // STANDARD TARGET SELECTION (EXISTING)
   // =========================================================================
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 max-h-[85vh] overflow-y-auto ring-1 ring-black/5 flex flex-col">
-        <div className="flex items-center justify-between mb-3 shrink-0">
-          <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Select Target</h2>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden ring-1 ring-black/5 flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
+          <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Select Target</h2>
           <button
             onClick={onCancel}
-            className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-full"
+            className="text-slate-400 hover:text-slate-600 transition-colors bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full"
           >
             <X size={16} />
           </button>
         </div>
-
-        <div className="mb-4 shrink-0 bg-slate-50 rounded-lg p-3 border border-slate-100">
-          <div className="flex justify-center mb-2">
-            <Card card={card} size="xs" enableHover={false} />
+        
+        {/* Card info area */}
+        <div className="flex flex-col items-center bg-slate-50 border-b border-slate-100 p-6 shrink-0">
+          <div className="relative mb-4 drop-shadow-xl hover:scale-105 transition-transform duration-300">
+            <Card card={card} size="sm" enableHover={false} showDescription={false} />
           </div>
-          <p className="text-xs text-slate-500 text-center font-medium px-2">{getInstructions()}</p>
+          <p className="text-center text-slate-600 text-xs font-bold bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200 max-w-[80%]">
+             {getInstructions()}
+          </p>
         </div>
 
-        <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+        {/* Scrollable List */}
+        <div className="overflow-y-auto p-4 space-y-3 flex-1">
           {targetType === 'ALL_PLAYERS' ? (
-            <div className="p-4 text-center">
+             // ALL PLAYERS - Single Action Button
+            <div className="flex flex-col gap-4 py-4 px-2">
+               <div className="text-center text-slate-500 text-xs font-medium px-4">
+                  By clicking confirm, you will effectively charge <span className="font-bold text-slate-800">every single player</span> $2M.
+               </div>
               <button
                 onClick={() => onSelect({})}
-                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white p-4 rounded-xl font-black uppercase tracking-wider shadow-lg hover:shadow-pink-500/30 transition-all scale-105"
+                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white p-5 rounded-2xl font-black uppercase tracking-wider shadow-lg hover:shadow-pink-500/30 transition-all active:scale-[0.98] group"
               >
-                Charge Everyone $2M!
+                <div className="text-2xl mb-1 group-hover:-translate-y-1 transition-transform">💸</div>
+                Charge Everyone $2M
               </button>
             </div>
           ) : (
+            // LIST OPPONENTS OR PROPERTIES
             players
               .filter(p => targetType === 'OWN_COMPLETE_SET' ? p.id === currentPlayerId : p.id !== currentPlayerId)
               .map(player => {
                 const playerSets = getPlayerSets(player);
                 
+                // --- PLAYER SELECTION (Debt Collector / Deal Breaker base) ---
+                if (targetType === 'PLAYER') {
+                   return (
+                     <button
+                       key={player.id}
+                       onClick={() => onSelect({ playerId: player.id })}
+                       className="w-full group relative overflow-hidden bg-white hover:bg-slate-50 border-2 border-slate-100 hover:border-blue-400 rounded-xl transition-all hover:scale-[1.02] shadow-sm hover:shadow-md text-left"
+                     >
+                        <div className="p-4 flex items-center gap-4">
+                           {/* Avatar / Icon */}
+                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors font-bold text-sm">
+                              {player.name.charAt(0)}
+                           </div>
+                           
+                           <div className="flex-1 min-w-0">
+                              <div className="font-black text-slate-800 text-sm mb-1">{player.name}</div>
+                              <div className="flex items-center gap-3 text-[10px] uppercase font-bold tracking-wider">
+                                 <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                                    ${calculateBankTotal(player.bank)}M Bank
+                                 </span>
+                                 <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                    {player.properties?.length || 0} Props
+                                 </span>
+                              </div>
+                           </div>
+
+                           {/* Arrow */}
+                           <div className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                           </div>
+                        </div>
+                     </button>
+                   );
+                }
+
+                // --- PROPERTY / SET SELECTION ---
                 return (
-                  <div key={player.id} className="border border-slate-200 rounded-xl p-3 bg-white shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      {player.name}
-                    </h3>
+                  <div key={player.id} className="space-y-2">
+                    <div className="bg-slate-100/50 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                       <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">{player.name}</span>
+                    </div>
                     
-                    {targetType === 'PLAYER' ? (
-                      <div className="space-y-2">
-                        {/* Show Bank Value */}
-                        <div className="flex items-center justify-between text-[10px] px-2">
-                          <span className="text-slate-500 font-bold">Bank:</span>
-                          <span className="text-green-600 font-black">
-                            ${calculateBankTotal(player.bank)}M
-                          </span>
-                        </div>
-                        
-                        {/* Show Properties Count */}
-                        <div className="flex items-center justify-between text-[10px] px-2 mb-3">
-                          <span className="text-slate-500 font-bold">Properties:</span>
-                          <span className="text-blue-600 font-black">
-                            {player.properties?.length || 0}
-                          </span>
-                        </div>
-                        
-                        {/* Select Button */}
-                        <button
-                          onClick={() => onSelect({ playerId: player.id })}
-                          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-xs px-4 py-3 rounded-lg font-black transition-all uppercase tracking-wider shadow-md hover:shadow-lg"
-                        >
-                          Select {player.name}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-2 gap-2">
                         {targetType === 'OWN_COMPLETE_SET' ? (
                           // Render by Sets for Building Placement
                           playerSets.length > 0 ? playerSets.map((set) => {
@@ -502,32 +674,29 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                                  key={set.color}
                                  onClick={() => canSelect && onSelect({ playerId: player.id, cardId: representativeCard.id })}
                                  disabled={!canSelect}
-                                 className={`col-span-4 flex items-center gap-2 p-2 rounded-lg border transition-all text-left ${
+                                 className={`col-span-2 group relative p-3 rounded-xl border-2 text-left transition-all ${
                                    canSelect 
-                                    ? 'hover:bg-slate-50 border-slate-200 cursor-pointer hover:border-blue-300' 
-                                    : 'opacity-50 grayscale cursor-not-allowed border-transparent bg-slate-50'
+                                    ? 'bg-white hover:bg-slate-50 border-slate-100 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md'
+                                    : 'bg-slate-50 border-slate-100 opacity-60 grayscale cursor-not-allowed'
                                  }`}
                                >
-                                 <div className="flex -space-x-1">
-                                    {set.cards.map((c, i) => (
-                                      <div key={c.id} className="w-6 h-8 rounded bg-slate-200 border border-white shadow-sm overflow-hidden relative" style={{zIndex: i}}>
-                                         <div className="absolute inset-0" style={{backgroundColor: COLORS[c.currentColor || c.color]?.hex}}></div>
-                                      </div>
-                                    ))}
+                                 <div className="flex items-center justify-between">
+                                    <div>
+                                       <div className="text-xs font-black uppercase text-slate-700 mb-0.5">
+                                         {COLORS[set.color]?.name || set.color} Set
+                                       </div>
+                                       <div className="text-[10px] text-slate-400 font-bold">
+                                         {canSelect ? 'Ready for House/Hotel' : `${set.cards.length}/${set.required} Cards`}
+                                       </div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-sm" style={{ backgroundColor: COLORS[set.color]?.hex }}>
+                                       {set.cards.length}
+                                    </div>
                                  </div>
-                                 <div className="flex-1 min-w-0">
-                                   <div className="text-[10px] font-black uppercase text-slate-700 truncate">
-                                     {COLORS[set.color]?.name || set.color} Set
-                                   </div>
-                                   <div className="text-[9px] text-slate-400 font-bold">
-                                     {canSelect ? 'Complete' : `${set.cards.length}/${set.required}`}
-                                   </div>
-                                 </div>
-                                 {canSelect && <div className="text-blue-500 font-black text-xs">SELECT</div>}
                                </button>
                              );
                           }) : (
-                            <div className="col-span-4 text-[10px] text-slate-400 italic text-center py-2">No sets available</div>
+                            <div className="col-span-2 text-xs text-slate-400 italic text-center py-2 bg-slate-50 rounded-lg">No sets available</div>
                           )
                         ) : (
                           // Standard Property Selection
@@ -542,41 +711,52 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                                 key={prop.id}
                                 onClick={() => !isProtected && onSelect({ playerId: player.id, cardId: prop.id })}
                                 disabled={isProtected}
-                                className={`transition-transform rounded-md relative ${
+                                className={`relative group transition-all duration-200 ${
                                   isProtected 
-                                    ? 'opacity-40 grayscale cursor-not-allowed ring-2 ring-red-100' 
-                                    : 'hover:scale-105 hover:ring-2 ring-blue-500 cursor-pointer'
+                                    ? 'opacity-40 grayscale cursor-not-allowed' 
+                                    : 'hover:scale-[1.03] hover:z-10 cursor-pointer'
                                 }`}
-                                title={isProtected ? "Cannot steal from complete set" : undefined}
                               >
                                 <Card card={prop} size="xs" enableHover={false} />
                                 {isProtected && (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="bg-slate-900/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider backdrop-blur-sm">
-                                      Protected
+                                  <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px] rounded-lg">
+                                    <div className="bg-slate-900/90 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                                      Locked
                                     </div>
                                   </div>
                                 )}
                               </button>
                             );
                           }) : (
-                            <div className="col-span-4 text-[10px] text-slate-400 italic text-center py-2">No properties</div>
+                            <div className="col-span-2 text-xs text-slate-400 italic text-center py-2 bg-slate-50 rounded-lg">No properties</div>
                           )
                         )}
-                      </div>
-                    )}
+                    </div>
                   </div>
                 );
               })
           )}
         </div>
 
-        <button
-          onClick={onCancel}
-          className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs px-4 py-2.5 rounded-lg font-bold transition-colors shrink-0 uppercase tracking-wider"
-        >
-          Cancel
-        </button>
+        {/* Footer - Bank It Option */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0 space-y-2">
+           <button
+             onClick={onCancel}
+             className="w-full py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold hover:bg-slate-50 hover:text-slate-800 transition-all shadow-sm hover:shadow active:scale-[0.98] text-xs uppercase tracking-wider"
+           >
+             Cancel
+           </button>
+           
+           {!['PROPERTY_SWAP', 'ALL_PLAYERS'].includes(targetType) && (
+              <button
+                onClick={() => onSelect({ action: 'BANK' })}
+                className="w-full py-2 text-emerald-600/70 hover:text-emerald-700 font-bold text-[10px] uppercase tracking-wider transition-colors"
+                title="Don't use the action, just bank it as money"
+              >
+                Or just Bank It (${card.value}M)
+              </button>
+           )}
+        </div>
       </div>
     </div>
   );

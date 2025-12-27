@@ -38,8 +38,8 @@ class BotPaymentOptimizationTest {
                 .color("railroad")
                 .build();
         
-        bot.getHand().add(passGo);
-        bot.getHand().add(readingRailroad);
+        bot.getBank().add(passGo); // Bank it as Money
+        bot.getProperties().add(readingRailroad); // Play it
         
         // Execute: Pay 2M
         List<Card> payment = botEngine.selectCardsForPayment(bot, 2);
@@ -83,7 +83,7 @@ class BotPaymentOptimizationTest {
         
         bot.getBank().add(m1);
         bot.getBank().add(m2);
-        bot.getHand().add(p1);
+        bot.getProperties().add(p1); // Played property
         
         List<Card> payment = botEngine.selectCardsForPayment(bot, 3);
         int val = payment.stream().mapToInt(Card::getValue).sum();
@@ -92,4 +92,39 @@ class BotPaymentOptimizationTest {
         assertTrue(payment.contains(p1), "Should include Property");
         assertEquals(2, payment.size(), "Should use 2 cards (1 Money + 1 Property)");
     }
+    @Test
+    void testMinimizePayment_HighValueMoney_LowValueProperty() {
+        // Scenario: Debt 1M.
+        // Bot has: 5M Money card (Bank)
+        //          2M Property card (Played)
+        
+        Card money5M = Card.builder()
+                .uid("m5")
+                .name("5M")
+                .value(5)
+                .type(CardType.MONEY)
+                .build();
+                
+        Card property2M = Card.builder()
+                .uid("p2")
+                .name("Property 2M")
+                .value(2)
+                .type(CardType.PROPERTY)
+                .color("green")
+                .build();
+        
+        bot.getBank().add(money5M);
+        bot.getProperties().add(property2M); // Card is on the table
+        
+        // Execute: Pay 1M
+        List<Card> payment = botEngine.selectCardsForPayment(bot, 1);
+        
+        int totalValue = payment.stream().mapToInt(Card::getValue).sum();
+        
+        assertEquals(1, payment.size());
+        assertEquals(2, totalValue, "Should pay 2M Property instead of 5M Money to minimize loss");
+        assertEquals("Property 2M", payment.get(0).getName());
+    }
+
+
 }

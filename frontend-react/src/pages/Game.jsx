@@ -157,13 +157,13 @@ const Game = () => {
     
     // 1. If it's a pure money card, bank it immediately UNLESS confirmation is forced
     if (isInHand && isMoney && !settings.confirmAllMoves) {
-      handleCardActionConfirm('BANK');
+      handleCardActionConfirm('BANK', card);
       return;
     }
     
     // 2. If it's a simple property card, play it immediately UNLESS confirmation is forced
     if (isInHand && isSimpleProperty && !settings.confirmAllMoves) {
-      handleCardActionConfirm('PROPERTY');
+      handleCardActionConfirm('PROPERTY', card);
       return;
     }
 
@@ -173,7 +173,21 @@ const Game = () => {
       return;
     }
 
-    // 4. For everything else (Actions, Rent, Buildings, Wild Properties in play), show the confirmation dialog
+    // 4. Multi-step Action Cards with Specialized UI
+    // These cards skip the initial "Play vs Bank" dialog because their specialized
+    // Target Selection dialogs already include a "Bank It" option.
+    const directActionTypes = [
+      ACTION_TYPES.DEBT_COLLECTOR,
+      ACTION_TYPES.SLY_DEAL,
+      ACTION_TYPES.FORCED_DEAL
+    ];
+
+    if (isInHand && directActionTypes.includes(card.actionType)) {
+      handleCardActionConfirm('ACTION', card);
+      return;
+    }
+
+    // 5. For everything else (Rent, Wild Properties in play, Pass Go, etc.), show the confirmation dialog
     // This allows the player to choose between banking or using the card's special effect
     setShowCardActionDialog(true);
   };
@@ -224,8 +238,9 @@ const Game = () => {
     });
   };
 
-  const handleCardActionConfirm = (action) => {
-    if (!selectedCard) return;
+  const handleCardActionConfirm = (action, cardOverride = null) => {
+    const cardToUse = cardOverride || selectedCard;
+    if (!cardToUse) return;
     
     // Handle Rent Color Selection from Dialog
     if (typeof action === 'object' && action.type === 'RENT') {
@@ -243,13 +258,13 @@ const Game = () => {
        if (isMultiplayer) {
           sendMove({
             type: 'PLAY_CARD', 
-            cardId: selectedCard.id,
+            cardId: cardToUse.id,
             actionType: 'RENT',
             targetCardId: action.color,
             auxiliaryCardId: auxCardId
           });
        } else {
-          localGame.playCard(selectedCard.id, 'DISCARD', null, action.color, auxCardId);
+          localGame.playCard(cardToUse.id, 'DISCARD', null, action.color, auxCardId);
        }
        setShowCardActionDialog(false);
        setSelectedCard(null);
@@ -259,21 +274,21 @@ const Game = () => {
     const actionType = action;
     
     if (isMultiplayer) {
-      gameActions.playCard(selectedCard, actionType);
+      gameActions.playCard(cardToUse, actionType);
     } else {
       // Local game logic
-      const destination = getPreferredDestination(selectedCard, actionType);
+      const destination = getPreferredDestination(cardToUse, actionType);
       
       if (destination === 'BANK') {
-        localGame.playCard(selectedCard.id, 'BANK');
+        localGame.playCard(cardToUse.id, 'BANK');
       } else {
         // Not banking, so we're playing it for its effect
-        if (gameActions.requiresTarget(selectedCard)) {
+        if (gameActions.requiresTarget(cardToUse)) {
           // Card requires target selection (e.g., SLY_DEAL, HOUSE, etc.)
-          gameActions.playCard(selectedCard, 'AUTO');
+          gameActions.playCard(cardToUse, 'AUTO');
         } else {
           // Simple action card (e.g., PASS_GO)
-          localGame.playCard(selectedCard.id, destination);
+          localGame.playCard(cardToUse.id, destination);
         }
       }
     }
@@ -294,6 +309,14 @@ const Game = () => {
       // Local game: handle target selection
       if (gameActions.pendingAction) {
         const card = gameActions.pendingAction;
+
+        // NEW: Handle "Bank It" option directly from Target Dialog
+        if (target.action === 'BANK') {
+           localGame.playCard(card.id, 'BANK');
+           gameActions.cancelAction();
+           return;
+        }
+
         const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
         const destination = isBuilding ? 'PROPERTIES' : 'DISCARD';
         
