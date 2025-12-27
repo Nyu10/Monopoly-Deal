@@ -22,10 +22,23 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   const [doubleRentActive, setDoubleRentActive] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null); // { type, amount, requesterId, targetId, ... }
   const [matchLog, setMatchLog] = useState(initialState?.matchLog || []); 
+  const [nextLogId, setNextLogId] = useState(initialState?.nextLogId || 0); 
   
   const botsRef = useRef([]);
   const playersRef = useRef(players); // Keep a ref for internal logic checks without dependency loops
   const isEndingTurnRef = useRef(false); // Prevent duplicate end turn calls
+
+  const addLogEntry = useCallback((entry) => {
+    setNextLogId(prevId => {
+      const newId = prevId + 1;
+      setMatchLog(prevLog => [{
+        ...entry,
+        id: newId,
+        timestamp: Date.now() // Keep timestamp for display
+      }, ...prevLog]);
+      return newId;
+    });
+  }, []);
 
   useEffect(() => {
     playersRef.current = players;
@@ -89,12 +102,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       setWinner(winningPlayer);
       setGameState('GAME_OVER');
       
-      setMatchLog(prev => [{
-        id: Date.now(),
+      addLogEntry({
         player: 'System',
         action: 'GAME_OVER',
         message: `${winningPlayer.name} HAS WON THE GAME!`
-      }, ...prev]);
+      });
     }
   }, [players, gameState, winner]);
 
@@ -137,8 +149,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setMovesLeft(0);
     setHasDrawnThisTurn(false);
     setWinner(null);
+    setNextLogId(1);
     setMatchLog([{
-      id: Date.now(),
+      id: 1,
+      timestamp: Date.now(),
       player: 'System',
       action: 'GAME_START',
       message: 'Game Started!'
@@ -164,12 +178,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           deckCopy = shuffleDeck(discardCopy);
           discardCopy = [];
           
-          setMatchLog(prev => [{
-            id: Date.now(),
+          addLogEntry({
             player: 'System',
             action: 'RESHUFFLE',
             message: 'Deck empty! Reshuffling discard pile...'
-          }, ...prev]);
+          });
         }
         drawn.push(deckCopy.pop());
       }
@@ -198,13 +211,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setMovesLeft(GAME_RULES.MAX_ACTIONS_PER_TURN);
     setGameState('PLAYING');
 
-    setMatchLog(prev => [{
-      id: Date.now(),
+    addLogEntry({
       player: currentPlayer.name,
       action: 'DRAW',
       message: `drew ${drawCount} cards`,
       isPrivate: true
-    }, ...prev]);
+    });
   }, [currentTurnIndex, hasDrawnThisTurn, deck, players]);
 
   /**
@@ -229,13 +241,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         });
         
         setDiscardPile(prev => [...prev, jsnCard]);
-        setMatchLog(prev => [{
-          id: Date.now(),
+        addLogEntry({
           player: target.name,
           action: 'JUST_SAY_NO',
           message: `said NO to ${actionName}!`,
           card: jsnCard
-        }, ...prev]);
+        });
         
         return true; 
       }
@@ -266,12 +277,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     if (destination === 'BANK') {
       if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD) {
         console.error('Property cards cannot be banked! They must be played to your property area.');
-        setMatchLog(prev => [{
-          id: Date.now(),
+        addLogEntry({
           player: 'System',
           action: 'ERROR',
           message: 'Property cards cannot be banked!'
-        }, ...prev]);
+        });
         setMovesLeft(m => m - 1); // Safety: Burn a move on invalid action to prevent bot loops
         return; 
       }
@@ -290,9 +300,9 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           if (discardCopy.length === 0) break;
           deckCopy = shuffleDeck(discardCopy);
           discardCopy = [];
-          setMatchLog(prev => [{
-            id: Date.now(), player: 'System', action: 'RESHUFFLE', message: 'Reshuffling deck...'
-          }, ...prev]);
+          addLogEntry({
+            player: 'System', action: 'RESHUFFLE', message: 'Reshuffling deck...'
+          });
         }
         drawnCards.push(deckCopy.pop());
       }
@@ -303,6 +313,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Debt Collector: Collect $5M from target player
     if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR && targetPlayerId) {
       if (checkForJustSayNo(targetPlayerId, 'Debt Collector')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const curr = { ...newPlayers[currentTurnIndex] };
+          curr.hand = curr.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = curr;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -324,19 +341,19 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           });
           setGameState('REQUEST_PAYMENT');
           
-          setMatchLog(prev => [{
-            id: Date.now(), player: currentPlayer.name, action: 'DEBT_COLLECTOR',
+          addLogEntry({
+            player: currentPlayer.name, action: 'DEBT_COLLECTOR',
             message: `demanded $5M from ${targetPlayer.name}`, card: card
-          }, ...prev]);
+          });
           
           return;
         }
 
         if (targetPlayer.isHuman && availableCards.length === 0) {
-          setMatchLog(prev => [{
-            id: Date.now(), player: 'System', action: 'INFO',
+          addLogEntry({
+            player: 'System', action: 'INFO',
             message: `${targetPlayer.name} had no assets to pay ${currentPlayer.name}'s Debt Collector!`
-          }, ...prev]);
+          });
           // Proceed to bot-like logic (which will handle 0 cards correctly)
         }
 
@@ -365,10 +382,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           return newPlayers;
         });
         
-        setMatchLog(prev => [{
-          id: Date.now(), player: currentPlayer.name, action: 'DEBT_COLLECTOR',
+        addLogEntry({
+          player: currentPlayer.name, action: 'DEBT_COLLECTOR',
           message: `collected ${paymentSummary} from ${targetPlayer.name}`, card: card
-        }, ...prev]);
+        });
         
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
@@ -456,10 +473,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         .map(p => `${p.player}: ${p.note || (p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`)
         .join('; ');
 
-      setMatchLog(prev => [{
-        id: Date.now(), player: currentPlayer.name, action: 'BIRTHDAY',
+      addLogEntry({
+        player: currentPlayer.name, action: 'BIRTHDAY',
         message: `collected from everyone: ${paymentSummary}`, card: card
-      }, ...prev]);
+      });
       
       setDiscardPile(p => [...p, card]);
       setMovesLeft(m => m - 1);
@@ -492,6 +509,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         const newPlayersState = [...players];
         const receiverIdx = currentTurnIndex;
         const receiver = { ...newPlayersState[receiverIdx] };
+        // FIX: Remove the played Rent card from hand
+        receiver.hand = receiver.hand.filter(c => c.id !== cardId);
         newPlayersState[receiverIdx] = receiver;
 
         const targetPlayers = targetPlayerId 
@@ -573,10 +592,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           .map(p => `${p.player}: ${p.note || (p.cards.length > 0 ? p.cards.join(', ') : 'nothing')}`)
           .join('; ');
 
-        setMatchLog(prev => [{
-          id: Date.now(), player: charger.name, action: 'RENT',
+        addLogEntry({
+          player: charger.name, action: 'RENT',
           message: `charged $${rentAmount}M rent. Payments: ${paymentSummary}`, card: card
-        }, ...prev]);
+        });
       }
 
       setDiscardPile(p => [...p, card]);
@@ -587,6 +606,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Sly Deal: Steal 1 property (non-set)
     if (card.actionType === ACTION_TYPES.SLY_DEAL && targetPlayerId && targetCardId) {
       if (checkForJustSayNo(targetPlayerId, 'Sly Deal')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const curr = { ...newPlayers[currentTurnIndex] };
+          curr.hand = curr.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = curr;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -611,10 +637,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           return newPlayers;
         });
         
-        setMatchLog(prev => [{
-          id: Date.now(), player: currentPlayer.name, action: 'SLY_DEAL',
+        addLogEntry({
+          player: currentPlayer.name, action: 'SLY_DEAL',
           message: `stole ${stolenCard.name} from ${victim.name}`, card: card
-        }, ...prev]);
+        });
         
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
@@ -625,6 +651,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Deal Breaker: Steal a full set
     if (card.actionType === ACTION_TYPES.DEAL_BREAKER && targetPlayerId && targetCardId) {
       if (checkForJustSayNo(targetPlayerId, 'Deal Breaker')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const curr = { ...newPlayers[currentTurnIndex] };
+          curr.hand = curr.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = curr;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -652,10 +685,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           return newPlayers;
         });
         
-        setMatchLog(prev => [{
-          id: Date.now(), player: currentPlayer.name, action: 'DEAL_BREAKER',
+        addLogEntry({
+          player: currentPlayer.name, action: 'DEAL_BREAKER',
           message: `stole a complete ${targetColor.replace('_', ' ')} set from ${victim.name}`, card: card
-        }, ...prev]);
+        });
         
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
@@ -666,6 +699,13 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     // Handle Forced Deal: Swap properties
     if (card.actionType === ACTION_TYPES.FORCED_DEAL && targetPlayerId && targetCardId) {
       if (checkForJustSayNo(targetPlayerId, 'Forced Deal')) {
+        setPlayers(prev => {
+          const newPlayers = [...prev];
+          const curr = { ...newPlayers[currentTurnIndex] };
+          curr.hand = curr.hand.filter(c => c.id !== cardId);
+          newPlayers[currentTurnIndex] = curr;
+          return newPlayers;
+        });
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
         return;
@@ -693,10 +733,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           return newPlayers;
         });
         
-        setMatchLog(prev => [{
-          id: Date.now(), player: currentPlayer.name, action: 'FORCED_DEAL',
+        addLogEntry({
+          player: currentPlayer.name, action: 'FORCED_DEAL',
           message: `swapped ${myProp.name} for ${theirProp.name} with ${victim.name}`, card: card
-        }, ...prev]);
+        });
         
         setDiscardPile(p => [...p, card]);
         setMovesLeft(m => m - 1);
@@ -714,10 +754,10 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         newPlayers[currentTurnIndex] = p;
         return newPlayers;
       });
-      setMatchLog(prev => [{
-        id: Date.now(), player: currentPlayer.name, action: 'DOUBLE_RENT',
+      addLogEntry({
+        player: currentPlayer.name, action: 'DOUBLE_RENT',
         message: 'activated Double Rent', card: card
-      }, ...prev]);
+      });
       setDiscardPile(p => [...p, card]);
       setMovesLeft(m => m - 1);
       return;
@@ -786,39 +826,34 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     }
 
     // Add to Match Log
-    setMatchLog(prev => {
-      let message = '';
-      let type = 'PLAY';
-      
-      if (destination === 'BANK') {
-        if (card.type === CARD_TYPES.MONEY) {
-          message = `banked $${card.value}M`;
-        } else {
-          message = `banked ${card.name} ($${card.value}M)`;
-        }
-        type = 'BANK';
-      } else if (destination === 'PROPERTIES') {
-        message = `played ${card.name}`;
-        type = 'PROPERTY';
-      } else if (destination === 'DISCARD') {
-         // Could be an action card played to discard or play-as-money event maybe? 
-         // Usually action cards go to discard after effect
-         if (card.actionType === ACTION_TYPES.PASS_GO) {
-             message = `played Pass Go (Drew 2 cards)`;
-             type = 'ACTION';
-         } else {
-             message = `played ${card.name}`; // Generic action
-             type = 'ACTION';
-         }
+    let logMessage = '';
+    let logType = 'PLAY';
+    
+    if (destination === 'BANK') {
+      if (card.type === CARD_TYPES.MONEY) {
+        logMessage = `banked $${card.value}M`;
+      } else {
+        logMessage = `banked ${card.name} ($${card.value}M)`;
       }
+      logType = 'BANK';
+    } else if (destination === 'PROPERTIES') {
+      logMessage = `played ${card.name}`;
+      logType = 'PROPERTY';
+    } else if (destination === 'DISCARD') {
+       if (card.actionType === ACTION_TYPES.PASS_GO) {
+           logMessage = `played Pass Go (Drew 2 cards)`;
+           logType = 'ACTION';
+       } else {
+           logMessage = `played ${card.name}`;
+           logType = 'ACTION';
+       }
+    }
 
-      return [{
-        id: Date.now(),
-        player: currentPlayer.name,
-        action: type,
-        card: card,
-        message: message
-      }, ...prev];
+    addLogEntry({
+      player: currentPlayer.name,
+      action: logType,
+      card: card,
+      message: logMessage
     });
 
     setMovesLeft(m => m - 1);
@@ -858,14 +893,14 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setCurrentTurnIndex(nextIndex);
     setMovesLeft(0);
     setHasDrawnThisTurn(false);
+    setDoubleRentActive(false);
     setGameState('DRAW');
 
-    setMatchLog(prev => [{
-      id: Date.now(),
+    addLogEntry({
       player: players[turningPlayerIndex].name,
       action: 'END_TURN',
       message: 'ended their turn'
-    }, ...prev]);
+    });
     
     // Reset guard after a short delay to allow state updates to complete
     setTimeout(() => {
@@ -941,11 +976,11 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
                 p.properties[cardIdx] = card;
                 newPlayers[currentTurnIndex] = p;
                 
-                setMatchLog(old => [{
-                  id: Date.now(), player: p.name, action: 'FLIP',
+                addLogEntry({
+                  player: p.name, action: 'FLIP',
                   message: `flipped ${card.name} to ${COLORS[nextColor]?.name || nextColor}`,
                   card: card
-                }, ...old]);
+                });
               }
             }
             return newPlayers;
@@ -1017,15 +1052,14 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
 
     const isJSN = paymentCards.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO);
 
-    setMatchLog(prev => [{
-      id: Date.now(),
+    addLogEntry({
       player: victimName,
       action: isJSN ? 'JUST_SAY_NO' : 'PAYMENT',
       message: isJSN 
         ? `said NO! to ${pendingRequest.type}` 
         : `paid ${paymentNames || 'nothing'} to ${requesterName} for ${pendingRequest.type}`,
       card: isJSN ? paymentCards.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO) : pendingRequest.card
-    }, ...prev]);
+    });
 
     setGameState('PLAYING');
     setPendingRequest(null);
@@ -1042,6 +1076,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     discardPile,
     winner,
     matchLog,
+    nextLogId,
     pendingRequest,
 
     // Actions
@@ -1070,20 +1105,19 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
            newPlayers[currentTurnIndex] = player;
            
            // Log it
-           setMatchLog(old => [{
-             id: Date.now(),
+           addLogEntry({
              player: player.name,
              action: 'FLIP',
              message: `flipped ${card.name} to ${COLORS[nextColor]?.name || nextColor}`,
              card: card
-           }, ...old]);
+           });
            
            return newPlayers;
         }
         
         return prev;
       });
-    }, [currentTurnIndex]),
+    }, [currentTurnIndex, addLogEntry]),
     discardCards: useCallback((cardIds) => {
       setPlayers(prev => {
         const newPlayers = [...prev];
@@ -1097,13 +1131,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         return newPlayers;
       });
       
-      setMatchLog(prev => [{
-        id: Date.now(),
+      addLogEntry({
         player: players[currentTurnIndex].name,
         action: 'DISCARD',
         message: `discarded ${cardIds.length} cards`
-      }, ...prev]);
-    }, [currentTurnIndex, players]),
+      });
+    }, [currentTurnIndex, players, addLogEntry]),
     confirmPayment,
     
     // Setters for external sync
@@ -1116,6 +1149,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     setHasDrawnThisTurn,
     setWinner,
     setMatchLog,
+    setNextLogId,
     setPendingRequest
   };
 };

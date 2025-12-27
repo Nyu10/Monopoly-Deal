@@ -80,9 +80,9 @@ describe('WildCardSetSelectionDialog', () => {
       />
     );
 
-    expect(screen.getByText('Where to Play Wild Card?')).toBeInTheDocument();
-    expect(screen.getByText('Play as New Set')).toBeInTheDocument();
-    expect(screen.getByText('Bank It')).toBeInTheDocument();
+    expect(screen.getByText('Where to Play Wild Card?')).toBeTruthy();
+    expect(screen.getByText('Play as New Set')).toBeTruthy();
+    expect(screen.queryByText('Bank It')).toBeNull();
   });
 
   it('shows existing compatible sets for dual color wild', () => {
@@ -96,22 +96,8 @@ describe('WildCardSetSelectionDialog', () => {
       />
     );
 
-    expect(screen.getByText('Add to Existing Set:')).toBeInTheDocument();
-    expect(screen.getByText('Blue Set')).toBeInTheDocument();
-  });
-
-  it('calls onSelect with correct params when "Bank It" is clicked', () => {
-    render(
-      <WildCardSetSelectionDialog
-        card={dualWildCard}
-        player={mockPlayer}
-        onSelect={mockOnSelect}
-        onCancel={mockOnCancel}
-      />
-    );
-
-    fireEvent.click(screen.getByText('Bank It'));
-    expect(mockOnSelect).toHaveBeenCalledWith({ asBank: true });
+    expect(screen.getByText('Add to Existing Set:')).toBeTruthy();
+    expect(screen.getByText('Blue Set')).toBeTruthy();
   });
 
   it('calls onSelect with correct params when "Play as New Set" is clicked for dual wild', () => {
@@ -144,11 +130,11 @@ describe('WildCardSetSelectionDialog', () => {
         />
       );
 
-      expect(screen.getByText('Or Choose Color for New Set:')).toBeInTheDocument();
+      expect(screen.getByText('Or Choose Color for New Set:')).toBeTruthy();
       // Should see color names
-      expect(screen.getByText('Red')).toBeInTheDocument();
-      expect(screen.getByText('Green')).toBeInTheDocument();
-      expect(screen.getByText('Yellow')).toBeInTheDocument();
+      expect(screen.getByText('Red')).toBeTruthy();
+      expect(screen.getByText('Green')).toBeTruthy();
+      expect(screen.getByText('Yellow')).toBeTruthy();
   });
 
   it('calls onSelect with specific color when a rainbow color option is clicked', () => {

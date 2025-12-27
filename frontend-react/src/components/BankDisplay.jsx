@@ -102,7 +102,11 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
                 <div className="bg-slate-900/95 backdrop-blur-sm p-3 rounded-xl shadow-2xl border border-white/20">
                   <div className="flex gap-1.5 flex-wrap max-w-[280px] justify-center">
                     {cards.map((card, idx) => (
-                      <MiniCard key={card.id || idx} card={card} scale={0.25} />
+                      <MiniCard 
+                        key={`${card.id || 'card'}-${idx}`} 
+                        card={card} 
+                        scale={0.25} 
+                      />
                     ))}
                   </div>
                 </div>
@@ -187,11 +191,15 @@ const BankDisplay = ({ cards, compact = false, onCardClick, hideValue = false, h
         {isHovered && !shouldHideCards && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[100] pointer-events-none">
             <div className="bg-slate-900/95 backdrop-blur-sm p-3 rounded-xl shadow-2xl border border-white/20">
-              <div className="flex gap-1.5 flex-wrap max-w-[280px] justify-center">
-                {cards.map((card, idx) => (
-                  <MiniCard key={card.id || idx} card={card} scale={0.25} />
-                ))}
-              </div>
+                <div className="flex gap-1.5 flex-wrap max-w-[280px] justify-center">
+                  {cards.map((card, idx) => (
+                    <MiniCard 
+                      key={`${card.id || 'card'}-${idx}`} 
+                      card={card} 
+                      scale={0.25} 
+                    />
+                  ))}
+                </div>
             </div>
             {/* Arrow */}
             <div className="absolute top-full -mt-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-900/95"></div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import OpponentCard from './OpponentCard';
 import HandCountDisplay from './HandCountDisplay';
 import Card from './Card';
@@ -90,35 +90,50 @@ const StadiumLayout = ({
     };
   };
 
+  // Ensure logs are chronological (Oldest -> Newest) to fix "out of order" confusion
+  // and match the "posting below" expectation.
+  const sortedLog = [...matchLog].sort((a, b) => a.id - b.id);
+  const logContainerRef = useRef(null);
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [matchLog.length]); // Depend on length to scroll on new items
+
   return (
     <div className="w-full h-full flex bg-slate-50 overflow-hidden">
       
       {/* LEFT SIDEBAR: Match Log */}
-      <div className="w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 z-50 flex flex-col shadow-xl relative">
+      <div className="w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 z-50 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative">
         {/* Background Gradient/Texture */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 to-transparent pointer-events-none"></div>
+        <div className="absolute inset-0 bg-slate-50/30 pointer-events-none"></div>
         
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 bg-white/80 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
+        <div className="p-5 border-b border-slate-100 bg-white/90 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-lg shadow-green-500/30"></div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Match Log</h3>
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm ring-2 ring-green-100"></div>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Match Log</h3>
           </div>
-          <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">{matchLog.length} Actions</span>
+          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full border border-slate-200">{matchLog.length} Actions</span>
         </div>
         
         {/* Content */}
-        <div className="overflow-y-auto p-4 space-y-4 flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent z-10">
-          {matchLog.length === 0 && (
-             <div className="flex flex-col items-center justify-center h-48 text-center opacity-50">
-                <div className="w-12 h-12 rounded-full bg-slate-100 mb-3 flex items-center justify-center">
+        <div 
+          ref={logContainerRef}
+          className="overflow-y-auto p-4 space-y-4 flex-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent z-10"
+        >
+          {sortedLog.length === 0 && (
+             <div className="flex flex-col items-center justify-center h-48 text-center opacity-40">
+                <div className="w-12 h-12 rounded-full bg-slate-100 mb-3 flex items-center justify-center border border-slate-200">
                   <span className="text-xl">🎲</span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium">Game is starting...</p>
+                <p className="text-xs text-slate-500 font-semibold">Game is starting...</p>
              </div>
           )}
           
-          {matchLog.map((log) => {
+          {sortedLog.map((log) => {
             const cardColor = log.card ? (log.card.currentColor || log.card.color) : null;
             const colorData = cardColor ? COLORS[cardColor] : null;
             
@@ -152,7 +167,7 @@ const StadiumLayout = ({
                         {log.player}
                       </span>
                       <span className="text-[10px] text-slate-400 ml-auto font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                        {new Date(log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.timestamp || log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                     
@@ -219,15 +234,15 @@ const StadiumLayout = ({
           {/* Table background */}
           <div className="absolute inset-0 flex items-center justify-center translate-y-12">
             <div 
-              className="w-[80%] h-[70%] rounded-[50%] bg-white shadow-2xl border-8 border-blue-600 scale-90 sm:scale-100" // Added scale for responsiveness
+              className="w-[85%] h-[75%] rounded-[40%] bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 scale-90 sm:scale-100" 
               style={{
-                boxShadow: 'inset 0 0 40px rgba(0,0,0,0.05), 0 20px 40px rgba(0,0,0,0.1)'
+                boxShadow: 'inset 0 0 60px rgba(0,0,0,0.02), 0 20px 60px rgba(0,0,0,0.05)'
               }}
             >
-              {/* Table texture */}
-              <div className="absolute inset-0 rounded-[50%] opacity-[0.03]" style={{
-                backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2px)',
-                backgroundSize: '20px 20px'
+              {/* Table texture - subtle felt pattern */}
+              <div className="absolute inset-0 rounded-[40%] opacity-[0.4]" style={{
+                backgroundImage: 'radial-gradient(circle, #f1f5f9 2px, transparent 2px)',
+                backgroundSize: '32px 32px'
               }}></div>
               
               {/* Center logo/text */}
@@ -376,7 +391,7 @@ const StadiumLayout = ({
           {/* Empty state */}
           {seatedPlayers.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
-              <div className="text-center text-slate-700 text-xl font-bold py-12 bg-white/90 px-8 rounded-xl shadow-2xl border-2 border-slate-200">
+              <div className="text-center text-slate-500 text-lg font-bold py-8 bg-white/80 px-8 rounded-2xl shadow-xl border border-white/50 backdrop-blur-sm">
                 Waiting for opponents...
               </div>
             </div>
@@ -466,7 +481,7 @@ const StadiumLayout = ({
       </div>
 
       {/* RIGHT SIDEBAR: Your Assets (Bank & Properties) */}
-      <div className="w-80 h-full flex-shrink-0 bg-white border-l border-slate-200 z-50 flex flex-col shadow-xl relative">
+      <div className="w-80 h-full flex-shrink-0 bg-white border-l border-slate-200 z-50 flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] relative">
         {/* Floating Rules Tab (Sticks out from sidebar) */}
         <button 
           onClick={() => setShowRules(true)}
@@ -478,12 +493,12 @@ const StadiumLayout = ({
         </button>
 
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 bg-white/80 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
+        <div className="p-5 border-b border-slate-100 bg-white/90 backdrop-blur-sm flex items-center justify-between z-10 sticky top-0">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30"></div>
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Your Assets</h3>
+            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm ring-2 ring-blue-100"></div>
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Your Assets</h3>
           </div>
-          <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg border border-slate-200">
+          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full border border-slate-200">
             {currentPlayer?.properties?.length || 0} Properties
           </span>
         </div>
@@ -529,7 +544,7 @@ const StadiumLayout = ({
                             return (
                               <div 
                                 key={card.id || idx} 
-                                className="transition-all duration-300 hover:-translate-y-8 hover:z-[100] origin-bottom relative group-hover:!ml-[-20px]"
+                                className="transition-all duration-300 hover:-translate-y-8 hover:z-[100] origin-bottom relative"
                                 style={{ 
                                   zIndex: idx,
                                   marginLeft: idx === 0 ? 0 : `-${overlap}px`
@@ -553,16 +568,19 @@ const StadiumLayout = ({
                 </div>
               </div>
 
-              {/* Properties Section - Scrollable Area */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent min-h-0 relative">
-                <div id="tutorial-properties" className="group min-h-full">
-                  <div className="flex items-center justify-between mb-3 px-1 sticky top-0 bg-slate-50/95 backdrop-blur-sm py-2 z-10 w-full">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Properties</h4>
-                    <div className="text-lg font-black text-blue-600 drop-shadow-sm">
-                      {currentPlayer.properties?.length || 0}
-                    </div>
+              {/* Properties Header - Fixed */}
+              <div className="flex-shrink-0 px-5 pt-4 pb-2 bg-slate-50/50 z-10">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Properties</h4>
+                  <div className="text-lg font-black text-blue-600 drop-shadow-sm">
+                    {currentPlayer.properties?.length || 0}
                   </div>
-                  
+                </div>
+              </div>
+
+              {/* Properties Section - Scrollable Area */}
+              <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent min-h-0 relative">
+                <div id="tutorial-properties" className="group min-h-full">
                   <div className="bg-gradient-to-br from-blue-50/50 to-sky-50/50 rounded-2xl p-4 border border-blue-100 shadow-sm transition-all group-hover:shadow-md group-hover:border-blue-200">
                     <div className="flex flex-col gap-4 min-h-[200px]">
                       <PropertySetDisplay 
@@ -583,7 +601,7 @@ const StadiumLayout = ({
 
               {/* End Turn Button - Fixed at Bottom */}
               {isMyTurn && hasDrawnThisTurn && (
-                <div className="flex-shrink-0 p-4 border-t border-slate-100 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-30">
+                <div className="flex-shrink-0 p-4 border-t border-slate-100 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.02)] z-30">
                   <button
                     onClick={onEndTurn}
                     className="w-full group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-95"

@@ -33,6 +33,7 @@ export const useLocalMultiplayerSync = (game, enabled = false) => {
         if (state.discardPile !== undefined) game.setDiscardPile(state.discardPile);
         if (state.winner !== undefined && state.winner !== game.winner) game.setWinner(state.winner);
         if (state.matchLog !== undefined) game.setMatchLog(state.matchLog);
+        if (state.nextLogId !== undefined) game.setNextLogId(state.nextLogId);
         if (state.pendingRequest !== undefined) game.setPendingRequest(state.pendingRequest);
         
         // Reset flag after a short delay to allow React to process updates
@@ -55,6 +56,7 @@ export const useLocalMultiplayerSync = (game, enabled = false) => {
                     discardPile: game.discardPile,
                     winner: game.winner,
                     matchLog: game.matchLog,
+                    nextLogId: game.nextLogId,
                     pendingRequest: game.pendingRequest
                 }
             });
@@ -83,6 +85,7 @@ export const useLocalMultiplayerSync = (game, enabled = false) => {
                  if (state.discardPile !== undefined) game.setDiscardPile(state.discardPile);
                  if (state.winner !== undefined) game.setWinner(state.winner);
                  if (state.matchLog !== undefined) game.setMatchLog(state.matchLog);
+                 if (state.nextLogId !== undefined) game.setNextLogId(state.nextLogId);
                  if (state.pendingRequest !== undefined) game.setPendingRequest(state.pendingRequest);
                  
                 setTimeout(() => { isUpdatingFromSync.current = false; }, 100);
@@ -123,6 +126,7 @@ export const useLocalMultiplayerSync = (game, enabled = false) => {
             discardPile: game.discardPile,
             winner: game.winner,
             matchLog: game.matchLog,
+            nextLogId: game.nextLogId,
             pendingRequest: game.pendingRequest
           };
           

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy, Settings } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Wifi, WifiOff, Trophy, Settings, Beaker } from 'lucide-react';
 import StadiumLayout from '../components/StadiumLayout';
 import { CardActionDialog, TargetSelectionDialog, PaymentSelectionDialog, DiscardDialog, RentColorSelectionDialog } from '../components/ActionDialogs';
 import SettingsModal from '../components/SettingsModal';
@@ -18,10 +18,12 @@ import { ACTION_TYPES, CARD_TYPES, calculateBankTotal, getPreferredDestination, 
  * Supports three modes:
  * 1. Multiplayer (/game/:roomId) - Connect to backend
  * 2. Bot Game (/stadium) - Local game with AI bots
- * 3. Demo (fallback) - Testing only
+ * 3. Sandbox (/sandbox) - Testing mode
+ * 4. Demo (fallback) - Testing only
  */
 const Game = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { roomId, playerId } = useParams();
   const [showCardActionDialog, setShowCardActionDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -33,7 +35,8 @@ const Game = () => {
   // Determine game mode
   const isMultiplayer = !!roomId;
   const isLocalMultiplayer = !!playerId;
-  const isBotGame = !roomId && !playerId; // /stadium route or offline
+  const isSandbox = location.pathname.includes('/sandbox');
+  const isBotGame = (!roomId && !playerId) || isSandbox; // /stadium, /sandbox route or offline
   const playerIdentity = isLocalMultiplayer ? `player-${parseInt(playerId) - 1}` : 'player-0';
 
   // Multiplayer mode: Connect to backend
@@ -348,23 +351,23 @@ const Game = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100">
       {/* Header */}
-      <div className="bg-white border-b-2 border-slate-200 p-4 shadow-sm">
+      <div className="bg-white border-b border-slate-200 p-4 shadow-sm z-50 relative">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors font-bold"
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-semibold"
           >
             <ArrowLeft size={20} />
             Back to Lobby
           </button>
           
           <div className="text-center">
-            <h1 className="text-2xl font-black text-slate-900">Monopoly Deal</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Monopoly Deal</h1>
             {isMultiplayer && (
               <div className="flex items-center gap-2 justify-center mt-1">
-                <p className="text-xs text-slate-500">Room: {roomId}</p>
+                <p className="text-xs text-slate-500 font-medium">Room: {roomId}</p>
                 {connected ? (
                   <Wifi size={14} className="text-green-500" title="Connected" />
                 ) : (
@@ -379,7 +382,13 @@ const Game = () => {
             )}
             {isBotGame && (
               <div className="flex items-center gap-2 justify-center mt-1">
-                <p className="text-xs text-blue-600">Bot Game</p>
+                {isSandbox ? (
+                    <p className="text-xs text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Beaker size={12} /> Sandbox Mode
+                    </p>
+                ) : (
+                    <p className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">Bot Game</p>
+                )}
                 {gameState === 'REQUEST_PAYMENT' && <span className="text-xs text-red-500 font-black animate-pulse">• PAYMENT REQUIRED</span>}
                 {movesLeft > 0 && currentTurnIndex === 0 && gameState === 'PLAYING' && (
                   <span className="text-xs text-slate-500">• {movesLeft} moves left</span>
@@ -391,7 +400,7 @@ const Game = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowSettings(true)}
-              className="group flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-blue-600 px-3 py-2 rounded-lg font-bold transition-all"
+              className="group flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 px-3 py-2 rounded-lg font-medium transition-all border border-slate-200 hover:border-slate-300 shadow-sm"
               title="Settings"
             >
               <Settings size={18} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -424,34 +433,6 @@ const Game = () => {
         </div>
       )}
 
-      {/* Win Screen */}
-      {winner && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
-            <Trophy size={64} className="mx-auto mb-4 text-yellow-500" />
-            <h2 className="text-3xl font-black text-slate-900 mb-2">
-              {winner.name} Wins!
-            </h2>
-            <p className="text-slate-600 mb-6">
-              Completed 3 full property sets
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleNewGame}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-              >
-                New Game
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-3 rounded-lg font-bold transition-colors"
-              >
-                Lobby
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Stadium Layout */}
       <div className="h-[calc(100vh-80px)] relative overflow-hidden">
@@ -510,7 +491,7 @@ const Game = () => {
 
         {/* Status Indicators (Bottom Left) */}
         {currentTurnIndex !== 0 && (
-          <div className="absolute bottom-8 left-8 z-40">
+          <div className="absolute bottom-8 left-8 z-30">
             <div className="bg-slate-900/80 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4">
               <div className="flex space-x-1">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
@@ -579,10 +560,47 @@ const Game = () => {
         />
       )}
 
+
       <SettingsModal 
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)} 
       />
+
+      {/* Win Screen */}
+      {winner && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] p-4 animate-in fade-in duration-500">
+          <div className="bg-white rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.5)] max-w-md w-full p-10 text-center animate-in zoom-in-95 duration-500 ring-1 ring-white/20">
+            <div className="relative mb-6">
+              <Trophy size={80} className="mx-auto text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+              <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-20 -z-10"></div>
+            </div>
+            
+            <h2 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">
+              {winner.id === playerIdentity ? 'YOU WIN!' : `${winner.name} Wins!`}
+            </h2>
+            <div className="h-1.5 w-20 bg-yellow-400 mx-auto rounded-full mb-6"></div>
+            
+            <p className="text-slate-500 font-medium mb-10 text-lg">
+              Completed 3 full property sets with master strategy!
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleNewGame}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-2xl font-black text-xl transition-all shadow-xl hover:shadow-green-500/20 active:scale-95 border-b-4 border-green-800"
+              >
+                PLAY AGAIN
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-2xl font-bold transition-all hover:text-slate-900"
+              >
+                Back to Lobby
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

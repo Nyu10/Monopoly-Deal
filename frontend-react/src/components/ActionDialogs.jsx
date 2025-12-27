@@ -17,7 +17,7 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
   const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl max-w-[280px] w-full p-3 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-end mb-2">
           <button
@@ -254,7 +254,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
   // =========================================================================
   if (targetType === 'PROPERTY_SWAP') {
       return (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
            <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/20">
               {/* Header */}
               <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -371,7 +371,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
   // STANDARD TARGET SELECTION (EXISTING)
   // =========================================================================
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 max-h-[85vh] overflow-y-auto ring-1 ring-black/5 flex flex-col">
         <div className="flex items-center justify-between mb-3 shrink-0">
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Select Target</h2>
@@ -563,7 +563,7 @@ export const PaymentSelectionDialog = ({ amount, player, onConfirm, onCancel }) 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-black text-slate-900">Pay ${amount}M</h2>
@@ -691,7 +691,7 @@ export const DiscardDialog = ({ cards, movesLeft, onConfirm, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto ring-1 ring-black/5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

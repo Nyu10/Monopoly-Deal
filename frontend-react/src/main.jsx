@@ -28,6 +28,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/test-deck" element={<TestDeck />} />
 
           <Route path="/stadium" element={<Game />} />
+          <Route path="/sandbox" element={<Game />} />
         </Routes>
         <RulesChatWidget />
       </BrowserRouter>

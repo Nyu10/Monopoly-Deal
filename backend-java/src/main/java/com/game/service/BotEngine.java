@@ -204,7 +204,39 @@ public class BotEngine {
             }
         }
         
+        return optimizePayment(selectedCards, amount);
+    }
+
+    private List<Card> optimizePayment(List<Card> selectedCards, int amount) {
+        int totalValue = selectedCards.stream().mapToInt(Card::getValue).sum();
+        
+        // Sort by "Keep Priority" (High to Low) so we try to remove valuable cards first
+        // Priority: Property > Action > Money
+        selectedCards.sort((c1, c2) -> {
+            int p1 = getKeepPriority(c1);
+            int p2 = getKeepPriority(c2);
+            if (p1 != p2) return Integer.compare(p2, p1); // Higher priority first
+            return Integer.compare(c2.getValue(), c1.getValue()); // Higher value first
+        });
+
+        // Try to remove cards while still satisfying the debt
+        Iterator<Card> it = selectedCards.iterator();
+        while (it.hasNext()) {
+            Card card = it.next();
+            if (totalValue - card.getValue() >= amount) {
+                totalValue -= card.getValue();
+                it.remove();
+            }
+        }
+        
         return selectedCards;
+    }
+
+    private int getKeepPriority(Card card) {
+        if (card.getType() == CardType.PROPERTY || card.getType() == CardType.PROPERTY_WILD) return 3;
+        if (card.getType() == CardType.ACTION || card.getType() == CardType.RENT || card.getType() == CardType.RENT_WILD) return 2;
+        return 1; // MONEY
+
     }
 
     private int calculateBotWealth(Player bot) {

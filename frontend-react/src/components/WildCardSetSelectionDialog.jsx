@@ -22,7 +22,7 @@ const WildCardSetSelectionDialog = ({ card, player, onSelect, onCancel }) => {
   const compatibleSets = sets.filter(set => availableColors.includes(set.color));
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 max-h-[85vh] overflow-y-auto ring-1 ring-black/5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">
@@ -50,23 +50,7 @@ const WildCardSetSelectionDialog = ({ card, player, onSelect, onCancel }) => {
         </div>
 
         <div className="space-y-2">
-          {/* Option to bank the wild card for money */}
-          <button
-            onClick={() => onSelect({ asBank: true })}
-            className="w-full group relative flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-lg transition-all hover:scale-[1.02] shadow-lg hover:shadow-emerald-500/30"
-          >
-            <div className="flex flex-col text-left">
-              <span className="font-black uppercase tracking-wider text-sm">
-                Bank It
-              </span>
-              <span className="text-emerald-100 text-xs font-medium">
-                Save as money instead
-              </span>
-            </div>
-            <div className="bg-white/20 px-3 py-1 rounded-lg font-black font-mono">
-              ${card.value}M
-            </div>
-          </button>
+
 
           {/* Option to play as new individual set */}
           <button
