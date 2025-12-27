@@ -128,6 +128,7 @@ const PropertySetDisplay = ({ properties, compact = false, onCardClick, tooltipD
   const completedSets = setStatuses.filter(s => s.isComplete).length;
 
   const handleMouseEnter = (e, color, cards) => {
+    if (!isCurrentPlayer) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setHoveredState({ color, cards, rect });
   };

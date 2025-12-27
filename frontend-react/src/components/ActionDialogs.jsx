@@ -663,11 +663,15 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2">
-                        {targetType === 'OWN_COMPLETE_SET' ? (
-                          // Render by Sets for Building Placement
+                        {targetType === 'OWN_COMPLETE_SET' || targetType === 'COMPLETE_SET' ? (
+                          // Render by Sets for Building Placement OR Deal Breaker
                           playerSets.length > 0 ? playerSets.map((set) => {
                              const representativeCard = set.cards[0];
                              const canSelect = set.isComplete;
+                             const isOwnSet = targetType === 'OWN_COMPLETE_SET';
+                             
+                             if (!canSelect && !isOwnSet) return null; // Don't even show incomplete sets when stealing? Or show them disabled?
+                             // Let's show them disabled so users know they are there but can't be stolen
                              
                              return (
                                <button
@@ -685,8 +689,10 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
                                        <div className="text-xs font-black uppercase text-slate-700 mb-0.5">
                                          {COLORS[set.color]?.name || set.color} Set
                                        </div>
-                                       <div className="text-[10px] text-slate-400 font-bold">
-                                         {canSelect ? 'Ready for House/Hotel' : `${set.cards.length}/${set.required} Cards`}
+                                       <div className={`text-[10px] font-bold ${canSelect ? (isOwnSet ? 'text-blue-600' : 'text-emerald-600') : 'text-slate-400'}`}>
+                                         {canSelect 
+                                            ? (isOwnSet ? 'Ready for House/Hotel' : 'STEAL COMPLETE SET') 
+                                            : `${set.cards.length}/${set.required} Cards`}
                                        </div>
                                     </div>
                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white shadow-sm" style={{ backgroundColor: COLORS[set.color]?.hex }}>

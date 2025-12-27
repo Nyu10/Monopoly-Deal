@@ -173,22 +173,16 @@ const Game = () => {
       return;
     }
 
-    // 4. Multi-step Action Cards with Specialized UI
-    // These cards skip the initial "Play vs Bank" dialog because their specialized
-    // Target Selection dialogs already include a "Bank It" option.
-    const directActionTypes = [
-      ACTION_TYPES.DEBT_COLLECTOR,
-      ACTION_TYPES.SLY_DEAL,
-      ACTION_TYPES.FORCED_DEAL
-    ];
-
-    if (isInHand && directActionTypes.includes(card.actionType)) {
+    // 4. Cards that require target selection go DIRECTLY to their specialized UI
+    //    The TargetSelectionDialog already has a "Bank It" option built in, so we
+    //    don't need a separate "Play vs Bank" dialog first.
+    if (isInHand && gameActions.requiresTarget(card)) {
       handleCardActionConfirm('ACTION', card);
       return;
     }
 
-    // 5. For everything else (Rent, Wild Properties in play, Pass Go, etc.), show the confirmation dialog
-    // This allows the player to choose between banking or using the card's special effect
+    // 5. For everything else (2-color Rent, Pass Go, Wild Properties in play, etc.), 
+    //    show the CardActionDialog to let player choose between action and banking.
     setShowCardActionDialog(true);
   };
 

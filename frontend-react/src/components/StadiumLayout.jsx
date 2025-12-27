@@ -171,14 +171,36 @@ const StadiumLayout = ({
                          <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 {/* Avatar (Small) */}
-                                <div className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-black border ${
-                                    log.player === 'You' ? 'bg-blue-600 text-white border-blue-700' : 'bg-rose-500 text-white border-rose-600'
-                                }`}>
-                                    {log.player.charAt(0)}
-                                </div>
-                                <span className={`text-xs font-black tracking-tight ${log.player === 'You' ? 'text-blue-600' : 'text-slate-700'}`}>
-                                    {log.player}
-                                </span>
+                                {(() => {
+                                  // Determine color based on player name
+                                  let colorClass = 'bg-slate-500 text-white border-slate-600'; // Default
+                                  let textClass = 'text-slate-700';
+                                  
+                                  if (log.player === 'You') {
+                                    colorClass = 'bg-blue-600 text-white border-blue-700';
+                                    textClass = 'text-blue-600';
+                                  } else if (log.player === 'Bot 1') {
+                                    colorClass = 'bg-violet-600 text-white border-violet-700';
+                                    textClass = 'text-violet-700';
+                                  } else if (log.player === 'Bot 2') {
+                                    colorClass = 'bg-teal-600 text-white border-teal-700';
+                                    textClass = 'text-teal-700';
+                                  } else if (log.player === 'Bot 3') {
+                                    colorClass = 'bg-orange-500 text-white border-orange-600';
+                                    textClass = 'text-orange-700';
+                                  }
+
+                                  return (
+                                    <>
+                                      <div className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-black border ${colorClass}`}>
+                                          {log.player.charAt(0)}
+                                      </div>
+                                      <span className={`text-xs font-black tracking-tight ${textClass}`}>
+                                          {log.player}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
                             </div>
                             <span className="text-[9px] text-slate-400 font-bold font-mono">
                                {new Date(log.timestamp || log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
@@ -257,86 +279,91 @@ const StadiumLayout = ({
               
               {/* Deck and Discard in center */}
               {/* Deck and Discard in center - Shifted down significantly to avoid overlapping top player */}
-              <div className="absolute inset-0 flex items-center justify-center gap-8 translate-y-20 sm:translate-y-24 pointer-events-none">
+              <div className="absolute inset-0 flex items-center justify-center translate-y-20 sm:translate-y-24 pointer-events-none">
                 {/* Custom animation style for gentle bounce */}
                 <style>{`
                   @keyframes gentleBounce {
                     0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
+                    50% { transform: translateY(-4px); }
                   }
                 `}</style>
+                
+                {/* Center Container that aligns headers (cards) */}
+                <div className="flex items-start gap-8">
+                    {/* Deck Column */}
+                    <div 
+                      id="tutorial-deck"
+                      className={`flex flex-col items-center gap-3 cursor-pointer group relative pointer-events-auto z-50`}
+                      style={{
+                        animation: shouldShowDrawPrompt ? 'gentleBounce 2s infinite ease-in-out' : 'none'
+                      }}
+                      onClick={onDraw}
+                    >
+                      {/* CARD ITSELF */}
+                      <div 
+                        className={`w-24 h-36 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl border-2 border-white shadow-lg flex items-center justify-center relative transition-all duration-300 ${
+                          shouldShowDrawPrompt
+                            ? 'ring-4 ring-blue-300 ring-offset-4 ring-offset-blue-50 shadow-[0_10px_40px_rgba(59,130,246,0.5)] scale-105 cursor-pointer' 
+                            : 'group-hover:scale-105 group-hover:-translate-y-1'
+                        }`}
+                      >
+                        {/* Simple texture */}
+                        <div className="absolute inset-0 opacity-10" style={{
+                          backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 1.5px)',
+                          backgroundSize: '16px 16px'
+                        }}></div>
+                        
+                        {/* Inner border */}
+                        <div className="absolute inset-3 border rounded-lg border-white/20"></div>
 
-                {/* Deck */}
-                <div 
-                  id="tutorial-deck"
-                  className={`flex flex-col items-center gap-2 mt-0 cursor-pointer group relative pointer-events-auto z-50 transition-all duration-300`}
-                  style={{
-                    animation: shouldShowDrawPrompt ? 'gentleBounce 2s infinite ease-in-out' : 'none'
-                  }}
-                  onClick={onDraw}
-                >
-                  <div 
-                    className={`w-24 h-36 bg-gradient-to-br ${CARD_BACK_STYLES.gradient} rounded-xl border-2 ${CARD_BACK_STYLES.border} shadow-lg flex items-center justify-center relative transition-all duration-300 ${
-                      shouldShowDrawPrompt
-                        ? 'ring-4 ring-white ring-offset-4 ring-offset-slate-50 shadow-[0_8px_30px_rgba(255,255,255,0.6)] border-white/80 cursor-pointer' 
-                        : 'group-hover:scale-105 group-hover:-translate-y-1'
-                    }`}
-                  >
-                    {/* Pattern Pattern */}
-                    <div className="absolute inset-0 opacity-20" style={{
-                      backgroundImage: CARD_BACK_STYLES.patternDots,
-                      backgroundSize: '15px 15px'
-                    }}></div>
-                    
-                    {/* Inner Decorative Border */}
-                    <div className={`absolute inset-3 border rounded-lg pointer-events-none transition-colors duration-300 ${shouldShowDrawPrompt ? 'border-white/70' : 'border-white/20'}`}></div>
-
-                    {/* Content */}
-                    <div className="z-10 flex flex-col items-center justify-center pointer-events-none select-none">
-                      {/* Always show the same clean deck design */}
-                      <div className="flex flex-col items-center">
-                        {/* Centered Minimalist Logo Mark */}
-                        <div className="relative w-24 h-24 flex items-center justify-center">
-                          {/* Background Glow */}
-                          <div className={`absolute inset-0 blur-3xl transition-all duration-300 ${shouldShowDrawPrompt ? 'bg-white/40' : 'bg-transparent'}`}></div>
-                          
-                          {/* The Symbol - Wordless & High-end */}
-                          <div className={`w-16 h-16 border rounded-full flex items-center justify-center relative transition-colors duration-300 ${shouldShowDrawPrompt ? 'border-white/90 bg-white/20' : 'border-amber-400/30'}`}>
-                             <Layers size={28} className={`transition-colors duration-300 ${shouldShowDrawPrompt ? 'text-white' : 'text-amber-400/60'}`} strokeWidth={1.5} />
-                             
-                             {/* Compass Pins */}
-                             <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-3 bg-gradient-to-b transition-colors duration-300 ${shouldShowDrawPrompt ? 'from-white/90' : 'from-amber-400/60'} to-transparent`}></div>
-                             <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-3 bg-gradient-to-t transition-colors duration-300 ${shouldShowDrawPrompt ? 'from-white/90' : 'from-amber-400/60'} to-transparent`}></div>
+                        {/* Simple centered text */}
+                        <div className="z-10 flex flex-col items-center justify-center select-none">
+                          <div className="text-2xl font-black text-white" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                            DEAL
                           </div>
                         </div>
+                        
+                        {/* Card count */}
+                        <div className="absolute bottom-2 text-[9px] font-bold text-white/50 tracking-wider">
+                          {deck.length}
+                        </div>
+                      </div>
+                      
+                      {/* BUTTON/LABEL */}
+                      <div className={`h-8 px-4 flex items-center justify-center rounded-lg font-black text-xs uppercase tracking-wider shadow-md transition-all border-2 ${
+                        shouldShowDrawPrompt
+                          ? 'bg-blue-600 text-white border-blue-500 shadow-blue-300/50 scale-105'
+                          : 'bg-white text-slate-700 border-slate-200'
+                      }`}>
+                        {shouldShowDrawPrompt ? 'DRAW 2' : `DECK (${deck.length})`}
                       </div>
                     </div>
-                  </div>
-                  <span className={`text-sm font-black px-4 py-2 rounded-lg shadow-lg border-2 transition-all ${
-                    shouldShowDrawPrompt
-                      ? 'bg-blue-600 text-white border-blue-500 shadow-blue-300/50 scale-105'
-                      : 'bg-white text-slate-700 border-slate-200'
-                  }`}>
-                    {shouldShowDrawPrompt ? `DRAW 2` : `DECK (${deck.length})`}
-                  </span>
-                </div>
-                
-                {/* Discard */}
-                <div className="flex flex-col items-center gap-2 mt-0 pointer-events-auto">
-                  {discardPile.length > 0 ? (
-                    <div className="relative grayscale opacity-60">
-                      <Card 
-                        card={discardPile[discardPile.length - 1]} 
-                        size="xs"
-                        className="shadow-lg"
-                      />
+                    
+                    {/* Discard Column */}
+                    <div className="flex flex-col items-center gap-3 pointer-events-auto">
+                      {/* CARD AREA - FIXED SIZE WRAPPER TO ENSURE ALIGNMENT */}
+                      <div className="w-24 h-36 relative flex items-center justify-center">
+                          {discardPile.length > 0 ? (
+                            <div className="absolute inset-0 grayscale opacity-80 hover:opacity-100 hover:grayscale-0 transition-all duration-300 hover:scale-110 hover:z-50 cursor-help">
+                              <Card 
+                                card={discardPile[discardPile.length - 1]} 
+                                size="xs"
+                                className="shadow-lg"
+                                enableHover={false} // We handle hover manually for the pile
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full bg-slate-200/50 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Empty</span>
+                            </div>
+                          )}
+                      </div>
+
+                      {/* BUTTON/LABEL */}
+                      <div className="h-8 px-4 flex items-center justify-center bg-white text-slate-500 rounded-lg shadow-md border border-slate-200 font-bold text-xs uppercase tracking-wider">
+                         DISCARD ({discardPile.length})
+                      </div>
                     </div>
-                  ) : (
-                    <div className="w-24 h-36 bg-gradient-to-br from-slate-300 to-slate-400 rounded-lg border-3 border-white shadow-lg flex items-center justify-center opacity-60">
-                      <span className="text-white text-[10px] font-bold">DISCARD</span>
-                    </div>
-                  )}
-                  <span className="text-slate-600 text-xs font-bold bg-white px-3 py-1.5 rounded-lg shadow-md border border-slate-200">DISCARD ({discardPile.length})</span>
                 </div>
               </div>
             </div>

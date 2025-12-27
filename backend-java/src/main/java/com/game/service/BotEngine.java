@@ -164,27 +164,7 @@ public class BotEngine {
         availableCards.addAll(bot.getBank());
         availableCards.addAll(bot.getProperties());
         
-        // Sort by:
-        // 1. Value (Ascending) - to find the smallest combination satisfying debt
-        // 2. Spend Priority (Money first, then Property) - to break value ties
-        availableCards.sort((c1, c2) -> {
-            if (c1.getValue() != c2.getValue()) {
-                return Integer.compare(c1.getValue(), c2.getValue());
-            }
-            return Integer.compare(getSpendPriority(c1), getSpendPriority(c2));
-        });
-        
-        List<Card> selectedCards = new ArrayList<>();
-        int currentTotal = 0;
-        
-        // Greedy selection from sorted list
-        for (Card card : availableCards) {
-            if (currentTotal >= amount) break;
-            selectedCards.add(card);
-            currentTotal += card.getValue();
-        }
-        
-        return optimizePayment(selectedCards, amount, bot);
+        return optimizePayment(availableCards, amount, bot);
     }
 
     private int getSpendPriority(Card card) {
@@ -222,52 +202,57 @@ public class BotEngine {
     private int getKeepPriority(Card card, Player bot) {
         // HIERARCHY FOR TABLE ASSETS (Bank & Properties)
         
-        // Tier 1: CRITICAL (Do not use for payment unless absolutely forced)
+        // Tier 1: CRITICAL
         // Properties in Complete Sets
         if (isCardInCompleteSet(card, bot)) return 100;
         
-        // Tier 2: VERY HIGH VALUE
+        // Tier 2: VERY HIGH VALUE (Strategic Assets)
         // Wild Properties (Extremely flexible)
-        if (card.getType() == CardType.PROPERTY_WILD) return 90;
+        if (card.getType() == CardType.PROPERTY_WILD) return 95;
         
-        // Tier 3: HIGH VALUE MONEY
-        // 10M Money (Rare and powerful buffer)
+        // Properties that are "Almost Complete" (Need 1 more)
+        if (isCardInAlmostCompleteSet(card, bot)) return 85;
+        
+        // Tier 3: LIQUID WEALTH (Cash Buffer)
+        // 10M Money (Rare buffer)
         if (card.getValue() >= 10) return 80;
-        // 5M Money (Good buffer)
+        // 5M Money (Standard buffer)
         if (card.getValue() >= 5) return 70;
         
-        // Tier 4: STANDARD PROPERTIES
-        // Single properties are valuable, but less than "Big Money" that protects your sets.
-        // Losing a single property is bad, but losing your last 5M bill exposes your sets to small rents.
-        // However, usually you'd rather pay cash than property.
-        // Let's bias slightly towards KEEPING properties over 5M bills?
-        // User said: "remake the hierarchy".
-        // Strategy: Cash is meant to be spent. Properties are win conditions.
-        // BUT: if I have a 1M property and a 10M bill, and I owe 1M...
-        // Spend the 1M property? No. Spend the 10M bill? (Overpay 9M). No.
+        // Tier 4: TRADEABLE / EXPENDABLE ASSETS
+        // Single/Starter properties (1 of 3, or widely available)
+        // We'd rather pay with these than lose our 5M cash buffer.
+        if (card.getType() == CardType.PROPERTY) return 45;
         
-        // Wait, the "Selection" phase handles the "Don't Overpay" logic.
-        // This "Keep Priority" is for deciding between TWO cards of roughly equal utility in satisfying debt.
-        // e.g. I owe 3M. I can pay with 3M Property or 3M Cash.
-        // ALWAYS pay with Cash.
-        
-        if (card.getType() == CardType.PROPERTY) return 60;
-        
-        // Tier 5: LIQUID ASSETS (Spend these first)
+        // Tier 5: LOOSE CHANGE
         // Action cards banked as money
         if (card.getType() == CardType.ACTION || card.getType() == CardType.RENT || card.getType() == CardType.RENT_WILD) return 20;
         
-        // Pure Money (1M-4M)
+        // Small/Medium Money (1M-4M)
         return 10;
     }
 
     private boolean isCardInCompleteSet(Card card, Player bot) {
-        if (card.getType() != CardType.PROPERTY && card.getType() != CardType.PROPERTY_WILD) return false;
+        return checkSetStatus(card, bot) == 0;
+    }
+    
+    // Returns true if the set is missing exactly 1 card
+    private boolean isCardInAlmostCompleteSet(Card card, Player bot) {
+        return checkSetStatus(card, bot) == 1;
+    }
+
+    /**
+     * returns:
+     * 0 if complete
+     * >0 (number of missing cards)
+     * -1 if not applicable
+     */
+    private int checkSetStatus(Card card, Player bot) {
+        if (card.getType() != CardType.PROPERTY && card.getType() != CardType.PROPERTY_WILD) return -1;
         
         String color = card.getCurrentColor() != null ? card.getCurrentColor() : card.getColor();
-        if (color == null) return false;
+        if (color == null) return -1;
         
-        // Count cards of this color in bot's played properties
         long count = bot.getProperties().stream()
                 .filter(c -> {
                     String C = c.getCurrentColor() != null ? c.getCurrentColor() : c.getColor();
@@ -275,16 +260,19 @@ public class BotEngine {
                 })
                 .count();
                 
-        // Check requirement
+        int required = getRequiredCountForColor(color);
+        if (required == 0) return -1;
+        
+        return Math.max(0, required - (int)count);
+    }
+    
+    private int getRequiredCountForColor(String color) {
          Map<String, Integer> requiredCounts = Map.of(
             "brown", 2, "light_blue", 3, "pink", 3, "orange", 3,
             "red", 3, "yellow", 3, "green", 3, "dark_blue", 2, 
             "railroad", 4, "utility", 2
         );
-        
-        // Note: This checks if the SET is currently complete. 
-        // If it is, this card is part of that complete set.
-        return requiredCounts.containsKey(color) && count >= requiredCounts.get(color);
+        return requiredCounts.getOrDefault(color, 0);
     }
 
     private int calculateBotWealth(Player bot) {

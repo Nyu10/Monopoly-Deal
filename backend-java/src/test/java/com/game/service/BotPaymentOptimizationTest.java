@@ -126,5 +126,69 @@ class BotPaymentOptimizationTest {
         assertEquals("Property 2M", payment.get(0).getName());
     }
 
+    @Test
+    void testHierarchy_ProtectAlmostCompleteSet() {
+        // Scenario: Debt 4M.
+        // Bot has:
+        // - 5M Money (Score 70)
+        // - Light Blue Property 1 (Played) \
+        // - Light Blue Property 2 (Played) / (2/3 complete -> Score 85)
+        // Expect: Pay with 5M Money. Keep the properties because they are valuable potential set.
+        
+        Card money5M = Card.builder().uid("m5").name("5M").value(5).type(CardType.MONEY).build();
+        
+        Card lb1 = Card.builder().uid("lb1").name("LB1").value(1).type(CardType.PROPERTY).color("light_blue").build();
+        Card lb2 = Card.builder().uid("lb2").name("LB2").value(1).type(CardType.PROPERTY).color("light_blue").build();
+        
+        bot.getBank().add(money5M);
+        bot.getProperties().add(lb1);
+        bot.getProperties().add(lb2);
+        
+        List<Card> payment = botEngine.selectCardsForPayment(bot, 4);
+        
+        // Options:
+        // 1. Pay 5M Money (Loss 5M value, keep Set Progress)
+        // 2. Pay LB1 (Loss 1M value, break Set Progress) -> Total paid 1, need 3 more.
+        //    Must pay LB2 (Total 2) + 5M money? No...
+        //    If we pay LB1, remaining debt 3.
+        //    Must pay 5M money. Total paid 6M.
+        //    Total Loss: 1M (prop) + 5M (money) = 6M.
+        //    VS Pay 5M money only: Loss 5M.
+        // Minimization logic favors paying 5M money anyway.
+        
+        // Better Scenario: Debt 1M.
+        // Options:
+        // 1. Pay LB1 (Loss 1M). Keeps 5M Money.
+        // 2. Pay 5M Money (Loss 5M). Keeps LB1.
+        
+        // This tests "Weighting":
+        // LB1 is "Almost Set" -> Score 85.
+        // 5M Money -> Score 70.
+        // Bot should Keep LB1 (High Score) and Pay 5M (Low Score).
+        
+        payment = botEngine.selectCardsForPayment(bot, 1);
+        
+        assertEquals(1, payment.size());
+        assertEquals("5M", payment.get(0).getName(), "Should pay with 5M Money because Property is part of almost-complete set");
+    }
 
+    @Test
+    void testHierarchy_SacrificeJunkPropertyForCash() {
+        // Scenario: Debt 1M.
+        // Bot has:
+        // - 5M Money (Score 70)
+        // - Green Property (1/3) -> Single/Expendable (Score 45)
+        // Expect: Pay with Green Property to save the Cash.
+        
+        Card money5M = Card.builder().uid("m5").name("5M").value(5).type(CardType.MONEY).build();
+        Card green1 = Card.builder().uid("g1").name("Green").value(4).type(CardType.PROPERTY).color("green").build();
+        
+        bot.getBank().add(money5M);
+        bot.getProperties().add(green1);
+        
+        List<Card> payment = botEngine.selectCardsForPayment(bot, 1);
+        
+        assertEquals(1, payment.size());
+        assertEquals("Green", payment.get(0).getName(), "Should pay with expendable Property to save 5M Cash");
+    }
 }

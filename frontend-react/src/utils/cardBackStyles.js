@@ -4,27 +4,27 @@
  */
 
 export const CARD_BACK_STYLES = {
-  // Main gradient colors (Sophisticated Indigo/Blue)
-  gradient: 'from-indigo-600 via-blue-700 to-indigo-800',
+  // Main gradient colors (Standard Blue Deal Deck)
+  gradient: 'from-blue-500 to-blue-700',
   
-  // Border color (Clean indigo)
-  border: 'border-indigo-400',
+  // Border color (White to match deck)
+  border: 'border-white',
   
-  // Accent color (Premium Gold)
-  accent: '#fbbf24', // Amber 400
-  accentLight: '#fde68a', // Amber 200
+  // Accent color (White for text/logos)
+  accent: '#ffffff', 
+  accentLight: '#bfdbfe', // blue-200
   
-  // Pattern overlay (Subtle geometric pattern)
-  patternColor: 'rgba(251, 191, 36, 0.08)',
-  patternDots: 'radial-gradient(rgba(251, 191, 36, 0.15) 1px, transparent 1px)',
-  patternSize: '12px 12px',
+  // Pattern overlay (White dots)
+  patternColor: 'rgba(255, 255, 255, 0.1)',
+  patternDots: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 1.5px, transparent 1.5px)',
+  patternSize: '16px 16px',
   
   // Text colors
-  textPrimary: 'text-amber-300',
-  textSecondary: 'text-indigo-200',
+  textPrimary: 'text-white',
+  textSecondary: 'text-blue-100',
   
   // Shadow
-  shadow: 'shadow-2xl shadow-indigo-900/40',
+  shadow: 'shadow-lg shadow-blue-900/20',
 };
 
 export default CARD_BACK_STYLES;
