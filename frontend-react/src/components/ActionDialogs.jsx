@@ -8,10 +8,6 @@ import RentColorSelectionDialog from './RentColorSelectionDialog';
 // CARD ACTION DIALOG
 // ============================================================================
 
-// ============================================================================
-// CARD ACTION DIALOG
-// ============================================================================
-
 export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false, rentOptions = null }) => {
   if (!card) return null;
 
@@ -151,6 +147,13 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
 export const TargetSelectionDialog = ({ card, targetType, players, currentPlayerId, onSelect, onCancel }) => {
   if (!card) return null;
 
+  // New state for Forced Deal (Swap)
+  const [swapState, setSwapState] = React.useState({ 
+    myCardId: null, 
+    opponentId: null, 
+    opponentCardId: null 
+  });
+
   const getInstructions = () => {
     switch (targetType) {
       case 'PROPERTY':
@@ -166,7 +169,7 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
       case 'ALL_PLAYERS':
         return 'All players will pay you $2M';
       case 'PROPERTY_SWAP':
-        return 'Select a property to swap';
+        return 'Select one of YOUR properties and one OPPONENT property to swap.';
       default:
         return 'Select a target';
     }
@@ -192,6 +195,181 @@ export const TargetSelectionDialog = ({ card, targetType, players, currentPlayer
     });
   };
 
+  const currentPlayer = players.find(p => p.id === currentPlayerId);
+  const opponents = players.filter(p => p.id !== currentPlayerId);
+
+  // Helper to render property list for a player (used in Swap UI)
+  const renderProperties = (player, selectedId, onSelectCard, isMyProperty) => {
+     const playerSets = getPlayerSets(player);
+     
+     if (!player.properties || player.properties.length === 0) {
+        return <div className="text-xs text-slate-400 italic text-center py-4 col-span-2">No properties available</div>;
+     }
+     
+     return (
+       <>
+         {player.properties.map(prop => {
+            const propColor = prop.currentColor || prop.color;
+            const parentSet = playerSets.find(s => s.color === propColor);
+            // Cannot swap cards that are part of a completed set
+            const isProtected = parentSet?.isComplete; 
+            const isSelected = selectedId === prop.id;
+
+            return (
+              <button
+                key={prop.id}
+                onClick={() => !isProtected && onSelectCard(prop.id)}
+                disabled={isProtected}
+                className={`transform transition-all duration-200 rounded-lg relative group overflow-hidden ${
+                  isProtected 
+                    ? 'opacity-40 grayscale cursor-not-allowed' 
+                    : isSelected
+                      ? 'ring-4 ring-blue-500 scale-95 z-10 shadow-lg'
+                      : 'hover:scale-105 hover:z-10 cursor-pointer hover:shadow-md'
+                }`}
+              >
+                <div className={isSelected ? 'bg-blue-50/50 p-1 rounded h-full' : ''}>
+                    <Card card={prop} size="xs" enableHover={false} />
+                </div>
+                
+                {isProtected && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px]">
+                     <span className="bg-slate-900/90 text-white text-[9px] font-black px-2 py-1 rounded shadow-sm uppercase tracking-wider">Completed Set</span>
+                  </div>
+                )}
+                {isSelected && (
+                  <div className="absolute top-2 right-2 bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg z-20 border-2 border-white animate-in zoom-in">
+                    <span className="text-xs font-black">✓</span>
+                  </div>
+                )}
+              </button>
+            );
+         })}
+       </>
+     );
+  };
+
+  // =========================================================================
+  // SPECIAL UI FOR FORCED DEAL (SWAP)
+  // =========================================================================
+  if (targetType === 'PROPERTY_SWAP') {
+      return (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/20">
+              {/* Header */}
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                 <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
+                        <span className="text-2xl">🤝</span>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                           Forced Deal
+                        </h2>
+                        <p className="text-sm text-slate-500 font-bold">Select one of <span className="text-blue-600 underline decoration-2 underline-offset-2">your properties</span> and one from <span className="text-red-600 underline decoration-2 underline-offset-2">an opponent</span> to swap.</p>
+                    </div>
+                 </div>
+                 <button onClick={onCancel} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-700">
+                    <X size={24} />
+                 </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-hidden p-6 bg-slate-50/50">
+                 <div className="grid grid-cols-2 gap-8 h-full">
+                    
+                    {/* LEFT COLUMN: MY PROPERTIES */}
+                    <div className={`flex flex-col h-full overflow-hidden rounded-2xl border-2 transition-colors ${swapState.myCardId ? 'bg-blue-50/30 border-blue-200' : 'bg-white border-slate-200'} shadow-sm`}>
+                       <div className="p-4 border-b border-inherit sticky top-0 bg-inherit backdrop-blur-sm z-10">
+                           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center justify-between">
+                              <span className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                  Your Property
+                              </span>
+                              {swapState.myCardId ? (
+                                  <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-lg font-bold">SELECTED</span> 
+                              ) : (
+                                  <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-1 rounded-lg font-bold">CHOOSE ONE</span>
+                              )}
+                           </h3>
+                       </div>
+                       
+                       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              {renderProperties(currentPlayer, swapState.myCardId, (id) => setSwapState(s => ({...s, myCardId: id})), true)}
+                           </div>
+                       </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: OPPONENT PROPERTIES */}
+                    <div className={`flex flex-col h-full overflow-hidden rounded-2xl border-2 transition-colors ${swapState.opponentCardId ? 'bg-red-50/30 border-red-200' : 'bg-white border-slate-200'} shadow-sm`}>
+                       <div className="p-4 border-b border-inherit sticky top-0 bg-inherit backdrop-blur-sm z-10">
+                           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center justify-between">
+                              <span className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                  Opponent's Property
+                              </span>
+                               {swapState.opponentCardId ? (
+                                  <span className="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded-lg font-bold">SELECTED</span> 
+                              ) : (
+                                  <span className="bg-slate-100 text-slate-400 text-[10px] px-2 py-1 rounded-lg font-bold">CHOOSE ONE</span>
+                              )}
+                           </h3>
+                       </div>
+
+                       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
+                           {opponents.map(opp => (
+                             <div key={opp.id} className="relative">
+                                {/* Opponent Header */}
+                                <div className="flex items-center gap-2 mb-3 pl-1 sticky top-0 bg-inherit z-10">
+                                   <div className="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">{opp.name}</div>
+                                   <div className="h-px bg-slate-200 flex-1"></div>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {renderProperties(opp, swapState.opponentCardId, (id) => setSwapState(s => ({...s, opponentCardId: id, opponentId: opp.id})), false)}
+                                </div>
+                             </div>
+                           ))}
+                       </div>
+                    </div>
+
+                 </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-5 border-t border-slate-100 bg-white flex items-center justify-between shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                 <div className="text-xs text-slate-400 font-medium hidden sm:block">
+                    Completing this action uses 1 move.
+                 </div>
+                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                     <button onClick={onCancel} className="px-6 py-4 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors uppercase text-xs tracking-wider flex-1 sm:flex-none">
+                        Cancel Action
+                     </button>
+                     <button 
+                        onClick={() => onSelect({ 
+                           opponentId: swapState.opponentId, 
+                           opponentCardId: swapState.opponentCardId, 
+                           myCardId: swapState.myCardId 
+                        })}
+                        disabled={!swapState.myCardId || !swapState.opponentCardId}
+                        className={`px-8 py-4 rounded-xl font-black text-white shadow-lg transition-all uppercase tracking-wider text-xs flex justify-center items-center gap-2 flex-1 sm:flex-none ${
+                           (!swapState.myCardId || !swapState.opponentCardId) 
+                           ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                           : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:scale-105 hover:shadow-indigo-500/30'
+                        }`}
+                     >
+                        Confirm Swap
+                     </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      );
+  }
+
+  // =========================================================================
+  // STANDARD TARGET SELECTION (EXISTING)
+  // =========================================================================
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 max-h-[85vh] overflow-y-auto ring-1 ring-black/5 flex flex-col">

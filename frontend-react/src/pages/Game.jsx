@@ -286,13 +286,19 @@ const Game = () => {
         const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
         const destination = isBuilding ? 'PROPERTIES' : 'DISCARD';
         
+        // Handle Forced Deal specifically (Swap)
+        if (card.actionType === ACTION_TYPES.FORCED_DEAL) {
+           // For Forced Deal, we pass 'myCardId' as the destination param, as per useLocalGameState implementation
+           // The target object contains { myCardId, opponentId, opponentCardId }
+           localGame.playCard(card.id, target.myCardId, target.opponentId, target.opponentCardId);
+        }
         // For Debt Collector and Birthday, pass the targetPlayerId
-        if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR || card.actionType === ACTION_TYPES.BIRTHDAY) {
-          localGame.playCard(card.id, destination, target.playerId);
+        else if (card.actionType === ACTION_TYPES.DEBT_COLLECTOR || card.actionType === ACTION_TYPES.BIRTHDAY) {
+           localGame.playCard(card.id, destination, target.playerId);
         } else {
-          // Other actions (Sly Deal, Forced Deal, Deal Breaker, Rent, Buildings)
-          // For buildings/rent, target.cardId will be the UID of a property or a color string
-          localGame.playCard(card.id, destination, target.playerId, target.cardId);
+           // Other actions (Sly Deal, Deal Breaker, Rent, Buildings)
+           // For buildings/rent, target.cardId will be the UID of a property or a color string
+           localGame.playCard(card.id, destination, target.playerId, target.cardId);
         }
         
         gameActions.cancelAction();
@@ -471,7 +477,7 @@ const Game = () => {
                 onConfirm={handleCardActionConfirm}
                 onCancel={handleCardActionCancel}
                 onFlip={handleFlipConfirm}
-                isInHand={players.find(p => p.id === 'player-0')?.hand.some(c => c.id === selectedCard.id)}
+                isInHand={players.find(p => p.id === playerIdentity)?.hand.some(c => c.id === selectedCard.id)}
                 rentOptions={getRentOptions(selectedCard)}
               />
             ) : null
