@@ -57,7 +57,7 @@ const Game = () => {
     return null;
   };
 
-  const localGame = useLocalGameState(4, BOT_DIFFICULTY.MEDIUM, loadInitialState(), isLocalMultiplayer);
+  const localGame = useLocalGameState(4, BOT_DIFFICULTY.MEDIUM, loadInitialState(), isLocalMultiplayer, isSandbox);
 
   // Sync state if in local multiplayer mode
   useLocalMultiplayerSync(localGame, isLocalMultiplayer);
@@ -101,7 +101,7 @@ const Game = () => {
     // Check for excess cards before ending turn
     const currentPlayer = players.find(p => p.id === playerIdentity); 
 
-    if ((isBotGame || isLocalMultiplayer) && currentPlayer && currentPlayer.hand.length > 7) {
+    if ((isBotGame || isLocalMultiplayer) && currentPlayer && currentPlayer.hand.length > 7 && !isSandbox) {
       setShowDiscardDialog(true);
       return;
     }
@@ -233,15 +233,23 @@ const Game = () => {
        // temporary effective property calculation and persists the flip if needed.
        // This prevents duplicate log messages and race conditions.
 
+       let auxCardId = null;
+       if (action.useDoubleRent) {
+          const currentPlayer = players.find(p => p.id === playerIdentity);
+          const doubleRentCard = currentPlayer?.hand.find(c => c.actionType === ACTION_TYPES.DOUBLE_RENT);
+          if (doubleRentCard) auxCardId = doubleRentCard.id;
+       }
+
        if (isMultiplayer) {
           sendMove({
             type: 'PLAY_CARD', 
             cardId: selectedCard.id,
             actionType: 'RENT',
-            targetCardId: action.color
+            targetCardId: action.color,
+            auxiliaryCardId: auxCardId
           });
        } else {
-          localGame.playCard(selectedCard.id, 'DISCARD', null, action.color);
+          localGame.playCard(selectedCard.id, 'DISCARD', null, action.color, auxCardId);
        }
        setShowCardActionDialog(false);
        setSelectedCard(null);
@@ -440,6 +448,7 @@ const Game = () => {
           players={players}
           currentPlayerId={playerIdentity}
           currentTurnIndex={currentTurnIndex}
+          isSandbox={isSandbox}
           hasDrawnThisTurn={hasDrawnThisTurn}
           onDraw={handleDraw}
           onEndTurn={handleEndTurn}
@@ -460,6 +469,8 @@ const Game = () => {
                 onFlip={handleFlipConfirm}
                 isInHand={players.find(p => p.id === playerIdentity)?.hand.some(c => c.id === selectedCard.id)}
                 rentOptions={getRentOptions(selectedCard)}
+                hand={players.find(p => p.id === playerIdentity)?.hand}
+                movesLeft={movesLeft}
               />
             ) : null
           }

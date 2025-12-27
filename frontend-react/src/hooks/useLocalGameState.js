@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { generateOfficialDeck, shuffleDeck } from '../utils/deckGenerator';
+import { generateOfficialDeck, shuffleDeck, generateGodHand } from '../utils/deckGenerator';
 import { getSets, countCompleteSets } from '../utils/gameHelpers';
 import { CARD_TYPES, ACTION_TYPES, GAME_RULES, COLORS } from '../constants';
 import { createBot, BOT_DIFFICULTY } from '../ai/BotEngine';
@@ -10,7 +10,7 @@ import CARD_BACK_STYLES from '../utils/cardBackStyles';
  * Custom hook for managing local bot game state
  * This handles the full game logic without needing a backend
  */
-export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULTY.MEDIUM, initialState = null, isMultiplayer = false) => {
+export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULTY.MEDIUM, initialState = null, isMultiplayer = false, isSandbox = false) => {
   const [gameState, setGameState] = useState(initialState?.gameState || 'SETUP');
   const [deck, setDeck] = useState(initialState?.deck || []);
   const [discardPile, setDiscardPile] = useState(initialState?.discardPile || []);
@@ -142,6 +142,119 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       player.isHuman ? null : createBot(botDifficulty, idx, newPlayers)
     );
 
+    // SANDBOX MODE OVERRIDE
+    if (isSandbox) {
+       // 1. Extract God Hand from the ACTUAL deck to ensure no duplicates exist globally
+       const godHand = [];
+       const remainingDeck = [];
+       const seenCards = new Set();
+       
+       // Sort deck to ensure determinant order if needed, or just process as is
+       // We want one of every 'name' basically.
+       for (const card of newDeck) {
+          // Unique key: Name + ActionType (to distinguish generic rents vs specific ents if names coincide, though usually unique by name)
+          let takeIt = false;
+          const key = card.name;
+          
+          if (card.type === CARD_TYPES.PROPERTY) {
+             // For properties, ONLY take 1 per color to ensure bots have enough cards to play with
+             // Exception: If we haven't seen this property COLOR yet, take it.
+             // We use a separate set for colors to track this limit
+             const colorKey = card.color;
+             // Specific fix: We create a derived key for "Property-Color" so we don't mix it with generic seenCards (though seenCards uses names)
+             // We want to allow the first card of a color, reject subsequent ones
+             const propColorKey = `PROP_COLOR_${colorKey}`;
+             
+             if (!seenCards.has(propColorKey)) {
+                takeIt = true;
+                seenCards.add(propColorKey);
+             }
+          } else {
+             // For non-properties (Action, Rent, Money, Wilds), take unique names as before
+             if (!seenCards.has(key)) {
+                takeIt = true;
+                seenCards.add(key);
+             }
+          }
+
+          if (takeIt) {
+             godHand.push(card);
+          } else {
+             remainingDeck.push(card);
+          }
+       }
+       
+       // Assign God Hand to Player 0
+       newPlayers[0].hand = godHand;
+       
+       // Update the working deck for bot distribution
+       const workingDeck = remainingDeck;
+       let deckCursor = 0;
+       
+       // 2. Randomize Opponents using the REMAINING cards
+       newPlayers.forEach((player, idx) => {
+          if (idx === 0) return; // Skip player
+          
+          // Random Hand Size (0-7)
+          const randomHandSize = Math.floor(Math.random() * 8); // 0 to 7
+          player.hand = [];
+          for (let k=0; k<randomHandSize; k++) {
+             if (deckCursor < workingDeck.length) player.hand.push(workingDeck[deckCursor++]);
+          }
+
+          // Random Bank (Money Cards - Generated is fine as money is fungible/infinite conceptually, 
+          // but strictly speaking we could take from deck too. For now, generated money is closer to "infinite bank" feeling 
+          // without depleting the property deck)
+          const randomBankCount = Math.floor(Math.random() * 6); 
+          player.bank = [];
+          for (let k=0; k<randomBankCount; k++) {
+              const val = Math.floor(Math.random() * 5) + 1;
+              player.bank.push({ 
+                  id: `sandbox-bank-${idx}-${k}`,
+                  uid: Math.random().toString(36).substr(2, 9),
+                  type: CARD_TYPES.MONEY, 
+                  value: val, 
+                  name: `$${val}M`
+              });
+          }
+
+
+          // Random Properties (0-10 cards) from REMAINING deck
+          // We want to skew this higher now that we have more cards available
+          // Range: 4 to 10 cards to ensure they aren't "too little"
+          const randomPropCount = Math.floor(Math.random() * 7) + 4; 
+          player.properties = [];
+          
+          let propsFound = 0;
+          let searchIdx = deckCursor;
+          
+          // Scan ahead in workingDeck to find properties
+          while (propsFound < randomPropCount && searchIdx < workingDeck.length) {
+             const card = workingDeck[searchIdx];
+             if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD) {
+                // Swap found property to current cursor pos
+                if (searchIdx !== deckCursor) {
+                    [workingDeck[searchIdx], workingDeck[deckCursor]] = [workingDeck[deckCursor], workingDeck[searchIdx]];
+                }
+                player.properties.push(workingDeck[deckCursor]);
+                deckCursor++;
+                propsFound++;
+                searchIdx = deckCursor;
+             } else {
+                 searchIdx++;
+             }
+          }
+       });
+
+       // 3. Update the main deck state
+       // Remove the cards we just distributed to bots
+       workingDeck.splice(0, deckCursor);
+       
+       // Replace the main deck variable that will be set below
+       newDeck.length = 0; 
+       newDeck.push(...workingDeck);
+    }
+
     setDeck(newDeck);
     setPlayers(newPlayers);
     setCurrentTurnIndex(0);
@@ -263,8 +376,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
   /*
    * Play a card
    */
-  const playCard = useCallback((cardId, destination, targetPlayerId = null, targetCardId = null) => {
-    if (movesLeft <= 0) return;
+  const playCard = useCallback((cardId, destination, targetPlayerId = null, targetCardId = null, auxiliaryCardId = null) => {
+    if (movesLeft <= 0 && !isSandbox) return;
 
     // Get current player and card to determine action type
     const currentPlayer = players[currentTurnIndex];
@@ -272,6 +385,21 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
     
     const card = currentPlayer.hand.find(c => c.id === cardId);
     if (!card) return;
+
+    // Validate Auxiliary Card (Double Rent)
+    let auxiliaryCard = null;
+    let movesCost = 1;
+    if (auxiliaryCardId) {
+       const aux = currentPlayer.hand.find(c => c.id === auxiliaryCardId);
+       if (aux && aux.actionType === ACTION_TYPES.DOUBLE_RENT) {
+          if (movesLeft < 2) {
+             console.error("Not enough moves for Double Rent combo");
+             return;
+          }
+          auxiliaryCard = aux;
+          movesCost = 2;
+       }
+    }
 
     // VALIDATION: Property cards cannot be banked
     if (destination === 'BANK') {
@@ -282,7 +410,12 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           action: 'ERROR',
           message: 'Property cards cannot be banked!'
         });
-        setMovesLeft(m => m - 1); // Safety: Burn a move on invalid action to prevent bot loops
+        addLogEntry({
+          player: 'System',
+          action: 'ERROR',
+          message: 'Property cards cannot be banked!'
+        });
+        if (!isSandbox) setMovesLeft(m => m - 1); // Safety: Burn a move on invalid action to prevent bot loops
         return; 
       }
       // Houses and Hotels CAN be banked as money cards
@@ -321,7 +454,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           return newPlayers;
         });
         setDiscardPile(p => [...p, card]);
-        setMovesLeft(m => m - 1);
+        setDiscardPile(p => [...p, card]);
+        if (!isSandbox) setMovesLeft(m => m - 1);
         return;
       }
       
@@ -348,6 +482,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
           
           return;
         }
+
 
         if (targetPlayer.isHuman && availableCards.length === 0) {
           addLogEntry({
@@ -499,9 +634,9 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         rentAmount = set ? set.rent : 0;
       }
 
-      if (doubleRentActive) {
+      if (doubleRentActive || auxiliaryCard) {
         rentAmount *= 2;
-        setDoubleRentActive(false);
+        if (doubleRentActive) setDoubleRentActive(false);
       }
 
       if (rentAmount > 0) {
@@ -509,8 +644,8 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         const newPlayersState = [...players];
         const receiverIdx = currentTurnIndex;
         const receiver = { ...newPlayersState[receiverIdx] };
-        // FIX: Remove the played Rent card from hand
-        receiver.hand = receiver.hand.filter(c => c.id !== cardId);
+        // FIX: Remove the played Rent card (and auxiliary) from hand
+        receiver.hand = receiver.hand.filter(c => c.id !== cardId && c.id !== auxiliaryCardId);
         newPlayersState[receiverIdx] = receiver;
 
         const targetPlayers = targetPlayerId 
@@ -598,8 +733,16 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
         });
       }
 
-      setDiscardPile(p => [...p, card]);
-      setMovesLeft(m => m - 1);
+      setDiscardPile(p => auxiliaryCard ? [...p, card, auxiliaryCard] : [...p, card]);
+      setMovesLeft(m => m - movesCost);
+
+      // Log the specific combo if used
+      if (auxiliaryCard) {
+         addLogEntry({
+           player: charger.name, action: 'DOUBLE_RENT',
+           message: 'played Double Rent with Rent card', card: auxiliaryCard
+         });
+      }
       return;
     }
 
@@ -856,7 +999,7 @@ export const useLocalGameState = (playerCount = 4, botDifficulty = BOT_DIFFICULT
       message: logMessage
     });
 
-    setMovesLeft(m => m - 1);
+    if (!isSandbox) setMovesLeft(m => m - 1);
   }, [currentTurnIndex, movesLeft, deck, players]);
 
   /**

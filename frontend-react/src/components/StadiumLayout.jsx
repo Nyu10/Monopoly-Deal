@@ -23,10 +23,12 @@ const StadiumLayout = ({
   onEndTurn,
   movesLeft = 3,
   actionConfirmation = null,
-  matchLog = []
+  matchLog = [],
+  isSandbox = false
 }) => {
   // Determine if we should show mini card previews (usually if not too many players to clutter UI)
   const showMiniCardPreviews = false; // Disabled - using badge system (Option 1) instead
+  const [hoveredCard, setHoveredCard] = useState(null);
   // Filter out current player
   // Seating arrangement: Start with current player at index 0
   const [showRules, setShowRules] = useState(false);
@@ -48,7 +50,7 @@ const StadiumLayout = ({
     const centerX = 50; // Center X (%)
     const centerY = 50; // Center Y (%) - centered vertically, moved up from 58
     const radiusX = 38; // Horizontal radius (%) - moved slightly further out
-    const radiusY = 26; // Vertical radius (%) - reduced from 30 to keep bots higher
+    const radiusY = 22; // Vertical radius (%) - Reduced to pull top bot down from edge
     
     // Start from bottom and go clockwise
     // Angle in radians (π/2 = bottom)
@@ -73,7 +75,7 @@ const StadiumLayout = ({
     const centerX = 50;
     const centerY = 50; // Aligned with player info, moved up from 58
     const radiusX = 46; // Further out from center
-    const radiusY = 32; // Reduced from 36 to match the adjusted vertical positioning
+    const radiusY = 28; // Reduced to match new vertical positioning
     
     const startAngle = Math.PI / 2;
     const angleStep = (2 * Math.PI) / totalOpponents;
@@ -433,7 +435,7 @@ const StadiumLayout = ({
                     </span>
                   </div>
                 </div>
-                <div className="flex justify-center h-60 py-1 overflow-x-visible">
+                <div className="flex items-center h-60 py-4 overflow-x-auto px-12 pr-32 w-full scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
                   {currentPlayer.hand?.map((card, idx) => {
                     const handSize = currentPlayer.hand.length;
                     // Calculate overlap based on hand size
@@ -444,20 +446,22 @@ const StadiumLayout = ({
                     let marginLeft = '0px';
                     if (idx > 0) {
                       if (handSize <= 7) marginLeft = '-40px';
-                      else if (handSize === 8) marginLeft = '-50px';
-                      else if (handSize === 9) marginLeft = '-60px';
-                      else marginLeft = '-70px';
+                      else if (handSize <= 12) marginLeft = '-60px';
+                      else if (handSize <= 20) marginLeft = '-80px';
+                      else marginLeft = '-120px'; // Very tight for God Hand
                     }
                     
                     return (
                       <div 
                         key={card.uid || card.id || idx}
-                        className="transition-all duration-300 hover:-translate-y-20 hover:z-[100]"
+                        className={`transition-all duration-300 ${!isSandbox ? 'hover:-translate-y-20 hover:z-[100]' : ''}`}
                         style={{ 
                           zIndex: 50 + idx,
                           flexShrink: 0,
                           marginLeft: marginLeft
                         }}
+                        onMouseEnter={() => isSandbox && setHoveredCard(card)}
+                        onMouseLeave={() => isSandbox && setHoveredCard(null)}
                       >
                         <Card 
                           card={card} 
@@ -466,12 +470,29 @@ const StadiumLayout = ({
                             if (onCardClick) onCardClick(card);
                           }}
                           className="cursor-pointer shadow-2xl border-4 border-white hover:border-blue-500"
+                          enableHover={!isSandbox}
                         />
                       </div>
                     );
                   })}
                   {currentPlayer.hand?.length === 0 && (
                     <div className="text-slate-400 font-bold italic py-8 text-center w-full">Hand is empty - Draw cards to begin!</div>
+                  )}
+                  
+                  {/* SANDBOX HOVER TOOLTIP */}
+                  {isSandbox && hoveredCard && (
+                    <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
+                       <div className="flex flex-col items-center gap-2">
+                          {/* Card Name Label */}
+                          <div className="bg-slate-900/95 text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap shadow-xl backdrop-blur-sm border border-white/10">
+                             {hoveredCard.name}
+                          </div>
+                          {/* Card Preview */}
+                          <div className="bg-white p-2 rounded-2xl shadow-2xl ring-4 ring-blue-400/30">
+                             <Card card={hoveredCard} size="lg" enableHover={false} />
+                          </div>
+                       </div>
+                    </div>
                   )}
                 </div>
               </div>

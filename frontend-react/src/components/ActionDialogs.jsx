@@ -8,13 +8,26 @@ import RentColorSelectionDialog from './RentColorSelectionDialog';
 // CARD ACTION DIALOG
 // ============================================================================
 
-export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false, rentOptions = null }) => {
+export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand = false, rentOptions = null, hand = [], movesLeft = 0 }) => {
   if (!card) return null;
+
+  const [useDoubleRent, setUseDoubleRent] = React.useState(false);
 
   const isAction = card.type === CARD_TYPES.ACTION || card.type === CARD_TYPES.RENT || card.type === CARD_TYPES.RENT_WILD;
   const isProperty = card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.PROPERTY_WILD;
   const isMoney = card.type === CARD_TYPES.MONEY;
   const isBuilding = card.actionType === ACTION_TYPES.HOUSE || card.actionType === ACTION_TYPES.HOTEL;
+
+  // Double Rent Logic
+  const doubleRentCard = isInHand && hand.find(c => c.actionType === ACTION_TYPES.DOUBLE_RENT);
+  const canDouble = doubleRentCard && movesLeft >= 2;
+
+  // Reset toggle if invalid
+  React.useEffect(() => {
+     if (useDoubleRent && !canDouble) {
+         setUseDoubleRent(false);
+     }
+  }, [canDouble, useDoubleRent]);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
@@ -38,10 +51,47 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
           {/* RENT BUTTONS - Show specific color options if provided */}
           {card.type === CARD_TYPES.RENT && card.colors && rentOptions ? (
             <div className="space-y-2">
-              {rentOptions.map((option) => (
+              
+              {/* DOUBLE RENT TOGGLE */}
+              {doubleRentCard && (
+                  <div className={`mb-3 p-3 rounded-lg border-2 transition-all ${canDouble ? (useDoubleRent ? 'bg-purple-100 border-purple-400' : 'bg-purple-50 border-purple-200') : 'bg-slate-100 border-slate-200'}`}>
+                      <label className={`flex items-start gap-3 ${canDouble ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                          <div className="relative flex items-center mt-0.5">
+                            <input 
+                                type="checkbox" 
+                                checked={useDoubleRent} 
+                                onChange={(e) => canDouble && setUseDoubleRent(e.target.checked)}
+                                disabled={!canDouble}
+                                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-slate-300 transition-all checked:border-purple-600 checked:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100"
+                            />
+                            <svg className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity peer-checked:opacity-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          </div>
+                          
+                          <div className="flex-1">
+                              <div className={`text-sm font-black uppercase tracking-wider ${canDouble ? 'text-purple-900' : 'text-slate-500'}`}>
+                                  Double It!
+                              </div>
+                              <div className="text-[10px] font-bold text-slate-500 leading-tight mt-0.5">
+                                  {canDouble 
+                                    ? "Combine with 'Double The Rent'" 
+                                    : "Not enough moves (needs 2)"}
+                              </div>
+                              {canDouble && (
+                                <div className="text-[9px] text-purple-600 font-bold mt-1 bg-white/50 inline-block px-1.5 py-0.5 rounded">
+                                    Total Cost: 2 Moves
+                                </div>
+                              )}
+                          </div>
+                      </label>
+                  </div>
+              )}
+
+              {rentOptions.map((option) => {
+                const finalRent = useDoubleRent ? option.rent * 2 : option.rent;
+                return (
                 <button
                   key={option.color}
-                  onClick={() => onConfirm({ type: 'RENT', color: option.color, requiresFlip: option.requiresFlip })}
+                  onClick={() => onConfirm({ type: 'RENT', color: option.color, requiresFlip: option.requiresFlip, useDoubleRent })}
                   style={{
                     backgroundColor: COLORS[option.color]?.hex || '#2563eb',
                     color: COLORS[option.color]?.text || 'white'
@@ -56,11 +106,11 @@ export const CardActionDialog = ({ card, onConfirm, onCancel, onFlip, isInHand =
                       {option.requiresFlip ? 'Flip cards to this color & collect' : 'Collect on your properties'}
                     </span>
                   </div>
-                  <div className="bg-white/20 px-3 py-1 rounded-lg font-black font-mono">
-                    ${option.rent}M
+                  <div className={`px-3 py-1 rounded-lg font-black font-mono transition-transform ${useDoubleRent ? 'bg-purple-600 text-white scale-110 shadow-lg ring-2 ring-white/30' : 'bg-white/20'}`}>
+                    ${finalRent}M
                   </div>
                 </button>
-              ))}
+              )})}
             </div>
           ) : (
              /* STANDARD PLAY ACTION / PROPERTY BUTTON */
